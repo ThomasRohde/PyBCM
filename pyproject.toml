@@ -1,7 +1,21 @@
 [project]
 name = "pybcm"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+description = "A Business Capability Modeler built with Python and ttkbootstrap"
+authors = []
+dependencies = [
+    "ttkbootstrap>=1.10.1",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.0.0"
+]
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+bcm = "bcm:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bcm"]
