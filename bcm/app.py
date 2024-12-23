@@ -14,60 +14,50 @@ def create_dialog(
     default_result: bool = False,
     ok_only: bool = False
 ) -> bool:
-    """Create a generic dialog.
-    
-    Args:
-        parent: Parent window
-        title: Dialog title
-        message: Dialog message
-        default_result: Default result if dialog is closed
-        ok_only: If True, shows only an OK button
-        
-    Returns:
-        bool: True if user clicked Yes/OK, False otherwise
-    """
+    """Create a generic dialog."""
     dialog = ttk.Toplevel(parent)
     dialog.title(title)
-    dialog.geometry("300x150")
+    dialog.geometry("500x150")  # Increased width from 300 to 500
     dialog.position_center()
     
-    ttk.Label(
-        dialog,
+    # Remove window controls
+    dialog.resizable(False, False)
+    dialog.overrideredirect(True)
+    
+    # Create border frame
+    border_frame = ttk.Frame(dialog, borderwidth=1, relief="solid")
+    border_frame.pack(fill="both", expand=True, padx=2, pady=2)
+    
+    # Create content frame
+    frame = ttk.Frame(border_frame, padding=20)
+    frame.pack(fill="both", expand=True)
+    
+    msg_label = ttk.Label(
+        frame,
         text=message,
         justify="center",
-        padding=20
-    ).pack()
-    
-    btn_frame = ttk.Frame(dialog)
-    btn_frame.pack(pady=10)
+        wraplength=400  # Set wrap length to accommodate text
+    )
+    msg_label.pack(expand=True)
     
     dialog.result = default_result
     
     if ok_only:
-        def on_ok():
-            dialog.result = True
-            dialog.destroy()
-            
         ttk.Button(
-            btn_frame,
+            frame,
             text="OK",
-            command=on_ok,
+            command=lambda: [setattr(dialog, 'result', True), dialog.destroy()],
             style="primary.TButton",
             width=10
-        ).pack(side="left", padx=5)
+        ).pack(pady=(0, 10))
     else:
-        def on_yes():
-            dialog.result = True
-            dialog.destroy()
-            
-        def on_no():
-            dialog.result = False
-            dialog.destroy()
-            
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(pady=(0, 10))
+        
         ttk.Button(
             btn_frame,
             text="Yes",
-            command=on_yes,
+            command=lambda: [setattr(dialog, 'result', True), dialog.destroy()],
             style="danger.TButton",
             width=10
         ).pack(side="left", padx=5)
@@ -75,7 +65,7 @@ def create_dialog(
         ttk.Button(
             btn_frame,
             text="No",
-            command=on_no,
+            command=lambda: [setattr(dialog, 'result', False), dialog.destroy()],
             style="secondary.TButton",
             width=10
         ).pack(side="left", padx=5)
@@ -642,3 +632,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
