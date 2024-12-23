@@ -26,13 +26,12 @@ class Capability(Base):
         "Capability",
         remote_side=[id],
         back_populates="children",
-        cascade="all",
     )
     children = relationship(
         "Capability",
         back_populates="parent",
-        cascade="all, delete-orphan",
-        passive_deletes=True
+        cascade="all, delete",  # Changed from "all, delete-orphan"
+        passive_deletes=True,
     )
 
 class CapabilityCreate(BaseModel):

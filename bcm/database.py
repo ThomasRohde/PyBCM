@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
 
 class DatabaseOperations:
@@ -61,27 +61,27 @@ class DatabaseOperations:
     def delete_capability(self, capability_id: int) -> bool:
         """Delete a capability and its children."""
         try:
-            # Enable foreign key support for this session
+            print(f"Starting deletion of capability {capability_id}")
             self.session.execute(text("PRAGMA foreign_keys = ON"))
-            
-            # Get the capability
-            capability = self.session.get(Capability, capability_id)
-            if not capability:
-                print(f"No capability found with ID {capability_id}")
-                return False
-
-            print(f"Deleting capability {capability_id} with name: {capability.name}")
-            
-            # The cascade should handle children automatically
-            self.session.delete(capability)
             self.session.commit()
-            print(f"Successfully deleted capability {capability_id}")
+            
+            capability = self.get_capability(capability_id)
+            print(f"Found capability: {capability.name if capability else 'None'}")
+            
+            if not capability:
+                return False
+                
+            print(f"Children count: {len(capability.children)}")
+            self.session.delete(capability)
+            print("Deleted capability from session")
+            self.session.commit()
+            print("Committed deletion")
             return True
 
         except Exception as e:
             print(f"Error in delete_capability: {str(e)}")
             self.session.rollback()
-            return False
+            raise
 
     def update_capability_order(self, capability_id: int, new_parent_id: Optional[int], new_order: int) -> Optional[Capability]:
         """Update a capability's parent and order."""

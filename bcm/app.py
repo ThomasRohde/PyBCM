@@ -150,15 +150,54 @@ class CapabilityTreeview(ttk.Treeview):
             return
 
         capability_id = int(selected[0])
-        # Add debug print
         print(f"Attempting to delete capability ID: {capability_id}")
         
-        dialog = MessageDialog(
-            title="Delete Capability",
-            message="Are you sure you want to delete this capability and all its children?",
-            buttons=["Yes", "No"],
-        )
-        if dialog.show() == "Yes":
+        # Create a regular Toplevel dialog instead of MessageDialog
+        dialog = ttk.Toplevel(self)
+        dialog.title("Delete Capability")
+        dialog.geometry("300x150")
+        dialog.position_center()
+        
+        # Message
+        ttk.Label(
+            dialog,
+            text="Are you sure you want to delete this capability\nand all its children?",
+            justify="center",
+            padding=20
+        ).pack()
+        
+        # Buttons frame
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        def on_yes():
+            dialog.result = True
+            dialog.destroy()
+            
+        def on_no():
+            dialog.result = False
+            dialog.destroy()
+            
+        ttk.Button(
+            btn_frame,
+            text="Yes",
+            command=on_yes,
+            style="danger.TButton",
+            width=10
+        ).pack(side="left", padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="No",
+            command=on_no,
+            style="secondary.TButton",
+            width=10
+        ).pack(side="left", padx=5)
+        
+        dialog.result = False
+        dialog.wait_window()
+        
+        if dialog.result:
             try:
                 self.db_ops.delete_capability(capability_id)
                 print(f"Capability {capability_id} deleted successfully")
