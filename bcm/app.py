@@ -1,12 +1,87 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-from ttkbootstrap.dialogs import MessageDialog
+from ttkbootstrap.constants import END
 from typing import Optional
 from tkinter import filedialog
 import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
+
+def create_dialog(
+    parent,
+    title: str,
+    message: str,
+    default_result: bool = False,
+    ok_only: bool = False
+) -> bool:
+    """Create a generic dialog.
+    
+    Args:
+        parent: Parent window
+        title: Dialog title
+        message: Dialog message
+        default_result: Default result if dialog is closed
+        ok_only: If True, shows only an OK button
+        
+    Returns:
+        bool: True if user clicked Yes/OK, False otherwise
+    """
+    dialog = ttk.Toplevel(parent)
+    dialog.title(title)
+    dialog.geometry("300x150")
+    dialog.position_center()
+    
+    ttk.Label(
+        dialog,
+        text=message,
+        justify="center",
+        padding=20
+    ).pack()
+    
+    btn_frame = ttk.Frame(dialog)
+    btn_frame.pack(pady=10)
+    
+    dialog.result = default_result
+    
+    if ok_only:
+        def on_ok():
+            dialog.result = True
+            dialog.destroy()
+            
+        ttk.Button(
+            btn_frame,
+            text="OK",
+            command=on_ok,
+            style="primary.TButton",
+            width=10
+        ).pack(side="left", padx=5)
+    else:
+        def on_yes():
+            dialog.result = True
+            dialog.destroy()
+            
+        def on_no():
+            dialog.result = False
+            dialog.destroy()
+            
+        ttk.Button(
+            btn_frame,
+            text="Yes",
+            command=on_yes,
+            style="danger.TButton",
+            width=10
+        ).pack(side="left", padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="No",
+            command=on_no,
+            style="secondary.TButton",
+            width=10
+        ).pack(side="left", padx=5)
+    
+    dialog.wait_window()
+    return dialog.result
 
 class CapabilityDialog(ttk.Toplevel):
     def __init__(self, parent, db_ops: DatabaseOperations, capability=None, parent_id=None):
@@ -149,64 +224,24 @@ class CapabilityTreeview(ttk.Treeview):
 
         capability_id = int(selected[0])
         print(f"Attempting to delete capability ID: {capability_id}")
-        
-        # Create a regular Toplevel dialog instead of MessageDialog
-        dialog = ttk.Toplevel(self)
-        dialog.title("Delete Capability")
-        dialog.geometry("300x150")
-        dialog.position_center()
-        
-        # Message
-        ttk.Label(
-            dialog,
-            text="Are you sure you want to delete this capability\nand all its children?",
-            justify="center",
-            padding=20
-        ).pack()
-        
-        # Buttons frame
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        
-        def on_yes():
-            dialog.result = True
-            dialog.destroy()
-            
-        def on_no():
-            dialog.result = False
-            dialog.destroy()
-            
-        ttk.Button(
-            btn_frame,
-            text="Yes",
-            command=on_yes,
-            style="danger.TButton",
-            width=10
-        ).pack(side="left", padx=5)
-        
-        ttk.Button(
-            btn_frame,
-            text="No",
-            command=on_no,
-            style="secondary.TButton",
-            width=10
-        ).pack(side="left", padx=5)
-        
-        dialog.result = False
-        dialog.wait_window()
-        
-        if dialog.result:
+
+        if create_dialog(
+            self,
+            "Delete Capability",
+            "Are you sure you want to delete this capability\nand all its children?"
+        ):
             try:
                 self.db_ops.delete_capability(capability_id)
                 print(f"Capability {capability_id} deleted successfully")
                 self.refresh_tree()
             except Exception as e:
                 print(f"Error deleting capability: {e}")
-                MessageDialog(
-                    title="Error",
-                    message=f"Failed to delete capability: {str(e)}",
-                    buttons=["OK"],
-                ).show()
+                create_dialog(
+                    self,
+                    "Error",
+                    f"Failed to delete capability: {str(e)}",
+                    ok_only=True
+                )
 
     def refresh_tree(self):
         """Refresh the treeview with current data."""
@@ -396,18 +431,20 @@ class App:
             self.db_ops.import_capabilities(data)
             self.tree.refresh_tree()
             
-            MessageDialog(
-                title="Success",
-                message="Capabilities imported successfully",
-                buttons=["OK"]
-            ).show()
+            create_dialog(
+                self,
+                "Success",
+                "Capabilities imported successfully",
+                ok_only=True
+            )
             
         except Exception as e:
-            MessageDialog(
-                title="Error",
-                message=f"Failed to import capabilities: {str(e)}",
-                buttons=["OK"]
-            ).show()
+            create_dialog(
+                self,
+                "Error",
+                f"Failed to import capabilities: {str(e)}",
+                ok_only=True
+            )
 
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
@@ -424,18 +461,20 @@ class App:
             with open(filename, 'w') as f:
                 json.dump(data, f, indent=2)
             
-            MessageDialog(
-                title="Success",
-                message="Capabilities exported successfully",
-                buttons=["OK"]
-            ).show()
+            create_dialog(
+                self,
+                "Success",
+                "Capabilities exported successfully",
+                ok_only=True
+            )
             
         except Exception as e:
-            MessageDialog(
-                title="Error",
-                message=f"Failed to export capabilities: {str(e)}",
-                buttons=["OK"]
-            ).show()
+            create_dialog(
+                self,
+                "Error",
+                f"Failed to export capabilities: {str(e)}",
+                ok_only=True
+            )
 
     def _create_widgets(self):
         """Create main application widgets."""
@@ -571,11 +610,12 @@ class App:
         )
         
         self.db_ops.update_capability(capability_id, update_data)
-        MessageDialog(
-            title="Success",
-            message="Description saved successfully",
-            buttons=["OK"],
-        ).show()
+        create_dialog(
+            self,
+            "Success",
+            "Description saved successfully",
+            ok_only=True
+        )
 
     def _on_closing(self):
         """Handle application shutdown."""
