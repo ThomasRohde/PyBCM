@@ -19,6 +19,7 @@ def create_dialog(
 ) -> bool:
     """Create a generic dialog."""
     dialog = ttk.Toplevel(parent)
+    dialog.withdraw()  # Hide the window initially
     dialog.title(title)
     dialog.geometry("500x150")  # Increased width from 300 to 500
     dialog.position_center()
@@ -73,6 +74,7 @@ def create_dialog(
             width=10
         ).pack(side="left", padx=5)
     
+    dialog.deiconify()  # Show the window after positioning
     dialog.wait_window()
     return dialog.result
 
@@ -318,7 +320,7 @@ class App:
         self.root = ttk.Window(
             title="Business Capability Modeler",
             themename="litera",
-            size=(1200, 800)
+            size=(1600, 1000)
         )
         
         
@@ -387,6 +389,17 @@ class App:
             padding=3
         )
         ToolTip(self.collapse_btn, text="Collapse All")  # Fixed tooltip
+
+        # Add save button to toolbar
+        self.save_desc_btn = ttk.Button(
+            self.toolbar,
+            text="Save Description",
+            command=self._save_description,
+            style="primary.TButton",
+            state="disabled",
+            padding=3
+        )
+        ToolTip(self.save_desc_btn, text="Save capability description")
 
     def _expand_all(self):
         """Expand all items in the tree."""
@@ -479,7 +492,8 @@ class App:
 
     def _create_widgets(self):
         """Create main application widgets."""
-        self.main_container = ttk.Frame(self.root, padding=10)
+        # Create main paned window container
+        self.main_container = ttk.PanedWindow(self.root, orient="horizontal")
 
         # Create left panel for tree
         self.left_panel = ttk.Frame(self.main_container)
@@ -509,16 +523,6 @@ class App:
         # Create right panel for description
         self.right_panel = ttk.Frame(self.main_container)
         
-        # Create header frame for save button
-        self.desc_header = ttk.Frame(self.right_panel)
-        self.save_desc_btn = ttk.Button(
-            self.desc_header,
-            text="Save",
-            command=self._save_description,
-            style="primary.TButton",
-            state="disabled"
-        )
-        
         # Create text widget with scrollbar
         self.desc_text = ttk.Text(self.right_panel, wrap="word", width=40, height=20)
         self.desc_scroll = ttk.Scrollbar(
@@ -531,7 +535,7 @@ class App:
             if self.desc_text.yview() == (0.0, 1.0):
                 self.desc_scroll.pack_forget()
             else:
-                self.desc_scroll.pack(side="left", fill="y")
+                self.desc_scroll.pack(side="right", fill="y")
             self.desc_scroll.set(*args)
         
         self.desc_text.configure(yscrollcommand=desc_scroll_handler)
@@ -546,27 +550,24 @@ class App:
         self.toolbar.pack(fill="x", padx=10, pady=(5, 0))
         self.expand_btn.pack(side="left", padx=2)
         self.collapse_btn.pack(side="left", padx=2)
+        self.save_desc_btn.pack(side="right", padx=2)
         
         # Layout main container
-        self.main_container.pack(fill="both", expand=True)
+        self.main_container.pack(fill="both", expand=True, padx=10, pady=(5, 10))
         
         # Layout left panel
-        self.left_panel.pack(side="left", fill="both", expand=True)
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.tree_scroll.grid(row=0, column=1, sticky="ns")
         self.left_panel.columnconfigure(0, weight=1)
         self.left_panel.rowconfigure(0, weight=1)
 
         # Layout right panel
-        self.right_panel.pack(side="right", fill="both", padx=(10, 0))
-        
-        # Layout description header
-        self.desc_header.pack(fill="x", pady=(0, 5))
-        self.save_desc_btn.pack(side="right")
-        
-        # Layout description text area
         self.desc_text.pack(side="left", fill="both", expand=True)
-        self.desc_scroll.pack(side="left", fill="y")
+        self.desc_scroll.pack(side="right", fill="y")
+        
+        # Add panels to PanedWindow
+        self.main_container.add(self.left_panel, weight=1)
+        self.main_container.add(self.right_panel, weight=1)
         
         # Initially hide scrollbars
         if self.tree.yview() == (0.0, 1.0):
