@@ -1,7 +1,7 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import END
 from ttkbootstrap.tooltip import ToolTip  # Add this import
-from typing import Optional
+from typing import Optional, List  # Add List to imports
 from tkinter import filedialog
 import json
 from ttkbootstrap.constants import *  # Add this import at the top with other imports
@@ -21,8 +21,6 @@ def create_dialog(
     dialog = ttk.Toplevel(parent)
     dialog.withdraw()  # Hide the window initially
     dialog.title(title)
-    dialog.geometry("500x150")  # Increased width from 300 to 500
-    dialog.position_center()
     
     # Remove window controls
     dialog.resizable(False, False)
@@ -62,7 +60,7 @@ def create_dialog(
             btn_frame,
             text="Yes",
             command=lambda: [setattr(dialog, 'result', True), dialog.destroy()],
-            style="danger.TButton",
+            style="primary.TButton",  # Changed from danger to primary
             width=10
         ).pack(side="left", padx=5)
         
@@ -74,7 +72,20 @@ def create_dialog(
             width=10
         ).pack(side="left", padx=5)
     
-    dialog.deiconify()  # Show the window after positioning
+    # Show the window and adjust size to content
+    dialog.deiconify()
+    
+    # Update dialog to calculate required size
+    dialog.update_idletasks()
+    
+    # Get required size
+    width = max(400, frame.winfo_reqwidth() + 44)  # Add padding
+    height = frame.winfo_reqheight() + 44  # Add padding
+    
+    # Set size and center
+    dialog.geometry(f"{width}x{height}")
+    dialog.position_center()
+    
     dialog.wait_window()
     return dialog.result
 
@@ -386,10 +397,26 @@ class App:
             label="Edit",
             command=lambda: self.tree.edit_capability()
         )
+        self.edit_menu.add_command(
+            label="Expand",
+            command=self._expand_capability
+        )
 
     def _create_toolbar(self):
         """Create toolbar with expand/collapse buttons."""
         self.toolbar = ttk.Frame(self.root)
+        
+        # Add expand capability button
+        self.expand_cap_btn = ttk.Button(
+            self.toolbar,
+            text="✨",  # Sparkles emoji for AI expansion
+            command=self._expand_capability,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.expand_cap_btn, text="AI Expand Capability")
         
         # Expand All button with icon
         self.expand_btn = ttk.Button(
@@ -425,6 +452,11 @@ class App:
             padding=3
         )
         ToolTip(self.save_desc_btn, text="Save capability description")
+
+        self.expand_btn.pack(side="left", padx=2)
+        self.collapse_btn.pack(side="left", padx=2)
+        self.expand_cap_btn.pack(side="left", padx=2)
+        self.save_desc_btn.pack(side="right", padx=2)
 
     def _expand_all(self):
         """Expand all items in the tree."""
@@ -649,6 +681,125 @@ class App:
             "Description saved successfully",
             ok_only=True
         )
+
+    def _get_capability_context(self, capability_id: int) -> str:
+        """Get context information for AI expansion."""
+        capability = self.db_ops.get_capability(capability_id)
+        if not capability:
+            return ""
+
+        context_parts = []
+
+        # Add parent context
+        if capability.parent_id:
+            parent = self.db_ops.get_capability(capability.parent_id)
+            if parent:
+                context_parts.append(f"Parent capability: {parent.name}")
+                if parent.description:
+                    context_parts.append(f"Parent description: {parent.description}\n")
+
+        # Add sibling context
+        siblings = self.db_ops.get_capabilities(capability.parent_id)
+        if siblings:
+            context_parts.append("Related capabilities:")
+            for sibling in siblings:
+                if sibling.id != capability_id:  # Exclude the current capability
+                    context_parts.append(f"- {sibling.name}")
+                    if sibling.description:
+                        context_parts.append(f"  Description: {sibling.description}")
+
+        # Add current capability
+        context_parts.append(f"\nCurrent capability: {capability.name}")
+        if capability.description:
+            context_parts.append(f"Current description: {capability.description}")
+
+        return "\n".join(context_parts)
+
+    async def _expand_capability_async(self, context: str, capability_name: str) -> List[str]:
+        """Use PydanticAI to expand a capability into sub-capabilities."""
+        from pydantic_ai import Agent
+        from pydantic import BaseModel, Field
+        from typing import List
+
+        class CapabilityExpansion(BaseModel):
+            subcapabilities: List[str] = Field(
+                description="List of sub-capability names that would logically extend the given capability"
+            )
+
+        agent = Agent(
+            'openai:gpt-4o-mini',
+            system_prompt=(
+                "You are a business capability modeling expert. "
+                "Analyze the context and suggest logical sub-capabilities "
+                "that would extend and detail the current capability. "
+                "Be specific and business-oriented."
+            ),
+            result_type=CapabilityExpansion
+        )
+
+        prompt = (
+            f"Based on the following context, suggest sub-capabilities for '{capability_name}':"
+            f"\n\n{context}"
+            "\n\nProvide specific, business-oriented sub-capabilities that would "
+            "logically extend this capability."
+        )
+
+        result = await agent.run(prompt)
+        return result.data.subcapabilities
+
+    def _expand_capability(self):
+        """Expand the selected capability using AI."""
+        import asyncio
+        
+        selected = self.tree.selection()
+        if not selected:
+            create_dialog(
+                self.root,
+                "Error",
+                "Please select a capability to expand",
+                ok_only=True
+            )
+            return
+
+        capability_id = int(selected[0])
+        capability = self.db_ops.get_capability(capability_id)
+        if not capability:
+            return
+
+        try:
+            # Get context
+            context = self._get_capability_context(capability_id)
+            
+            # Run async expansion in a way that works with tkinter
+            async def expand():
+                return await self._expand_capability_async(context, capability.name)
+
+            subcapabilities = asyncio.run(expand())
+
+            # Confirm with user - explicitly set ok_only=False to show Yes/No buttons
+            subcap_list = "\n".join(f"- {cap}" for cap in subcapabilities)
+            if create_dialog(
+                self.root,
+                "Confirm Expansion",
+                f"Add these sub-capabilities?\n\n{subcap_list}",
+                ok_only=False,  # Explicitly set to False to show Yes/No buttons
+                default_result=False  # Default to No for safety
+            ):
+                # Create sub-capabilities
+                for name in subcapabilities:
+                    self.db_ops.create_capability(CapabilityCreate(
+                        name=name,
+                        parent_id=capability_id
+                    ))
+                self.tree.refresh_tree()
+                
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error",
+                f"Failed to expand capability: {str(e)}",
+                ok_only=True
+            )
 
     def _on_closing(self):
         """Handle application shutdown."""
