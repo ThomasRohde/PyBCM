@@ -88,12 +88,10 @@ class CapabilityTreeview(ttk.Treeview):
         self.db_ops = db_ops
         self.drag_source: Optional[str] = None
 
-        # Configure treeview
-        self["columns"] = ("description",)
+        # Configure treeview with single column
+        self["columns"] = ()  # Remove description column
         self.heading("#0", text="Capability")
-        self.heading("description", text="Description")
         self.column("#0", width=300)
-        self.column("description", width=400)
 
         # Create context menu
         self.context_menu = ttk.Menu(self, tearoff=0)
@@ -234,7 +232,6 @@ class CapabilityTreeview(ttk.Treeview):
                         END,
                         iid=item_id,
                         text=cap.name,
-                        values=(cap.description or "",),
                         open=True
                     )
                     self._load_capabilities(item_id, cap.id)
@@ -304,6 +301,8 @@ class App:
         self.db = next(get_db())
         self.db_ops = DatabaseOperations(self.db)
 
+        self.current_description = ""  # Add this to track changes
+
         self._create_menu()
         self._create_widgets()
         self._create_layout()
@@ -327,27 +326,141 @@ class App:
         """Create main application widgets."""
         self.main_container = ttk.Frame(self.root, padding=10)
 
+        # Create left panel for tree
+        self.left_panel = ttk.Frame(self.main_container)
+        
         self.tree = CapabilityTreeview(
-            self.main_container,
+            self.left_panel,
             self.db_ops,
-            show="tree headings",
+            show="tree",
             selectmode="browse"
         )
 
         self.tree_scroll = ttk.Scrollbar(
-            self.main_container,
+            self.left_panel,
             orient="vertical",
             command=self.tree.yview
         )
-        self.tree.configure(yscrollcommand=self.tree_scroll.set)
+        
+        def tree_scroll_handler(*args):
+            if self.tree.yview() == (0.0, 1.0):
+                self.tree_scroll.grid_remove()
+            else:
+                self.tree_scroll.grid()
+            self.tree_scroll.set(*args)
+        
+        self.tree.configure(yscrollcommand=tree_scroll_handler)
+        
+        # Create right panel for description
+        self.right_panel = ttk.Frame(self.main_container)
+        
+        # Create header frame for save button
+        self.desc_header = ttk.Frame(self.right_panel)
+        self.save_desc_btn = ttk.Button(
+            self.desc_header,
+            text="Save",
+            command=self._save_description,
+            style="primary.TButton",
+            state="disabled"
+        )
+        
+        # Create text widget with scrollbar
+        self.desc_text = ttk.Text(self.right_panel, wrap="word", width=40, height=20)
+        self.desc_scroll = ttk.Scrollbar(
+            self.right_panel,
+            orient="vertical",
+            command=self.desc_text.yview
+        )
+        
+        def desc_scroll_handler(*args):
+            if self.desc_text.yview() == (0.0, 1.0):
+                self.desc_scroll.pack_forget()
+            else:
+                self.desc_scroll.pack(side="left", fill="y")
+            self.desc_scroll.set(*args)
+        
+        self.desc_text.configure(yscrollcommand=desc_scroll_handler)
+        
+        # Bind events
+        self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
+        self.desc_text.bind('<<Modified>>', self._on_text_modified)
 
     def _create_layout(self):
         """Create main application layout."""
         self.main_container.pack(fill="both", expand=True)
-        self.tree.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        
+        # Layout left panel
+        self.left_panel.pack(side="left", fill="both", expand=True)
+        self.tree.grid(row=0, column=0, sticky="nsew")
         self.tree_scroll.grid(row=0, column=1, sticky="ns")
-        self.main_container.columnconfigure(0, weight=1)
-        self.main_container.rowconfigure(0, weight=1)
+        self.left_panel.columnconfigure(0, weight=1)
+        self.left_panel.rowconfigure(0, weight=1)
+
+        # Layout right panel
+        self.right_panel.pack(side="right", fill="both", padx=(10, 0))
+        
+        # Layout description header
+        self.desc_header.pack(fill="x", pady=(0, 5))
+        self.save_desc_btn.pack(side="right")
+        
+        # Layout description text area
+        self.desc_text.pack(side="left", fill="both", expand=True)
+        self.desc_scroll.pack(side="left", fill="y")
+        
+        # Initially hide scrollbars
+        if self.tree.yview() == (0.0, 1.0):
+            self.tree_scroll.grid_remove()
+        
+        if self.desc_text.yview() == (0.0, 1.0):
+            self.desc_scroll.pack_forget()
+
+    def _on_text_modified(self, event):
+        """Handle text modifications."""
+        if self.desc_text.edit_modified():
+            current_text = self.desc_text.get('1.0', 'end-1c')
+            self.save_desc_btn.configure(
+                state="normal" if current_text != self.current_description else "disabled"
+            )
+            self.desc_text.edit_modified(False)
+
+    def _on_tree_select(self, event):
+        """Handle tree selection event."""
+        selected = self.tree.selection()
+        if not selected:
+            self.desc_text.delete('1.0', 'end')
+            self.save_desc_btn.configure(state="disabled")
+            self.current_description = ""
+            return
+
+        capability_id = int(selected[0])
+        capability = self.db_ops.get_capability(capability_id)
+        if capability:
+            self.current_description = capability.description or ""
+            self.desc_text.delete('1.0', 'end')
+            self.desc_text.insert('1.0', self.current_description)
+            self.desc_text.edit_modified(False)
+            self.save_desc_btn.configure(state="disabled")
+
+    def _save_description(self):
+        """Save the current description to the database."""
+        selected = self.tree.selection()
+        if not selected:
+            return
+
+        capability_id = int(selected[0])
+        description = self.desc_text.get('1.0', 'end-1c')
+        
+        update_data = CapabilityUpdate(
+            name=self.db_ops.get_capability(capability_id).name,
+            description=description
+        )
+        
+        self.db_ops.update_capability(capability_id, update_data)
+        MessageDialog(
+            title="Success",
+            message="Description saved successfully",
+            buttons=["OK"],
+        ).show()
 
     def _on_closing(self):
         """Handle application shutdown."""
