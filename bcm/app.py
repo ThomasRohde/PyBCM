@@ -158,6 +158,7 @@ class CapabilityTreeview(ttk.Treeview):
         super().__init__(master, **kwargs)
         self.db_ops = db_ops
         self.drag_source: Optional[str] = None
+        self.drop_target: Optional[str] = None
 
         # Configure treeview with single column
         self["columns"] = ()  # Remove description column
@@ -178,6 +179,22 @@ class CapabilityTreeview(ttk.Treeview):
         self.bind("<Button-3>", self.show_context_menu)
         
         self.refresh_tree()
+
+        # Configure drop target style
+        self.tag_configure('drop_target', background='lightblue')
+
+    def _clear_drop_mark(self):
+        """Clear any existing drop mark."""
+        if self.drop_target:
+            self.tag_remove('drop_target', self.drop_target)
+            self.drop_target = None
+
+    def _set_drop_target(self, target: str):
+        """Set the current drop target with visual feedback."""
+        if target != self.drop_target and target != self.drag_source:
+            self._clear_drop_mark()
+            self.drop_target = target
+            self.tag_add('drop_target', target)
 
     def show_context_menu(self, event):
         item = self.identify_row(event.y)
@@ -271,15 +288,23 @@ class CapabilityTreeview(ttk.Treeview):
 
     def on_click(self, event):
         """Handle mouse click event."""
+        self._clear_drop_mark()  # Clear any existing drop mark
         self.drag_source = self.identify_row(event.y)
 
     def on_drag(self, event):
         """Handle drag event."""
         if self.drag_source:
             self.configure(cursor="fleur")
+            # Update drop target visual feedback
+            target = self.identify_row(event.y)
+            if target and target != self.drag_source:
+                self._set_drop_target(target)
+            else:
+                self._clear_drop_mark()
 
     def on_drop(self, event):
         """Handle drop event."""
+        self._clear_drop_mark()  # Clear drop mark
         if not self.drag_source:
             return
 
