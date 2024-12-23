@@ -370,67 +370,26 @@ class App:
                 data = json.load(f)
             
             # Confirm import
-            dialog = ttk.Toplevel(self.root)
-            dialog.title("Confirm Import")
-            dialog.geometry("300x150")
-            dialog.position_center()
-            
-            ttk.Label(
-                dialog,
-                text="This will replace all existing capabilities. Continue?",
-                justify="center",
-                padding=20
-            ).pack()
-            
-            btn_frame = ttk.Frame(dialog)
-            btn_frame.pack(pady=10)
-            
-            dialog.result = False
-            
-            def on_yes():
-                dialog.result = True
-                dialog.destroy()
+            if create_dialog(
+                self.root,
+                "Confirm Import",
+                "This will replace all existing capabilities. Continue?"
+            ):
+                # Clear existing capabilities and import new ones
+                self.db_ops.clear_all_capabilities()
+                self.db_ops.import_capabilities(data)
+                self.tree.refresh_tree()
                 
-            def on_no():
-                dialog.result = False
-                dialog.destroy()
+                create_dialog(
+                    self.root,
+                    "Success",
+                    "Capabilities imported successfully",
+                    ok_only=True
+                )
                 
-            ttk.Button(
-                btn_frame,
-                text="Yes",
-                command=on_yes,
-                style="danger.TButton",
-                width=10
-            ).pack(side="left", padx=5)
-            
-            ttk.Button(
-                btn_frame,
-                text="No",
-                command=on_no,
-                style="secondary.TButton",
-                width=10
-            ).pack(side="left", padx=5)
-            
-            dialog.wait_window()
-            
-            if not dialog.result:
-                return
-
-            # Clear existing capabilities and import new ones
-            self.db_ops.clear_all_capabilities()
-            self.db_ops.import_capabilities(data)
-            self.tree.refresh_tree()
-            
-            create_dialog(
-                self,
-                "Success",
-                "Capabilities imported successfully",
-                ok_only=True
-            )
-            
         except Exception as e:
             create_dialog(
-                self,
+                self.root,
                 "Error",
                 f"Failed to import capabilities: {str(e)}",
                 ok_only=True
