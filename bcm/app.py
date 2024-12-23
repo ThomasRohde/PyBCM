@@ -1,8 +1,11 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import END
+from ttkbootstrap.tooltip import ToolTip  # Add this import
 from typing import Optional
 from tkinter import filedialog
 import json
+from ttkbootstrap.constants import *  # Add this import at the top with other imports
+from ttkbootstrap.icons import Emoji  # Add this import at the top with other imports
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
@@ -330,6 +333,7 @@ class App:
         self.current_description = ""  # Add this to track changes
 
         self._create_menu()
+        self._create_toolbar()  # Add this line
         self._create_widgets()
         self._create_layout()
         self.root.position_center()
@@ -355,6 +359,54 @@ class App:
             label="Edit",
             command=lambda: self.tree.edit_capability()
         )
+
+    def _create_toolbar(self):
+        """Create toolbar with expand/collapse buttons."""
+        self.toolbar = ttk.Frame(self.root)
+        
+        # Expand All button with icon
+        self.expand_btn = ttk.Button(
+            self.toolbar,
+            text="⬇",  # Unicode down arrow
+            command=self._expand_all,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.expand_btn, text="Expand All")  # Fixed tooltip
+        
+        # Collapse All button with icon
+        self.collapse_btn = ttk.Button(
+            self.toolbar,
+            text="⬆",  # Unicode up arrow
+            command=self._collapse_all,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.collapse_btn, text="Collapse All")  # Fixed tooltip
+
+    def _expand_all(self):
+        """Expand all items in the tree."""
+        def expand_recursive(item):
+            self.tree.item(item, open=True)
+            for child in self.tree.get_children(item):
+                expand_recursive(child)
+
+        for item in self.tree.get_children():
+            expand_recursive(item)
+
+    def _collapse_all(self):
+        """Collapse all items in the tree."""
+        def collapse_recursive(item):
+            self.tree.item(item, open=False)
+            for child in self.tree.get_children(item):
+                collapse_recursive(child)
+
+        for item in self.tree.get_children():
+            collapse_recursive(item)
 
     def _import_capabilities(self):
         """Import capabilities from JSON file."""
@@ -490,6 +542,12 @@ class App:
 
     def _create_layout(self):
         """Create main application layout."""
+        # Layout toolbar
+        self.toolbar.pack(fill="x", padx=10, pady=(5, 0))
+        self.expand_btn.pack(side="left", padx=2)
+        self.collapse_btn.pack(side="left", padx=2)
+        
+        # Layout main container
         self.main_container.pack(fill="both", expand=True)
         
         # Layout left panel
