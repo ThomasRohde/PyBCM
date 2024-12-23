@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, List
+from pydantic import BaseModel, Field, RootModel
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, create_engine, text
 from sqlalchemy.orm import declarative_base, relationship, Session, sessionmaker
 import sqlite3
@@ -58,6 +58,16 @@ class CapabilityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CapabilityExport(BaseModel):
+    id: str  # UUID string
+    name: str
+    capability: int = 0
+    description: str = ""
+    parent: Optional[str] = None  # Can be string ID or null
+
+# Use RootModel instead of __root__
+CapabilityExportList = RootModel[List[CapabilityExport]]
 
 # Database setup
 def get_db_path():

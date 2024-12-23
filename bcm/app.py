@@ -1,8 +1,9 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import MessageDialog
-from sqlalchemy.orm import Session
 from typing import Optional
+from tkinter import filedialog
+import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
@@ -313,6 +314,14 @@ class App:
         self.menubar = ttk.Menu(self.root)
         self.root.config(menu=self.menubar)
 
+        # File menu
+        self.file_menu = ttk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Import...", command=self._import_capabilities)
+        self.file_menu.add_command(label="Export...", command=self._export_capabilities)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Exit", command=self._on_closing)
+
         # Edit menu
         self.edit_menu = ttk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Edit", menu=self.edit_menu)
@@ -321,6 +330,112 @@ class App:
             label="Edit",
             command=lambda: self.tree.edit_capability()
         )
+
+    def _import_capabilities(self):
+        """Import capabilities from JSON file."""
+        filename = filedialog.askopenfilename(
+            title="Import Capabilities",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not filename:
+            return
+
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)
+            
+            # Confirm import
+            dialog = ttk.Toplevel(self.root)
+            dialog.title("Confirm Import")
+            dialog.geometry("300x150")
+            dialog.position_center()
+            
+            ttk.Label(
+                dialog,
+                text="This will replace all existing capabilities. Continue?",
+                justify="center",
+                padding=20
+            ).pack()
+            
+            btn_frame = ttk.Frame(dialog)
+            btn_frame.pack(pady=10)
+            
+            dialog.result = False
+            
+            def on_yes():
+                dialog.result = True
+                dialog.destroy()
+                
+            def on_no():
+                dialog.result = False
+                dialog.destroy()
+                
+            ttk.Button(
+                btn_frame,
+                text="Yes",
+                command=on_yes,
+                style="danger.TButton",
+                width=10
+            ).pack(side="left", padx=5)
+            
+            ttk.Button(
+                btn_frame,
+                text="No",
+                command=on_no,
+                style="secondary.TButton",
+                width=10
+            ).pack(side="left", padx=5)
+            
+            dialog.wait_window()
+            
+            if not dialog.result:
+                return
+
+            # Clear existing capabilities and import new ones
+            self.db_ops.clear_all_capabilities()
+            self.db_ops.import_capabilities(data)
+            self.tree.refresh_tree()
+            
+            MessageDialog(
+                title="Success",
+                message="Capabilities imported successfully",
+                buttons=["OK"]
+            ).show()
+            
+        except Exception as e:
+            MessageDialog(
+                title="Error",
+                message=f"Failed to import capabilities: {str(e)}",
+                buttons=["OK"]
+            ).show()
+
+    def _export_capabilities(self):
+        """Export capabilities to JSON file."""
+        filename = filedialog.asksaveasfilename(
+            title="Export Capabilities",
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not filename:
+            return
+
+        try:
+            data = self.db_ops.export_capabilities()
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+            MessageDialog(
+                title="Success",
+                message="Capabilities exported successfully",
+                buttons=["OK"]
+            ).show()
+            
+        except Exception as e:
+            MessageDialog(
+                title="Error",
+                message=f"Failed to export capabilities: {str(e)}",
+                buttons=["OK"]
+            ).show()
 
     def _create_widgets(self):
         """Create main application widgets."""

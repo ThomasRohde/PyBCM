@@ -2,6 +2,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, text
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
+import json
+from uuid import uuid4
 
 class DatabaseOperations:
     def __init__(self, session: Session):
@@ -41,8 +43,25 @@ class DatabaseOperations:
             ).order_by(Capability.order_position)
             return query.all()
         except Exception as e:
-            print(f"Error in get_capabilities: {e}")
-            return []
+            raise e
+
+    def get_all_capabilities(self) -> List[dict]:
+        """Get all capabilities in a hierarchical structure."""
+        def build_hierarchy(parent_id: Optional[int] = None) -> List[dict]:
+            capabilities = self.get_capabilities(parent_id)
+            result = []
+            for cap in capabilities:
+                cap_dict = {
+                    "id": cap.id,
+                    "name": cap.name,
+                    "description": cap.description,
+                    "order_position": cap.order_position,
+                    "children": build_hierarchy(cap.id)
+                }
+                result.append(cap_dict)
+            return result
+        
+        return build_hierarchy()
 
     def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
         """Update a capability."""
@@ -136,3 +155,98 @@ class DatabaseOperations:
         self.session.commit()
         self.session.refresh(db_capability)
         return db_capability
+
+    def export_capabilities(self) -> List[dict]:
+        """Export all capabilities in the external format."""
+        # Get all capabilities without hierarchy
+        stmt = select(Capability).order_by(Capability.order_position)
+        capabilities = self.session.execute(stmt).scalars().all()
+        export_data = []
+        
+        # First create mapping of DB IDs to new UUIDs
+        id_mapping = {cap.id: str(uuid4()) for cap in capabilities}
+        
+        # Then create export data with correct parent references
+        for cap in capabilities:
+            export_data.append({
+                "id": id_mapping[cap.id],  # Use mapped UUID
+                "name": cap.name,
+                "capability": 0,
+                "description": cap.description or "",
+                "parent": id_mapping.get(cap.parent_id) if cap.parent_id else None  # Map parent ID to UUID
+            })
+            
+        return export_data
+
+    def clear_all_capabilities(self) -> None:
+        """Clear all capabilities from the database."""
+        try:
+            print("Clearing all existing capabilities")
+            self.session.query(Capability).delete()
+            self.session.commit()
+            print("Successfully cleared all capabilities")
+        except Exception as e:
+            print(f"Error clearing capabilities: {e}")
+            self.session.rollback()
+            raise
+
+    def import_capabilities(self, data: List[dict]) -> None:
+        """Import capabilities from external format."""
+        if not data:
+            print("No data received for import")
+            return
+
+        print(f"Starting import of {len(data)} capabilities")
+        
+        try:
+            # Start transaction
+            self.session.begin()
+            
+            # Clear existing capabilities
+            print("Clearing existing capabilities")
+            self.clear_all_capabilities()
+            
+            # Create mapping of external IDs to new database IDs
+            id_mapping = {}
+            
+            # First pass: Create all capabilities without parents
+            for item in data:
+                try:
+                    print(f"Creating capability: {item['name']}")
+                    cap = CapabilityCreate(
+                        name=item["name"],
+                        description=item.get("description", ""),
+                        parent_id=None
+                    )
+                    db_capability = self.create_capability(cap)
+                    id_mapping[item["id"]] = db_capability.id
+                    print(f"Created capability with ID: {db_capability.id}")
+                except Exception as e:
+                    print(f"Error creating capability {item.get('name')}: {e}")
+                    raise
+            
+            # Second pass: Update parent relationships
+            for item in data:
+                try:
+                    if item.get("parent"):
+                        capability_id = id_mapping.get(item["id"])
+                        parent_id = id_mapping.get(item["parent"])
+                        print(f"Updating parent relationship: {capability_id} -> {parent_id}")
+                        
+                        if capability_id and parent_id:
+                            capability = self.get_capability(capability_id)
+                            if capability:
+                                capability.parent_id = parent_id
+                                print(f"Updated parent for capability {capability_id}")
+                except Exception as e:
+                    print(f"Error updating parent for {item.get('name')}: {e}")
+                    raise
+            
+            # Commit all changes
+            self.session.commit()
+            print("Import completed successfully")
+            
+        except Exception as e:
+            print(f"Error during import: {str(e)}")
+            self.session.rollback()
+            raise
