@@ -2,8 +2,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import MessageDialog
 from sqlalchemy.orm import Session
-from typing import Optional, Dict, Any
-import json
+from typing import Optional
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
@@ -288,13 +287,14 @@ class CapabilityTreeview(ttk.Treeview):
         self.drag_source = None
 
 class App:
+
     def __init__(self):
         self.root = ttk.Window(
             title="Business Capability Modeler",
             themename="litera",
-            size=(800, 600)
+            size=(1200, 800)
         )
-        self.root.position_center()
+        
         
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -307,6 +307,7 @@ class App:
         self._create_menu()
         self._create_widgets()
         self._create_layout()
+        self.root.position_center()
 
     def _create_menu(self):
         """Create application menu bar."""
