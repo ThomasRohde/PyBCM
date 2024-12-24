@@ -349,6 +349,7 @@ class App:
     def _expand_capability(self):
         """Expand the selected capability using AI."""
         import asyncio
+        from .pb import ProgressWindow
         
         selected = self.tree.selection()
         if not selected:
@@ -365,16 +366,17 @@ class App:
         if not capability:
             return
 
+        progress = ProgressWindow(self.root)
         try:
             # Get context
             from .utils import get_capability_context
             context = get_capability_context(self.db_ops, capability_id)
             
-            # Run async expansion in a way that works with tkinter
+            # Run async expansion with progress
             async def expand():
                 return await self._expand_capability_async(context, capability.name)
 
-            subcapabilities = asyncio.run(expand())
+            subcapabilities = asyncio.run(progress.run_with_progress(expand()))
 
             # Show confirmation dialog with checkboxes
             dialog = CapabilityConfirmDialog(self.root, subcapabilities)
