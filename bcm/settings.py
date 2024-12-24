@@ -1,5 +1,4 @@
 import json
-import os
 import ttkbootstrap as ttk
 from pathlib import Path
 
