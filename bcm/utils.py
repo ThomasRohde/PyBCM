@@ -33,26 +33,32 @@ async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, 
         "logically extend this capability. Include a clear description for each "
         "sub-capability explaining its purpose and scope."
     )
+    print("*** ", prompt)
 
     result = await agent.run(prompt)
     # Convert the validated SubCapability objects to a dictionary
     return {cap.name: cap.description for cap in result.data.subcapabilities}
 
 def get_capability_context(db_ops, capability_id: int) -> str:
-    """Get context information for AI expansion."""
+    """Get context information for AI expansion, including full parent hierarchy."""
     capability = db_ops.get_capability(capability_id)
     if not capability:
         return ""
 
     context_parts = []
 
-    # Add parent context
-    if capability.parent_id:
-        parent = db_ops.get_capability(capability.parent_id)
+    # Add full parent hierarchy context
+    def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
+        parent = db_ops.get_capability(cap_id)
         if parent:
+            if parent.parent_id:
+                add_parent_hierarchy(parent.parent_id, level + 1)
             context_parts.append(f"Parent capability: {parent.name}")
             if parent.description:
                 context_parts.append(f"Parent description: {parent.description}\n")
+
+    if capability.parent_id:
+        add_parent_hierarchy(capability.parent_id)
 
     # Add sibling context
     siblings = db_ops.get_capabilities(capability.parent_id)

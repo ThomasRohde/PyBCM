@@ -341,39 +341,6 @@ class App:
             ok_only=True
         )
 
-    def _get_capability_context(self, capability_id: int) -> str:
-        """Get context information for AI expansion."""
-        capability = self.db_ops.get_capability(capability_id)
-        if not capability:
-            return ""
-
-        context_parts = []
-
-        # Add parent context
-        if capability.parent_id:
-            parent = self.db_ops.get_capability(capability.parent_id)
-            if parent:
-                context_parts.append(f"Parent capability: {parent.name}")
-                if parent.description:
-                    context_parts.append(f"Parent description: {parent.description}\n")
-
-        # Add sibling context
-        siblings = self.db_ops.get_capabilities(capability.parent_id)
-        if siblings:
-            context_parts.append("Related capabilities:")
-            for sibling in siblings:
-                if sibling.id != capability_id:  # Exclude the current capability
-                    context_parts.append(f"- {sibling.name}")
-                    if sibling.description:
-                        context_parts.append(f"  Description: {sibling.description}")
-
-        # Add current capability
-        context_parts.append(f"\nCurrent capability: {capability.name}")
-        if capability.description:
-            context_parts.append(f"Current description: {capability.description}")
-
-        return "\n".join(context_parts)
-
     async def _expand_capability_async(self, context: str, capability_name: str) -> Dict[str, str]:
         """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
         from .utils import expand_capability_ai
@@ -400,7 +367,8 @@ class App:
 
         try:
             # Get context
-            context = self._get_capability_context(capability_id)
+            from .utils import get_capability_context
+            context = get_capability_context(self.db_ops, capability_id)
             
             # Run async expansion in a way that works with tkinter
             async def expand():
