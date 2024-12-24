@@ -88,7 +88,6 @@ class CapabilityTreeview(ttk.Treeview):
             return
 
         capability_id = int(selected[0])
-        print(f"Attempting to delete capability ID: {capability_id}")
 
         if create_dialog(
             self,
@@ -97,7 +96,6 @@ class CapabilityTreeview(ttk.Treeview):
         ):
             try:
                 self.db_ops.delete_capability(capability_id)
-                print(f"Capability {capability_id} deleted successfully")
                 self.refresh_tree()
             except Exception as e:
                 print(f"Error deleting capability: {e}")

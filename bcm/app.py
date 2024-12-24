@@ -14,7 +14,7 @@ class App:
     def __init__(self):
         self.root = ttk.Window(
             title="Business Capability Modeler",
-            themename="litera",
+            themename="solar",
             size=(1600, 1000)
         )
         

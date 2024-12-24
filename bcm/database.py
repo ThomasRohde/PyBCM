@@ -79,21 +79,16 @@ class DatabaseOperations:
     def delete_capability(self, capability_id: int) -> bool:
         """Delete a capability and its children."""
         try:
-            print(f"Starting deletion of capability {capability_id}")
             self.session.execute(text("PRAGMA foreign_keys = ON"))
             self.session.commit()
             
             capability = self.get_capability(capability_id)
-            print(f"Found capability: {capability.name if capability else 'None'}")
             
             if not capability:
                 return False
                 
-            print(f"Children count: {len(capability.children)}")
             self.session.delete(capability)
-            print("Deleted capability from session")
             self.session.commit()
-            print("Committed deletion")
             return True
 
         except Exception as e:
@@ -180,10 +175,8 @@ class DatabaseOperations:
     def clear_all_capabilities(self) -> None:
         """Clear all capabilities from the database."""
         try:
-            print("Clearing all existing capabilities")
             self.session.query(Capability).delete()
             self.session.commit()
-            print("Successfully cleared all capabilities")
         except Exception as e:
             print(f"Error clearing capabilities: {e}")
             self.session.rollback()
@@ -194,15 +187,12 @@ class DatabaseOperations:
         if not data:
             print("No data received for import")
             return
-
-        print(f"Starting import of {len(data)} capabilities")
         
         try:
             # Start transaction
             self.session.begin()
             
             # Clear existing capabilities
-            print("Clearing existing capabilities")
             self.clear_all_capabilities()
             
             # Create mapping of external IDs to new database IDs
@@ -211,7 +201,6 @@ class DatabaseOperations:
             # First pass: Create all capabilities without parents
             for item in data:
                 try:
-                    print(f"Creating capability: {item['name']}")
                     cap = CapabilityCreate(
                         name=item["name"],
                         description=item.get("description", ""),
@@ -219,9 +208,7 @@ class DatabaseOperations:
                     )
                     db_capability = self.create_capability(cap)
                     id_mapping[item["id"]] = db_capability.id
-                    print(f"Created capability with ID: {db_capability.id}")
                 except Exception as e:
-                    print(f"Error creating capability {item.get('name')}: {e}")
                     raise
             
             # Second pass: Update parent relationships
@@ -230,20 +217,17 @@ class DatabaseOperations:
                     if item.get("parent"):
                         capability_id = id_mapping.get(item["id"])
                         parent_id = id_mapping.get(item["parent"])
-                        print(f"Updating parent relationship: {capability_id} -> {parent_id}")
                         
                         if capability_id and parent_id:
                             capability = self.get_capability(capability_id)
                             if capability:
                                 capability.parent_id = parent_id
-                                print(f"Updated parent for capability {capability_id}")
                 except Exception as e:
                     print(f"Error updating parent for {item.get('name')}: {e}")
                     raise
             
             # Commit all changes
             self.session.commit()
-            print("Import completed successfully")
             
         except Exception as e:
             print(f"Error during import: {str(e)}")

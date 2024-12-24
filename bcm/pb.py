@@ -1,7 +1,6 @@
 import ttkbootstrap as tb
-from ttkbootstrap.constants import *
+# from ttkbootstrap.constants import *
 import asyncio
-import tkinter as tk
 
 class ProgressWindow:
     def __init__(self, parent):
