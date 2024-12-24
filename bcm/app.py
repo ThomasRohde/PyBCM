@@ -14,11 +14,11 @@ class App:
     def __init__(self):
         self.root = ttk.Window(
             title="Business Capability Modeler",
-            themename="solar",
+            # themename="solar",
             size=(1600, 1000)
         )
         
-        
+        self.root.iconbitmap("./bcm/business_capability_model.ico")
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
@@ -101,6 +101,29 @@ class App:
         )
         ToolTip(self.collapse_btn, text="Collapse All")  # Fixed tooltip
 
+        # Add search entry to toolbar
+        self.search_var = ttk.StringVar()
+        self.search_var.trace_add("write", self._on_search)
+        self.search_entry = ttk.Entry(
+            self.toolbar,
+            textvariable=self.search_var,
+            width=30
+        )
+        ToolTip(self.search_entry, text="Search capabilities")
+
+        # Add clear search button
+        self.clear_search_btn = ttk.Button(
+            self.toolbar,
+            text="✕",
+            command=self._clear_search,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.clear_search_btn, text="Clear search")
+        self.clear_search_btn.configure(state="disabled")
+
         # Add save button to toolbar
         self.save_desc_btn = ttk.Button(
             self.toolbar,
@@ -115,7 +138,42 @@ class App:
         self.expand_btn.pack(side="left", padx=2)
         self.collapse_btn.pack(side="left", padx=2)
         self.expand_cap_btn.pack(side="left", padx=2)
+        ttk.Label(self.toolbar, text="Search:").pack(side="left", padx=(10, 2))
+        self.search_entry.pack(side="left", padx=2)
+        self.clear_search_btn.pack(side="left", padx=2)
         self.save_desc_btn.pack(side="right", padx=2)
+
+    def _clear_search(self):
+        """Clear the search entry and restore the full tree."""
+        self.search_var.set("")
+        self.clear_search_btn.configure(state="disabled")
+        self.tree.refresh_tree()
+
+    def _on_search(self, *args):
+        """Handle search input changes."""
+        search_text = self.search_var.get().strip()
+        self.clear_search_btn.configure(state="normal" if search_text else "disabled")
+        
+        if not search_text:
+            self.tree.refresh_tree()
+            return
+            
+        # Search capabilities
+        results = self.db_ops.search_capabilities(search_text)
+        
+        # Clear current tree
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        # Add search results
+        for cap in results:
+            self.tree.insert(
+                parent="",
+                index="end",
+                iid=str(cap.id),
+                text=cap.name,
+                open=True
+            )
 
     def _expand_all(self):
         """Expand all items in the tree."""

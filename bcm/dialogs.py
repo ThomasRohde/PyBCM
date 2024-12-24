@@ -9,7 +9,6 @@ class CapabilityConfirmDialog(ttk.Toplevel):
     WINDOW_HEIGHT = 500
     PADDING = 10
     CONTENT_WIDTH = WINDOW_WIDTH - (2 * PADDING)  # Width minus padding
-    DESCRIPTION_INDENT = 20
     
     def __init__(self, parent, capabilities: Dict[str, str]):
         super().__init__(parent)
@@ -88,12 +87,12 @@ class CapabilityConfirmDialog(ttk.Toplevel):
                 desc_label = ttk.Label(
                     cap_frame,
                     text=desc,
-                    wraplength=self.CONTENT_WIDTH - self.DESCRIPTION_INDENT,
+                    wraplength=self.CONTENT_WIDTH,
                     justify="left",
                     font=("TkDefaultFont", 9),
                     foreground="gray"
                 )
-                desc_label.pack(anchor="w", padx=(20, 0))
+                desc_label.pack(anchor="w")
             
             cap_frame.pack(fill="x", padx=5, pady=2)
         
@@ -148,7 +147,7 @@ class CapabilityConfirmDialog(ttk.Toplevel):
         for child in self.checkbox_frame.winfo_children():
             for widget in child.winfo_children():
                 if isinstance(widget, ttk.Label):
-                    widget.configure(wraplength=new_width - self.DESCRIPTION_INDENT - 20)
+                    widget.configure(wraplength=new_width)
         
     def _on_mousewheel(self, event):
         # Scroll 2 units for every mouse wheel click

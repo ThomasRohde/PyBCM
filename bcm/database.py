@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, or_
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
 from uuid import uuid4
 
@@ -171,6 +171,17 @@ class DatabaseOperations:
             })
             
         return export_data
+
+    def search_capabilities(self, query: str) -> List[Capability]:
+        """Search capabilities by name or description."""
+        search_term = f"%{query}%"
+        stmt = select(Capability).where(
+            or_(
+                Capability.name.ilike(search_term),
+                Capability.description.ilike(search_term)
+            )
+        )
+        return self.session.execute(stmt).scalars().all()
 
     def clear_all_capabilities(self) -> None:
         """Clear all capabilities from the database."""
