@@ -6,7 +6,8 @@ authors = []
 dependencies = [
     "ttkbootstrap>=1.10.1",
     "sqlalchemy>=2.0.0",
-    "pydantic>=2.0.0"
+    "pydantic>=2.0.0",
+    "pydantic-ai[logfire]>=0.0.15",
 ]
 requires-python = ">=3.11"
 

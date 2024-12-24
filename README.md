@@ -10,6 +10,11 @@ A modern, interactive business capability modeling tool built with Python. This 
 - Modern Bootstrap-styled interface
 - SQLite database for persistent storage
 - Form validation using Pydantic
+- AI-powered capability expansion
+- Search functionality for capabilities
+- Import/Export capabilities to JSON
+- Rich text descriptions with auto-save
+- Expand/Collapse all tree nodes
 
 ## Requirements
 
@@ -49,7 +54,7 @@ bcm
 2. **Updating a Capability**
    - Select a capability in the tree
    - Modify the name or description
-   - Click "Update"
+   - Click "Update" or "Save Description"
 
 3. **Deleting a Capability**
    - Select a capability in the tree
@@ -60,6 +65,27 @@ bcm
    - Drag and drop capabilities in the tree
    - The order is automatically saved
 
+### Advanced Features
+
+1. **AI Capability Expansion**
+   - Select a capability in the tree
+   - Click the "✨" button in the toolbar
+   - Review and select suggested sub-capabilities
+   - Click OK to add selected capabilities
+
+2. **Search**
+   - Use the search bar in the toolbar
+   - Results update in real-time
+   - Clear search with the "✕" button
+
+3. **Import/Export**
+   - File menu > Import: Load capabilities from JSON
+   - File menu > Export: Save capabilities to JSON
+
+4. **Tree Navigation**
+   - Use "⬇" to expand all nodes
+   - Use "⬆" to collapse all nodes
+
 ## Project Structure
 
 ```
@@ -68,7 +94,11 @@ pybcm/
 │   ├── __init__.py      # Package initialization
 │   ├── app.py           # Main application and UI
 │   ├── database.py      # Database operations
-│   └── models.py        # Data models and schemas
+│   ├── dialogs.py       # Custom dialog windows
+│   ├── models.py        # Data models and schemas
+│   ├── pb.py           # Progress bar implementation
+│   ├── treeview.py     # Custom tree view widget
+│   └── utils.py        # Utility functions
 ├── pyproject.toml       # Project configuration
 └── README.md           # Documentation
 ```
@@ -79,6 +109,7 @@ The project uses:
 - `ttkbootstrap` for the modern UI components
 - `SQLAlchemy` for database operations
 - `Pydantic` for data validation
+- `PydanticAI` for LLM generation
 - `uv` for dependency management
 
 ## License

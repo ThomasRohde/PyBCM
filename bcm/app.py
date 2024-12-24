@@ -8,7 +8,9 @@ from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
+import logfire
 
+logfire.configure()
 class App:
 
     def __init__(self):

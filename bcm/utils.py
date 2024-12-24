@@ -46,7 +46,7 @@ async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, 
     prompt = (
         f"Analyze the business capability '{capability_name}' within the context provided below. "
         f"Decompose this capability into a set of MECE sub-capabilities that adhere to the principles "
-        f"of effective business capability modeling.\n\n"
+        f"of effective business capability modeling. Create up to 10 sub-capabilities.\n\n"
         f"**Context:**\n{context}\n\n"
         f"**Instructions:**\n"
         f"For each sub-capability identified, provide:\n"
