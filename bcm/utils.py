@@ -33,7 +33,6 @@ async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, 
         "logically extend this capability. Include a clear description for each "
         "sub-capability explaining its purpose and scope."
     )
-    print("*** ", prompt)
 
     result = await agent.run(prompt)
     # Convert the validated SubCapability objects to a dictionary

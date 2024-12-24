@@ -6,7 +6,7 @@ import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
-from .dialogs import create_dialog
+from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
 
 class App:
@@ -376,17 +376,14 @@ class App:
 
             subcapabilities = asyncio.run(expand())
 
-            # Confirm with user - explicitly set ok_only=False to show Yes/No buttons
-            subcap_list = "\n".join(f"- {name}\n  {desc}" for name, desc in subcapabilities.items())
-            if create_dialog(
-                self.root,
-                "Confirm Expansion",
-                f"Add these sub-capabilities?\n\n{subcap_list}",
-                ok_only=False,  # Explicitly set to False to show Yes/No buttons
-                default_result=False  # Default to No for safety
-            ):
-                # Create sub-capabilities with descriptions
-                for name, description in subcapabilities.items():
+            # Show confirmation dialog with checkboxes
+            dialog = CapabilityConfirmDialog(self.root, subcapabilities)
+            self.root.wait_window(dialog)
+            
+            # If user clicked OK and selected some capabilities
+            if dialog.result:
+                # Create selected sub-capabilities with descriptions
+                for name, description in dialog.result.items():
                     self.db_ops.create_capability(CapabilityCreate(
                         name=name,
                         description=description,

@@ -1,6 +1,166 @@
 import ttkbootstrap as ttk
+from typing import Dict
 from .models import CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
+
+class CapabilityConfirmDialog(ttk.Toplevel):
+    # Window geometry constants
+    WINDOW_WIDTH = 600
+    WINDOW_HEIGHT = 500
+    PADDING = 10
+    CONTENT_WIDTH = WINDOW_WIDTH - (2 * PADDING)  # Width minus padding
+    DESCRIPTION_INDENT = 20
+    
+    def __init__(self, parent, capabilities: Dict[str, str]):
+        super().__init__(parent)
+        self.capabilities = capabilities
+        self.result = {}
+        
+        self.title("Confirm Capabilities")
+        self.geometry(f"{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}")
+        self.position_center()
+        self.minsize(400, 300)  # Set minimum size
+        self.resizable(True, True)  # Allow window resizing
+        
+        self._create_widgets()
+        self._create_layout()
+        
+        # Initialize all checkboxes to checked
+        for name in capabilities:
+            self.checkbox_vars[name].set(True)
+
+    def _create_widgets(self):
+        # Create a frame for the message
+        self.msg_frame = ttk.Frame(self, padding=self.PADDING)
+        self.msg_label = ttk.Label(
+            self.msg_frame,
+            text="Select capabilities to add:",
+            justify="left",
+            wraplength=self.CONTENT_WIDTH
+        )
+        
+        # Create a frame for the scrollable list
+        self.list_frame = ttk.Frame(self)
+        
+        # Create canvas and scrollbar for scrolling
+        self.canvas = ttk.Canvas(self.list_frame)
+        self.scrollbar = ttk.Scrollbar(
+            self.list_frame,
+            orient="vertical",
+            command=self.canvas.yview
+        )
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Bind mouse wheel events to the canvas and its children
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>", self._on_mousewheel))
+        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
+        
+        # Create frame for checkboxes inside canvas
+        self.checkbox_frame = ttk.Frame(self.canvas)
+        self.canvas_frame = self.canvas.create_window(
+            (0, 0),
+            window=self.checkbox_frame,
+            anchor="nw",
+            width=self.CONTENT_WIDTH
+        )
+        
+        # Create checkboxes
+        self.checkbox_vars = {}
+        for name, desc in self.capabilities.items():
+            var = ttk.BooleanVar()
+            self.checkbox_vars[name] = var
+            
+            # Create frame for each capability
+            cap_frame = ttk.Frame(self.checkbox_frame)
+            
+            # Create checkbox with name
+            cb = ttk.Checkbutton(
+                cap_frame,
+                text=name,
+                variable=var,
+                style="primary.TCheckbutton"
+            )
+            cb.pack(anchor="w")
+            
+            # Create description label
+            if desc:
+                desc_label = ttk.Label(
+                    cap_frame,
+                    text=desc,
+                    wraplength=self.CONTENT_WIDTH - self.DESCRIPTION_INDENT,
+                    justify="left",
+                    font=("TkDefaultFont", 9),
+                    foreground="gray"
+                )
+                desc_label.pack(anchor="w", padx=(20, 0))
+            
+            cap_frame.pack(fill="x", padx=5, pady=2)
+        
+        # Buttons
+        self.btn_frame = ttk.Frame(self, padding=10)
+        self.ok_btn = ttk.Button(
+            self.btn_frame,
+            text="OK",
+            command=self._on_ok,
+            style="primary.TButton",
+            width=10
+        )
+        self.cancel_btn = ttk.Button(
+            self.btn_frame,
+            text="Cancel",
+            command=self.destroy,
+            style="secondary.TButton",
+            width=10
+        )
+        
+        # Bind canvas configuration
+        self.checkbox_frame.bind("<Configure>", self._on_frame_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+    def _create_layout(self):
+        # Layout message
+        self.msg_frame.pack(fill="x")
+        self.msg_label.pack(anchor="w")
+        
+        # Layout list
+        self.list_frame.pack(fill="both", expand=True, padx=self.PADDING)
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # Layout buttons
+        self.btn_frame.pack(fill="x")
+        self.cancel_btn.pack(side="right", padx=5)
+        self.ok_btn.pack(side="right", padx=5)
+
+    def _on_frame_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _on_canvas_configure(self, event):
+        # Update the canvas window width and text wrapping when the canvas is resized
+        new_width = event.width
+        self.canvas.itemconfig(self.canvas_frame, width=new_width)
+        
+        # Update wraplength for message label
+        self.msg_label.configure(wraplength=new_width)
+        
+        # Update wraplength for all description labels
+        for child in self.checkbox_frame.winfo_children():
+            for widget in child.winfo_children():
+                if isinstance(widget, ttk.Label):
+                    widget.configure(wraplength=new_width - self.DESCRIPTION_INDENT - 20)
+        
+    def _on_mousewheel(self, event):
+        # Scroll 2 units for every mouse wheel click
+        self.canvas.yview_scroll(int(-1 * (event.delta/120)), "units")
+
+    def _on_ok(self):
+        self.result = {
+            name: desc
+            for name, desc in self.capabilities.items()
+            if self.checkbox_vars[name].get()
+        }
+        self.destroy()
 
 def create_dialog(
     parent,
