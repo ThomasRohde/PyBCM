@@ -8,15 +8,19 @@ from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
+from .settings import Settings, SettingsDialog
 import logfire
 
 logfire.configure()
 class App:
 
     def __init__(self):
+        # Load settings
+        self.settings = Settings()
+        
         self.root = ttk.Window(
             title="Business Capability Modeler",
-            # themename="solar",
+            themename=self.settings.get("theme"),
             size=(1600, 1000)
         )
         
@@ -47,6 +51,8 @@ class App:
         self.menubar.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Import...", command=self._import_capabilities)
         self.file_menu.add_command(label="Export...", command=self._export_capabilities)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Settings", command=self._show_settings)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self._on_closing)
 
@@ -401,10 +407,22 @@ class App:
             ok_only=True
         )
 
+    def _show_settings(self):
+        """Show the settings dialog."""
+        dialog = SettingsDialog(self.root, self.settings)
+        self.root.wait_window(dialog)
+        if dialog.result:
+            create_dialog(
+                self.root,
+                "Settings Saved",
+                "Settings have been saved. Some changes may require a restart to take effect.",
+                ok_only=True
+            )
+
     async def _expand_capability_async(self, context: str, capability_name: str) -> Dict[str, str]:
         """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
         from .utils import expand_capability_ai
-        return await expand_capability_ai(context, capability_name)
+        return await expand_capability_ai(context, capability_name, self.settings.get("max_ai_capabilities"))
 
     def _expand_capability(self):
         """Expand the selected capability using AI."""

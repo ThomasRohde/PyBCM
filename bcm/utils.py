@@ -11,7 +11,7 @@ class CapabilityExpansion(BaseModel):
         description="List of sub-capabilities that would logically extend the given capability"
     )
 
-async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, str]:
+async def expand_capability_ai(context: str, capability_name: str, max_capabilities: int = 5) -> Dict[str, str]:
     """
     Use PydanticAI to expand a capability into sub-capabilities with descriptions,
     following best practices for business capability modeling.
@@ -46,7 +46,7 @@ async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, 
     prompt = (
         f"Analyze the business capability '{capability_name}' within the context provided below. "
         f"Decompose this capability into a set of MECE sub-capabilities that adhere to the principles "
-        f"of effective business capability modeling. Create up to 10 sub-capabilities.\n\n"
+        f"of effective business capability modeling. Create up to {max_capabilities} sub-capabilities.\n\n"
         f"**Context:**\n{context}\n\n"
         f"**Instructions:**\n"
         f"For each sub-capability identified, provide:\n"
