@@ -22,6 +22,7 @@ async def expand_capability_ai(context: str, capability_name: str) -> Dict[str, 
             "For each sub-capability, provide a clear, concise description "
             "that explains its purpose and scope. "
             "Be specific and business-oriented."
+            "Do not reference the capability as 'this sub-capability', but if needed only reference by name."
         ),
         result_type=CapabilityExpansion
     )
