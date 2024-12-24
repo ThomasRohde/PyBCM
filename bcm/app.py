@@ -1,7 +1,7 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import END
 from ttkbootstrap.tooltip import ToolTip  # Add this import
-from typing import Optional, List  # Add List to imports
+from typing import Optional, List, Dict
 from tkinter import filedialog
 import json
 
@@ -713,37 +713,10 @@ class App:
 
         return "\n".join(context_parts)
 
-    async def _expand_capability_async(self, context: str, capability_name: str) -> List[str]:
-        """Use PydanticAI to expand a capability into sub-capabilities."""
-        from pydantic_ai import Agent
-        from pydantic import BaseModel, Field
-        from typing import List
-
-        class CapabilityExpansion(BaseModel):
-            subcapabilities: List[str] = Field(
-                description="List of sub-capability names that would logically extend the given capability"
-            )
-
-        agent = Agent(
-            'openai:gpt-4o-mini',
-            system_prompt=(
-                "You are a business capability modeling expert. "
-                "Analyze the context and suggest logical sub-capabilities "
-                "that would extend and detail the current capability. "
-                "Be specific and business-oriented."
-            ),
-            result_type=CapabilityExpansion
-        )
-
-        prompt = (
-            f"Based on the following context, suggest sub-capabilities for '{capability_name}':"
-            f"\n\n{context}"
-            "\n\nProvide specific, business-oriented sub-capabilities that would "
-            "logically extend this capability."
-        )
-
-        result = await agent.run(prompt)
-        return result.data.subcapabilities
+    async def _expand_capability_async(self, context: str, capability_name: str) -> Dict[str, str]:
+        """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
+        from .utils import expand_capability_ai
+        return await expand_capability_ai(context, capability_name)
 
     def _expand_capability(self):
         """Expand the selected capability using AI."""
@@ -775,7 +748,7 @@ class App:
             subcapabilities = asyncio.run(expand())
 
             # Confirm with user - explicitly set ok_only=False to show Yes/No buttons
-            subcap_list = "\n".join(f"- {cap}" for cap in subcapabilities)
+            subcap_list = "\n".join(f"- {name}\n  {desc}" for name, desc in subcapabilities.items())
             if create_dialog(
                 self.root,
                 "Confirm Expansion",
@@ -783,10 +756,11 @@ class App:
                 ok_only=False,  # Explicitly set to False to show Yes/No buttons
                 default_result=False  # Default to No for safety
             ):
-                # Create sub-capabilities
-                for name in subcapabilities:
+                # Create sub-capabilities with descriptions
+                for name, description in subcapabilities.items():
                     self.db_ops.create_capability(CapabilityCreate(
                         name=name,
+                        description=description,
                         parent_id=capability_id
                     ))
                 self.tree.refresh_tree()
@@ -824,4 +798,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
