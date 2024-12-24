@@ -21,7 +21,7 @@ class ProgressWindow:
         self.window.geometry(f'{width}x{height}+{x}+{y}')
         
         # Configure window appearance
-        self.window.configure(highlightbackground='white', highlightthickness=1)
+        self.window.configure(highlightbackground='black', highlightthickness=1)
         
         # Create progress bar
         self.progress_bar = tb.Progressbar(
