@@ -2,7 +2,6 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, text
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
-import json
 from uuid import uuid4
 
 class DatabaseOperations:

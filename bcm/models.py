@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, create_engine, text
-from sqlalchemy.orm import declarative_base, relationship, Session, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 import sqlite3
 
 Base = declarative_base()

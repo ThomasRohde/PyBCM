@@ -4,8 +4,6 @@ from ttkbootstrap.tooltip import ToolTip  # Add this import
 from typing import Optional, List  # Add List to imports
 from tkinter import filedialog
 import json
-from ttkbootstrap.constants import *  # Add this import at the top with other imports
-from ttkbootstrap.icons import Emoji  # Add this import at the top with other imports
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
