@@ -3,7 +3,6 @@ from ttkbootstrap.constants import END
 from typing import Optional
 from .database import DatabaseOperations
 from .dialogs import CapabilityDialog, create_dialog
-from .models import CapabilityCreate
 
 class CapabilityTreeview(ttk.Treeview):
     def __init__(self, master, db_ops: DatabaseOperations, **kwargs):
@@ -38,7 +37,8 @@ class CapabilityTreeview(ttk.Treeview):
     def _clear_drop_mark(self):
         """Clear any existing drop mark."""
         if self.drop_target:
-            self.tag_remove('drop_target', self.drop_target)
+            # Reset the item style
+            self.item(self.drop_target, tags=())
             self.drop_target = None
 
     def _set_drop_target(self, target: str):
@@ -46,7 +46,8 @@ class CapabilityTreeview(ttk.Treeview):
         if target != self.drop_target and target != self.drag_source:
             self._clear_drop_mark()
             self.drop_target = target
-            self.tag_add('drop_target', target)
+            # Apply the drop target style
+            self.item(target, tags=('drop_target',))
 
     def show_context_menu(self, event):
         item = self.identify_row(event.y)

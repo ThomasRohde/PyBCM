@@ -1,6 +1,4 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import END
-from typing import Optional
 from .models import CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
 

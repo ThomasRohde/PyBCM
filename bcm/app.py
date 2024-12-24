@@ -1,12 +1,12 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
-from typing import Optional, List, Dict
+from typing import Dict
 from tkinter import filedialog
 import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
-from .dialogs import create_dialog, CapabilityDialog
+from .dialogs import create_dialog
 from .treeview import CapabilityTreeview
 
 class App:
