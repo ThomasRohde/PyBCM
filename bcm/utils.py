@@ -79,6 +79,16 @@ def get_capability_context(db_ops, capability_id: int) -> str:
 
     context_parts = []
 
+    # Add first-level capabilities context
+    first_level_caps = db_ops.get_capabilities(parent_id=None)  # Get root level capabilities
+    if first_level_caps:
+        context_parts.append("First-level capabilities:")
+        for cap in first_level_caps:
+            context_parts.append(f"- {cap.name}")
+            if cap.description:
+                context_parts.append(f"  Description: {cap.description}")
+        context_parts.append("")  # Add empty line for readability
+
     # Add full parent hierarchy context
     def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
         parent = db_ops.get_capability(cap_id)
