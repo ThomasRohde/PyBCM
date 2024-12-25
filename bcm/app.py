@@ -24,6 +24,7 @@ class App:
             size=(1600, 1000)
         )
         
+        self.root.withdraw()  # Hide window temporarily
         self.root.iconbitmap("./bcm/business_capability_model.ico")
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -39,7 +40,9 @@ class App:
         self._create_toolbar()  # Add this line
         self._create_widgets()
         self._create_layout()
-        self.root.position_center()
+        
+        self.root.position_center()  # Position window while it's hidden
+        self.root.deiconify()  # Show window in final position
 
     def _create_menu(self):
         """Create application menu bar."""
