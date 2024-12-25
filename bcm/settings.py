@@ -5,7 +5,8 @@ from pathlib import Path
 # Default settings
 DEFAULT_SETTINGS = {
     "theme": "litera",  # Default ttkbootstrap theme
-    "max_ai_capabilities": 10  # Default max number of AI-generated capabilities
+    "max_ai_capabilities": 10,  # Default max number of AI-generated capabilities
+    "font_size": 10  # Default font size for main text content
 }
 
 # Available themes in ttkbootstrap
@@ -70,7 +71,7 @@ class SettingsDialog(ttk.Toplevel):
         self.result = None
         self.iconbitmap("./bcm/business_capability_model.ico")
         self.title("Settings")
-        self.geometry("400x400")
+        self.geometry("400x450")
         self.position_center()
         self.resizable(False, False)
 
@@ -80,8 +81,22 @@ class SettingsDialog(ttk.Toplevel):
         # Load current settings
         self.theme_var.set(settings.get("theme"))
         self.max_cap_var.set(str(settings.get("max_ai_capabilities")))
+        self.font_size_var.set(str(settings.get("font_size")))
 
     def _create_widgets(self):
+        # Font size
+        self.font_frame = ttk.LabelFrame(self, text="Text Settings", padding=10)
+        self.font_size_var = ttk.StringVar()
+        self.font_size_label = ttk.Label(
+            self.font_frame,
+            text="Font size:"
+        )
+        self.font_size_entry = ttk.Entry(
+            self.font_frame,
+            textvariable=self.font_size_var,
+            width=5
+        )
+
         # Theme selection
         self.theme_frame = ttk.LabelFrame(self, text="Visual Theme", padding=10)
         self.theme_var = ttk.StringVar()
@@ -112,7 +127,7 @@ class SettingsDialog(ttk.Toplevel):
         # Note about theme
         self.note_label = ttk.Label(
             self,
-            text="Note: Theme changes will take effect after restart",
+            text="Some changes will take effect after restart",
             font=("TkDefaultFont", 9),
             foreground="gray"
         )
@@ -135,8 +150,13 @@ class SettingsDialog(ttk.Toplevel):
         )
 
     def _create_layout(self):
+        # Font size section
+        self.font_frame.pack(fill="x", padx=10, pady=(10, 5))
+        self.font_size_label.pack(side="left", padx=(0, 5))
+        self.font_size_entry.pack(side="left")
+
         # Theme section
-        self.theme_frame.pack(fill="x", padx=10, pady=(10, 5))
+        self.theme_frame.pack(fill="x", padx=10, pady=5)
         self.theme_combo.pack(fill="x")
 
         # Max capabilities section
@@ -160,6 +180,13 @@ class SettingsDialog(ttk.Toplevel):
                 raise ValueError("Maximum capabilities must be at least 1")
             if max_cap > 10:
                 raise ValueError("Maximum capabilities cannot exceed 10")
+            
+            font_size = int(self.font_size_var.get())
+            if font_size < 8:
+                raise ValueError("Font size must be at least 8")
+            if font_size > 24:
+                raise ValueError("Font size cannot exceed 24")
+            
             return True
         except ValueError as e:
             from .dialogs import create_dialog
@@ -179,6 +206,7 @@ class SettingsDialog(ttk.Toplevel):
         # Update settings
         self.settings.set("theme", self.theme_var.get())
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
+        self.settings.set("font_size", int(self.font_size_var.get()))
         
         self.result = True
         self.destroy()

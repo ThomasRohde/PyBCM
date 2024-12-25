@@ -280,11 +280,24 @@ class App:
         # Create left panel for tree
         self.left_panel = ttk.Frame(self.main_container)
         
+        # Create treeview with current font size
+        font_size = self.settings.get("font_size")
+        style = ttk.Style()
+        style.configure(
+            f"font{font_size}.Treeview",
+            font=("TkDefaultFont", font_size)
+        )
+        # Configure the item text style as well
+        style.configure(
+            f"font{font_size}.Treeview.Item",
+            font=("TkDefaultFont", font_size)
+        )
         self.tree = CapabilityTreeview(
             self.left_panel,
             self.db_ops,
             show="tree",
-            selectmode="browse"
+            selectmode="browse",
+            style=f"font{font_size}.Treeview"  # Custom style for font size
         )
 
         self.tree_scroll = ttk.Scrollbar(
@@ -306,7 +319,15 @@ class App:
         self.right_panel = ttk.Frame(self.main_container)
         
         # Create text widget with scrollbar
-        self.desc_text = ttk.Text(self.right_panel, wrap="word", width=40, height=20)
+        # Create text widget with current font size
+        font_size = self.settings.get("font_size")
+        self.desc_text = ttk.Text(
+            self.right_panel,
+            wrap="word",
+            width=40,
+            height=20,
+            font=("TkDefaultFont", font_size)
+        )
         self.desc_scroll = ttk.Scrollbar(
             self.right_panel,
             orient="vertical",
@@ -412,10 +433,31 @@ class App:
         dialog = SettingsDialog(self.root, self.settings)
         self.root.wait_window(dialog)
         if dialog.result:
+            # Update font sizes immediately
+            font_size = self.settings.get("font_size")
+            
+            # Update treeview font
+            style = ttk.Style()
+            style.configure(
+                f"font{font_size}.Treeview",
+                font=("TkDefaultFont", font_size)
+            )
+            style.configure(
+                f"font{font_size}.Treeview.Item",
+                font=("TkDefaultFont", font_size)
+            )
+            self.tree.configure(style=f"font{font_size}.Treeview")
+            # Update row height for the new font size through the style
+            height = self.tree._calculate_row_height(f"font{font_size}.Treeview")
+            style.configure(f"font{font_size}.Treeview", rowheight=height)
+            
+            # Update description text font
+            self.desc_text.configure(font=("TkDefaultFont", font_size))
+            
             create_dialog(
                 self.root,
                 "Settings Saved",
-                "Settings have been saved. Some changes may require a restart to take effect.",
+                "Settings have been saved and applied.",
                 ok_only=True
             )
 

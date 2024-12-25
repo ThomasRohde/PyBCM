@@ -5,12 +5,35 @@ from .database import DatabaseOperations
 from .dialogs import CapabilityDialog, create_dialog
 
 class CapabilityTreeview(ttk.Treeview):
+    @staticmethod
+    def _calculate_row_height(style_name):
+        """Calculate appropriate row height based on font size."""
+        style = ttk.Style()
+        font = style.lookup(style_name, 'font')
+        if font:
+            # Add padding to font size for better readability
+            # Handle both string and tuple font specifications
+            if isinstance(font, tuple):
+                font_size = font[1]
+            else:
+                # Split the font spec and get the size
+                font_size = font.split()[-1]
+            return int(font_size) + 16  # Add padding to font size
+        return 20  # default height
+
     def __init__(self, master, db_ops: DatabaseOperations, **kwargs):
+        # Initialize with the provided style (if any) for font size support
         super().__init__(master, **kwargs)
         self.db_ops = db_ops
         self.drag_source: Optional[str] = None
         self.drop_target: Optional[str] = None
-
+        
+        # Configure item height based on font size
+        if 'style' in kwargs:
+            style = ttk.Style()
+            height = self._calculate_row_height(kwargs['style'])
+            style.configure(kwargs['style'], rowheight=height)
+        
         # Configure treeview with single column
         self["columns"] = ()  # Remove description column
         self.heading("#0", text="Capability")
