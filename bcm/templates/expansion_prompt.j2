@@ -1,0 +1,16 @@
+Analyze the business capability '{{ capability_name }}' within the context provided below. Decompose this capability into a set of MECE sub-capabilities that adhere to the principles of effective business capability modeling. Create up to {{ max_capabilities }} sub-capabilities.
+
+**Context:**
+{{ context }}
+
+**Instructions:**
+For each sub-capability identified, provide:
+1. **Name:** A concise and descriptive name that clearly communicates the sub-capability's focus.
+2. **Description:** A brief, business-oriented explanation that outlines the sub-capability's scope, purpose, intended outcomes, and alignment with the overall business capability. Ensure the description is understandable to both business and technical stakeholders.
+
+**Consider the following when defining sub-capabilities:**
+- **Alignment with Parent Capability:** Each sub-capability should directly contribute to and be a logical extension of '{{ capability_name }}'.
+- **Business Value:** Clearly articulate the value each sub-capability provides to the organization.
+- **Distinctness:** Ensure there is no overlap in scope or responsibility between sub-capabilities.
+- **Completeness:** The set of sub-capabilities should collectively cover the entire scope of '{{ capability_name }}' without any gaps.
+- **Consistency:**  Maintain a consistent level of detail and abstraction across all sub-capabilities.

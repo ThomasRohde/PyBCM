@@ -466,7 +466,20 @@ class App:
 
     async def _expand_capability_async(self, context: str, capability_name: str) -> Dict[str, str]:
         """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
-        from .utils import expand_capability_ai
+        from .utils import expand_capability_ai, generate_first_level_capabilities
+        selected = self.tree.selection()
+        capability_id = int(selected[0])
+        capability = self.db_ops.get_capability(capability_id)
+
+        # Check if this is a root capability (no parent) AND has no children
+        if not capability.parent_id and not self.tree.get_children(capability_id):
+            # Use the capability's actual name and description for first-level generation
+            return await generate_first_level_capabilities(
+                capability.name,
+                capability.description or f"An organization focused on {capability.name}"
+            )
+        
+        # For non-root capabilities or those with existing children, use regular expansion
         return await expand_capability_ai(context, capability_name, self.settings.get("max_ai_capabilities"))
 
     def _expand_capability(self):
@@ -549,3 +562,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
