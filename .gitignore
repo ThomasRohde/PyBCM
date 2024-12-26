@@ -37,6 +37,7 @@ ENV/
 *.db
 *.sqlite3
 *.log
+db.json
 
 # OS
 .DS_Store
