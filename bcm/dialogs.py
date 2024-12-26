@@ -249,8 +249,8 @@ class CapabilityDialog(ttk.Toplevel):
         self.result = None
 
         self.title("Edit Capability" if capability else "New Capability")
-        self.geometry("600x450")  # Increased height to 400
-        self.minsize(400, 350)    # Increased minimum height
+        self.geometry("600x450") 
+        self.minsize(400, 450) 
         self.position_center()
 
         self._create_widgets()
