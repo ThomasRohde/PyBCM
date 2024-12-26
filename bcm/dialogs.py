@@ -249,7 +249,8 @@ class CapabilityDialog(ttk.Toplevel):
         self.result = None
 
         self.title("Edit Capability" if capability else "New Capability")
-        self.geometry("400x200")
+        self.geometry("600x450")  # Increased height to 400
+        self.minsize(400, 350)    # Increased minimum height
         self.position_center()
 
         self._create_widgets()
@@ -257,45 +258,77 @@ class CapabilityDialog(ttk.Toplevel):
 
         if capability:
             self.name_var.set(capability.name)
-            self.desc_var.set(capability.description or "")
+            self.desc_text.insert("1.0", capability.description or "")
 
     def _create_widgets(self):
+        # Main content frame with padding
+        self.content_frame = ttk.Frame(self, padding=15)
+        
         # Labels
-        self.name_label = ttk.Label(self, text="Name:")
-        self.desc_label = ttk.Label(self, text="Description:")
+        self.name_label = ttk.Label(self.content_frame, text="Name:")
+        self.desc_label = ttk.Label(self.content_frame, text="Description:")
         
-        # Entry fields
+        # Entry field for name
         self.name_var = ttk.StringVar()
-        self.name_entry = ttk.Entry(self, textvariable=self.name_var)
+        self.name_entry = ttk.Entry(self.content_frame, textvariable=self.name_var)
         
-        self.desc_var = ttk.StringVar()
-        self.desc_entry = ttk.Entry(self, textvariable=self.desc_var)
+        # Frame for Text widget and scrollbar
+        self.desc_frame = ttk.Frame(self.content_frame)
+        
+        # Text widget for description
+        self.desc_text = ttk.Text(
+            self.desc_frame,
+            width=40,
+            height=10,  # Increased height
+            wrap="word",
+            font=("TkDefaultFont", 10)
+        )
+        
+        # Scrollbar for description
+        self.desc_scrollbar = ttk.Scrollbar(
+            self.desc_frame,
+            orient="vertical",
+            command=self.desc_text.yview
+        )
+        self.desc_text.configure(yscrollcommand=self.desc_scrollbar.set)
 
+        # Button frame
+        self.button_frame = ttk.Frame(self.content_frame)
+        
         # Buttons
         self.ok_btn = ttk.Button(
-            self,
+            self.button_frame,
             text="OK",
             command=self._on_ok,
-            style="primary.TButton"
+            style="primary.TButton",
+            width=10
         )
         self.cancel_btn = ttk.Button(
-            self,
+            self.button_frame,
             text="Cancel",
             command=self.destroy,
-            style="secondary.TButton"
+            style="secondary.TButton",
+            width=10
         )
 
     def _create_layout(self):
-        self.name_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        self.name_entry.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
+        # Layout main content frame
+        self.content_frame.pack(fill="both", expand=True)
         
-        self.desc_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.desc_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
-
-        self.ok_btn.grid(row=2, column=1, padx=5, pady=10)
-        self.cancel_btn.grid(row=2, column=2, padx=5, pady=10)
-
-        self.columnconfigure(1, weight=1)
+        # Layout name field
+        self.name_label.pack(anchor="w", pady=(0, 2))
+        self.name_entry.pack(fill="x", pady=(0, 15))
+        
+        # Layout description field
+        self.desc_label.pack(anchor="w", pady=(0, 2))
+        self.desc_frame.pack(fill="both", expand=True, pady=(0, 15))
+        self.desc_scrollbar.pack(side="right", fill="y")
+        self.desc_text.pack(side="left", fill="both", expand=True)
+        
+        # Layout buttons
+        self.button_frame.pack(fill="x")
+        self.cancel_btn.pack(side="right", padx=(5, 0))
+        self.ok_btn.pack(side="right")
 
     def _on_ok(self):
         name = self.name_var.get().strip()
@@ -305,12 +338,12 @@ class CapabilityDialog(ttk.Toplevel):
         if self.capability:
             self.result = CapabilityUpdate(
                 name=name,
-                description=self.desc_var.get().strip()
+                description=self.desc_text.get("1.0", "end-1c").strip()
             )
         else:
             self.result = CapabilityCreate(
                 name=name,
-                description=self.desc_var.get().strip(),
+                description=self.desc_text.get("1.0", "end-1c").strip(),
                 parent_id=self.parent_id
             )
         self.destroy()
