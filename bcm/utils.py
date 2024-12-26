@@ -3,6 +3,7 @@ from pydantic_ai import Agent
 from pydantic import BaseModel, Field
 from jinja2 import Environment, FileSystemLoader
 import os
+from bcm.settings import Settings
 
 # Setup Jinja2 environment
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -32,9 +33,11 @@ async def generate_first_level_capabilities(organisation_name: str, organisation
     Returns a dictionary of capability names and their descriptions.
     """
     first_level_template = jinja_env.get_template('first_level_prompt.j2')
+    settings = Settings()
+    model = settings.get("model")
     
     agent = Agent(
-        'openai:gpt-4o',
+        model,
         system_prompt="You are a business capability modeling expert. Generate clear, strategic first-level capabilities.",
         result_type=FirstLevelCapabilities
     )
@@ -55,9 +58,11 @@ async def expand_capability_ai(context: str, capability_name: str, max_capabilit
     # Load and render templates
     system_template = jinja_env.get_template('system_prompt.j2')
     expansion_template = jinja_env.get_template('expansion_prompt.j2')
+    settings = Settings()
+    model = settings.get("model")
 
     agent = Agent(
-        'openai:gpt-4o',
+        model,
         system_prompt=system_template.render(),
         result_type=CapabilityExpansion
     )

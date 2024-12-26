@@ -1,12 +1,15 @@
 import json
 import ttkbootstrap as ttk
 from pathlib import Path
+from pydantic_ai import models
+from typing import get_args
 
 # Default settings
 DEFAULT_SETTINGS = {
     "theme": "litera",  # Default ttkbootstrap theme
     "max_ai_capabilities": 10,  # Default max number of AI-generated capabilities
-    "font_size": 10  # Default font size for main text content
+    "font_size": 10,  # Default font size for main text content
+    "model": "mistral:mistral-tiny" # Default model
 }
 
 # Available themes in ttkbootstrap
@@ -71,7 +74,7 @@ class SettingsDialog(ttk.Toplevel):
         self.result = None
         self.iconbitmap("./bcm/business_capability_model.ico")
         self.title("Settings")
-        self.geometry("400x450")
+        self.geometry("400x550")
         self.position_center()
         self.resizable(False, False)
 
@@ -82,6 +85,7 @@ class SettingsDialog(ttk.Toplevel):
         self.theme_var.set(settings.get("theme"))
         self.max_cap_var.set(str(settings.get("max_ai_capabilities")))
         self.font_size_var.set(str(settings.get("font_size")))
+        self.model_var.set(settings.get("model"))
 
     def _create_widgets(self):
         # Font size
@@ -123,6 +127,19 @@ class SettingsDialog(ttk.Toplevel):
             textvariable=self.max_cap_var,
             width=5
         )
+
+        # Model selection
+        self.model_frame = ttk.LabelFrame(self, text="Model Selection", padding=10)
+        self.model_var = ttk.StringVar()
+        self.model_combo = ttk.Combobox(
+            self.model_frame,
+            textvariable=self.model_var,
+            values=[
+                model for model in get_args(models.KnownModelName) 
+                if not model.startswith(("groq:", "mistral:", "vertexai:"))
+            ],
+            state="readonly"
+        )
         
         # Note about theme
         self.note_label = ttk.Label(
@@ -163,6 +180,10 @@ class SettingsDialog(ttk.Toplevel):
         self.cap_frame.pack(fill="x", padx=10, pady=5)
         self.max_cap_label.pack(anchor="w")
         self.max_cap_entry.pack(anchor="w")
+
+        # Model selection
+        self.model_frame.pack(fill="x", padx=10, pady=5)
+        self.model_combo.pack(fill="x")
 
         # Note
         self.note_label.pack(pady=10)
@@ -207,6 +228,7 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("theme", self.theme_var.get())
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
         self.settings.set("font_size", int(self.font_size_var.get()))
+        self.settings.set("model", self.model_var.get())
         
         self.result = True
         self.destroy()
