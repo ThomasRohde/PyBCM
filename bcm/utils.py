@@ -150,7 +150,17 @@ def get_capability_context(db_ops, capability_id: int) -> str:
     context_parts.append("<current_capability>")
     context_parts.append(f"Name: {capability.name}")
     if capability.description:
-        context_parts.append(f"Description: {capability.description}")
-
+        context_parts.append(f"Description: {capability.description[:200]}")
     context_parts.append("</current_capability>")
+
+    # Section 6: Sub-Capabilities
+    context_parts.append("<sub_capabilities>")
+    sub_capabilities = db_ops.get_capabilities(capability_id)
+    if sub_capabilities:
+        for sub_cap in sub_capabilities:
+            context_parts.append(f"- {sub_cap.name}")
+            if sub_cap.description:
+                context_parts.append(f"  Description: {sub_cap.description}")
+    context_parts.append("</sub_capabilities>")
+
     return "\n".join(context_parts)
