@@ -12,7 +12,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         # Fraction of screen size you want to allow. Adjust as necessary.
         self.max_screen_fraction = 0.8
 
-        # In case you want to set a default geometry:
+        # Set a default geometry (optional).
         self.geometry("1200x800")
         
         # Process layout
@@ -29,10 +29,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.frame.grid_rowconfigure(0, weight=1)
 
         # Canvas and scrollbars
-        self.canvas = tk.Canvas(
-            self.frame,
-            background='white'
-        )
+        self.canvas = tk.Canvas(self.frame, background='white')
         self.v_scrollbar = ttk.Scrollbar(self.frame, orient=VERTICAL)
         self.h_scrollbar = ttk.Scrollbar(self.frame, orient=HORIZONTAL)
 
@@ -48,8 +45,7 @@ class CapabilityVisualizer(ttk.Toplevel):
             xscrollcommand=self.h_scrollbar.set
         )
 
-        # Bind resize and zoom
-        self.bind('<Configure>', self._on_resize) 
+        # Bind zoom (if you still want zoom on Ctrl+MouseWheel)
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
 
@@ -58,18 +54,22 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.tooltip.withdraw()        # Hide by default
         self.tooltip.overrideredirect(True)  # Remove window decorations
 
-        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow")
+        # IMPORTANT: wraplength to set a max width
+        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow", wraplength=300)
         self.tooltip_label.pack()
 
         # List to hold item references so we can bind hover events
         self.item_to_description = {}
 
+        # Draw the model once
         self.draw_model()
 
-    def _on_resize(self, event):
-        """Handle window resize events."""
-        # Redraw model on window resize (this also adjusts the scroll region)
-        self.draw_model()
+        # Optionally, do one automatic resize to content at startup
+        self._resize_window_to_content()
+
+        # If you do NOT want further automatic resizing,
+        # remove the bind on <Configure> or comment it out.
+        # self.bind('<Configure>', self._on_resize)  # <-- remove or comment out
 
     def _on_mousewheel(self, event):
         """Handle zooming with mouse wheel (Ctrl + Wheel)."""
@@ -97,9 +97,9 @@ class CapabilityVisualizer(ttk.Toplevel):
 
         # Calculate a suitable font size
         font_size = min(
-            int(10 * self.scale),                  # scale-based
-            int(sw / (len(text) + 2) * 1.5),       # width-based
-            int(sh / 3)                            # height-based
+            int(10 * self.scale),            # scale-based
+            int(sw / (len(text) + 2) * 1.5), # width-based
+            int(sh / 3)                     # height-based
         )
         font_size = max(8, font_size)  # minimum
 
@@ -120,7 +120,6 @@ class CapabilityVisualizer(ttk.Toplevel):
         # Only bind tooltip if there's a description
         if description:
             self.item_to_description[rect_id] = description
-            # You can also map text_id if you want the same tooltip on the text
             self.item_to_description[text_id] = description
 
             # Bind events for enter/leave
@@ -149,7 +148,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.tooltip.withdraw()
 
     def draw_model(self):
-        """Draw the entire capability model and then resize the Toplevel if needed."""
+        """Draw the entire capability model."""
         self.canvas.delete('all')  # Clear canvas
         self.item_to_description.clear()
 
@@ -162,22 +161,18 @@ class CapabilityVisualizer(ttk.Toplevel):
                 node.description,
                 bool(node.children)
             )
-            # Draw children
+            # Recursively draw children
             for child in node.children or []:
                 draw_node(child)
 
-        # Draw the model from the root
+        # Draw from the root
         draw_node(self.model)
 
         # Update scroll region to fit all elements
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
 
-        # Optionally resize window to fit content up to a max fraction of the screen
-        self._resize_window_to_content()
-
     def _resize_window_to_content(self):
-        """Resize the Toplevel so that it fits the drawn content up to a max fraction of screen size."""
-        # bounding box of all items in the canvas
+        """Resize Toplevel so it fits the drawn content up to a max fraction of screen size (only done once)."""
         bbox = self.canvas.bbox("all")
         if not bbox:
             return
@@ -201,5 +196,5 @@ class CapabilityVisualizer(ttk.Toplevel):
         new_width += 50
         new_height += 50
 
-        # Update geometry
+        # Update geometry just once
         self.geometry(f"{new_width}x{new_height}")
