@@ -296,24 +296,27 @@ class SettingsDialog(ttk.Toplevel):
             btn = ttk.Button(
                 self.color_settings_frame,
                 textvariable=var,
-                command=lambda v=var: self._choose_color(v),
+                command=lambda v=var, i=i: self._choose_color(v),
                 width=15
             )
+            style_name = f'Preview{i}.TFrame'  # Create unique style name
             preview = ttk.Frame(
                 self.color_settings_frame,
                 width=20,
                 height=20,
-                style='Preview.TFrame'
+                style=style_name
             )
             # Ensure the frame stays at requested size
             preview.pack_propagate(False)
             
             self.color_labels.append(lbl)
             self.color_buttons.append(btn)
-            self.color_previews.append(preview)
+            self.color_previews.append((preview, style_name))  # Store style name with preview
             
             # Update preview when variable changes
-            var.trace_add('write', lambda *args, p=preview, v=var: self._update_preview(p, v.get()))
+            var.trace_add('write', lambda *args, p=preview, v=var, s=style_name: self._update_preview(p, v.get(), s))
+            # Initialize the preview color
+            self._update_preview(preview, var.get(), style_name)
 
         # Note about theme
         self.note_label = ttk.Label(
@@ -405,10 +408,10 @@ class SettingsDialog(ttk.Toplevel):
         for i, (lbl, btn, preview) in enumerate(zip(self.color_labels, self.color_buttons, self.color_previews)):
             lbl.grid(row=i, column=0, sticky="w", padx=(0, 5), pady=5)
             btn.grid(row=i, column=1, sticky="w", padx=(0, 10), pady=5)
-            preview.grid(row=i, column=2, sticky="w", padx=5, pady=5)
+            preview[0].grid(row=i, column=2, sticky="w", padx=5, pady=5)
             # Initialize preview color with the current variable value
             var = self.color_vars[i][1]  # Get the StringVar from color_vars
-            self._update_preview(preview, var.get())
+            self._update_preview(preview[0], var.get(), preview[1])
 
         # Add tabs to Notebook
         self.notebook.add(self.look_frame, text="Look & Feel")
@@ -427,11 +430,11 @@ class SettingsDialog(ttk.Toplevel):
         self.cancel_btn.pack(side="right", padx=5)
         self.ok_btn.pack(side="right", padx=5)
 
-    def _update_preview(self, preview_frame, color):
-        """Update the color preview frame."""
-        preview_frame.configure(style='Preview.TFrame')
+    def _update_preview(self, preview_frame, color, style_name):
+        """Update the color preview frame using a unique style name."""
         style = ttk.Style()
-        style.configure('Preview.TFrame', background=color, relief="solid", borderwidth=1)
+        style.configure(style_name, background=color, relief="solid", borderwidth=1)
+        preview_frame.configure(style=style_name)
 
     def _choose_color(self, color_var: ttk.StringVar):
         """Open a color chooser dialog and set the variable."""
