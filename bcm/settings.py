@@ -6,10 +6,10 @@ from typing import get_args
 
 # Default settings
 DEFAULT_SETTINGS = {
-    "theme": "litera",  # Default ttkbootstrap theme
+    "theme": "litera",          # Default ttkbootstrap theme
     "max_ai_capabilities": 10,  # Default max number of AI-generated capabilities
-    "font_size": 10,  # Default font size for main text content
-    "model": "mistral:mistral-tiny" # Default model
+    "font_size": 10,            # Default font size for main text content
+    "model": "openai:gpt-4o"  # Default model
 }
 
 # Available themes in ttkbootstrap
@@ -74,36 +74,44 @@ class SettingsDialog(ttk.Toplevel):
         self.result = None
         self.iconbitmap("./bcm/business_capability_model.ico")
         self.title("Settings")
-        self.geometry("400x550")
+        self.geometry("600x550")
         self.position_center()
         self.resizable(False, False)
 
+        # Create all variables that will be used in the UI
+        self.theme_var = ttk.StringVar()
+        self.max_cap_var = ttk.StringVar()
+        self.font_size_var = ttk.StringVar()
+        self.model_var = ttk.StringVar()
+
+        # Build the UI
         self._create_widgets()
         self._create_layout()
 
-        # Load current settings
-        self.theme_var.set(settings.get("theme"))
-        self.max_cap_var.set(str(settings.get("max_ai_capabilities")))
-        self.font_size_var.set(str(settings.get("font_size")))
-        self.model_var.set(settings.get("model"))
+        # Load current settings into UI
+        self.theme_var.set(self.settings.get("theme"))
+        self.max_cap_var.set(str(self.settings.get("max_ai_capabilities")))
+        self.font_size_var.set(str(self.settings.get("font_size")))
+        self.model_var.set(self.settings.get("model"))
 
     def _create_widgets(self):
+        """Create and initialize all the widgets."""
+
+        # Create a Notebook for tabbed settings
+        self.notebook = ttk.Notebook(self)
+
+        # --------------------
+        # 1) LOOK & FEEL TAB
+        # --------------------
+        self.look_frame = ttk.Frame(self.notebook)
+
         # Font size
-        self.font_frame = ttk.LabelFrame(self, text="Text Settings", padding=10)
-        self.font_size_var = ttk.StringVar()
-        self.font_size_label = ttk.Label(
-            self.font_frame,
-            text="Font size:"
-        )
-        self.font_size_entry = ttk.Entry(
-            self.font_frame,
-            textvariable=self.font_size_var,
-            width=5
-        )
+        self.font_frame = ttk.LabelFrame(self.look_frame, text="Text Settings", padding=10)
+        self.font_size_label = ttk.Label(self.font_frame, text="Font size:")
+        self.font_size_entry = ttk.Entry(self.font_frame, textvariable=self.font_size_var, width=5)
 
         # Theme selection
-        self.theme_frame = ttk.LabelFrame(self, text="Visual Theme", padding=10)
-        self.theme_var = ttk.StringVar()
+        self.theme_frame = ttk.LabelFrame(self.look_frame, text="Visual Theme", padding=10)
         self.theme_combo = ttk.Combobox(
             self.theme_frame,
             textvariable=self.theme_var,
@@ -111,36 +119,38 @@ class SettingsDialog(ttk.Toplevel):
             state="readonly"
         )
 
+        # ----------------------
+        # 2) AI GENERATION TAB
+        # ----------------------
+        self.ai_frame = ttk.Frame(self.notebook)
+
         # Max capabilities
-        self.cap_frame = ttk.LabelFrame(
-            self,
-            text="AI Generation Settings",
-            padding=10
-        )
-        self.max_cap_var = ttk.StringVar()
-        self.max_cap_label = ttk.Label(
-            self.cap_frame,
-            text="Maximum capabilities to generate:"
-        )
-        self.max_cap_entry = ttk.Entry(
-            self.cap_frame,
-            textvariable=self.max_cap_var,
-            width=5
-        )
+        self.cap_frame = ttk.LabelFrame(self.ai_frame, text="AI Generation Settings", padding=10)
+        self.max_cap_label = ttk.Label(self.cap_frame, text="Maximum capabilities to generate:")
+        self.max_cap_entry = ttk.Entry(self.cap_frame, textvariable=self.max_cap_var, width=5)
 
         # Model selection
-        self.model_frame = ttk.LabelFrame(self, text="Model Selection", padding=10)
-        self.model_var = ttk.StringVar()
+        self.model_frame = ttk.LabelFrame(self.ai_frame, text="Model Selection", padding=10)
         self.model_combo = ttk.Combobox(
             self.model_frame,
             textvariable=self.model_var,
             values=[
-                model for model in get_args(models.KnownModelName) 
+                model for model in get_args(models.KnownModelName)
                 if not model.startswith(("groq:", "mistral:", "vertexai:"))
             ],
             state="readonly"
         )
-        
+
+        # ---------------
+        # 3) LAYOUT TAB
+        # ---------------
+        self.layout_frame = ttk.Frame(self.notebook)
+        # Placeholder label
+        self.layout_label = ttk.Label(
+            self.layout_frame,
+            text="Future layout mechanisms can be configured here."
+        )
+
         # Note about theme
         self.note_label = ttk.Label(
             self,
@@ -167,25 +177,49 @@ class SettingsDialog(ttk.Toplevel):
         )
 
     def _create_layout(self):
-        # Font size section
+        """Lay out all the widgets in the dialog."""
+
+        # --------------------
+        # 1) LOOK & FEEL TAB
+        # --------------------
+        self.look_frame.pack(fill="both", expand=True)
+
+        # Font frame layout
         self.font_frame.pack(fill="x", padx=10, pady=(10, 5))
         self.font_size_label.pack(side="left", padx=(0, 5))
         self.font_size_entry.pack(side="left")
 
-        # Theme section
+        # Theme frame layout
         self.theme_frame.pack(fill="x", padx=10, pady=5)
         self.theme_combo.pack(fill="x")
 
-        # Max capabilities section
-        self.cap_frame.pack(fill="x", padx=10, pady=5)
+        # ----------------------
+        # 2) AI GENERATION TAB
+        # ----------------------
+        self.ai_frame.pack(fill="both", expand=True)
+
+        self.cap_frame.pack(fill="x", padx=10, pady=(10, 5))
         self.max_cap_label.pack(anchor="w")
         self.max_cap_entry.pack(anchor="w")
 
-        # Model selection
         self.model_frame.pack(fill="x", padx=10, pady=5)
         self.model_combo.pack(fill="x")
 
-        # Note
+        # ---------------
+        # 3) LAYOUT TAB
+        # ---------------
+        self.layout_frame.pack(fill="both", expand=True)
+        self.layout_label.pack(pady=20)
+
+        # Add tabs to Notebook
+        self.notebook.add(self.look_frame, text="Look & Feel")
+        self.notebook.add(self.ai_frame, text="AI Generation")
+        self.notebook.add(self.layout_frame, text="Layout")
+
+        # Notebook in main window
+        self.notebook.pack(expand=True, fill="both", padx=10, pady=(10, 0))
+
+        # Note label (below the notebook)
         self.note_label.pack(pady=10)
 
         # Buttons
@@ -201,22 +235,17 @@ class SettingsDialog(ttk.Toplevel):
                 raise ValueError("Maximum capabilities must be at least 1")
             if max_cap > 10:
                 raise ValueError("Maximum capabilities cannot exceed 10")
-            
+
             font_size = int(self.font_size_var.get())
             if font_size < 8:
                 raise ValueError("Font size must be at least 8")
             if font_size > 24:
                 raise ValueError("Font size cannot exceed 24")
-            
+
             return True
         except ValueError as e:
             from .dialogs import create_dialog
-            create_dialog(
-                self,
-                "Invalid Settings",
-                str(e),
-                ok_only=True
-            )
+            create_dialog(self, "Invalid Settings", str(e), ok_only=True)
             return False
 
     def _on_ok(self):
@@ -229,6 +258,6 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
         self.settings.set("font_size", int(self.font_size_var.get()))
         self.settings.set("model", self.model_var.get())
-        
+
         self.result = True
         self.destroy()

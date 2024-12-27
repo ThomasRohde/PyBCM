@@ -45,7 +45,6 @@ class CapabilityVisualizer(ttk.Toplevel):
             xscrollcommand=self.h_scrollbar.set
         )
 
-        # Bind zoom (if you still want zoom on Ctrl+MouseWheel)
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
 
