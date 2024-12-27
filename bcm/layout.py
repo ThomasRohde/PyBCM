@@ -1,14 +1,7 @@
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from .models import LayoutModel
-
-# Layout constants
-BOX_MIN_WIDTH = 120
-BOX_MIN_HEIGHT = 80
-HORIZONTAL_GAP = 20
-VERTICAL_GAP = 20
-PADDING = 30
-DEFAULT_TARGET_ASPECT_RATIO = 1.0
+from .settings import Settings
 
 @dataclass
 class NodeSize:
@@ -24,17 +17,17 @@ class GridLayout:
     deviation: float
     positions: List[Dict[str, float]]
 
-def calculate_node_size(node: LayoutModel) -> NodeSize:
+def calculate_node_size(node: LayoutModel, settings: Settings) -> NodeSize:
     """Calculate the minimum size needed for a node and its children."""
     if not node.children:
-        return NodeSize(BOX_MIN_WIDTH, BOX_MIN_HEIGHT)
+        return NodeSize(settings.get("box_min_width"), settings.get("box_min_height"))
 
-    child_sizes = [calculate_node_size(child) for child in node.children]
-    best_layout = find_best_layout(child_sizes, len(node.children))
+    child_sizes = [calculate_node_size(child, settings) for child in node.children]
+    best_layout = find_best_layout(child_sizes, len(node.children), settings)
     
     return NodeSize(best_layout.width, best_layout.height)
 
-def find_best_layout(child_sizes: List[NodeSize], child_count: int) -> GridLayout:
+def find_best_layout(child_sizes: List[NodeSize], child_count: int, settings: Settings) -> GridLayout:
     """Find the optimal grid layout for a set of child nodes."""
     best_layout = GridLayout(
         rows=1,
@@ -44,6 +37,11 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int) -> GridLayou
         deviation=float('inf'),
         positions=[]
     )
+
+    horizontal_gap = settings.get("horizontal_gap")
+    vertical_gap = settings.get("vertical_gap")
+    padding = settings.get("padding")
+    target_aspect_ratio = settings.get("target_aspect_ratio")
 
     for rows in range(1, child_count + 1):
         cols = (child_count + rows - 1) // rows  # Ceiling division
@@ -60,19 +58,19 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int) -> GridLayou
             row_heights[row] = max(row_heights[row], size.height)
             col_widths[col] = max(col_widths[col], size.width)
         
-        grid_width = sum(col_widths) + (cols - 1) * HORIZONTAL_GAP
-        grid_height = sum(row_heights) + (rows - 1) * VERTICAL_GAP
+        grid_width = sum(col_widths) + (cols - 1) * horizontal_gap
+        grid_height = sum(row_heights) + (rows - 1) * vertical_gap
         
-        total_width = grid_width + 2 * PADDING
-        total_height = grid_height + 2 * PADDING
+        total_width = grid_width + 2 * padding
+        total_height = grid_height + 2 * padding
         aspect_ratio = total_width / total_height
-        deviation = abs(aspect_ratio - DEFAULT_TARGET_ASPECT_RATIO)
+        deviation = abs(aspect_ratio - target_aspect_ratio)
 
         # Calculate positions for each child
         positions = []
-        y_offset = PADDING
+        y_offset = padding
         for row in range(rows):
-            x_offset = PADDING
+            x_offset = padding
             for col in range(cols):
                 idx = row * cols + col
                 if idx < child_count:
@@ -82,8 +80,8 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int) -> GridLayou
                         'width': col_widths[col],
                         'height': row_heights[row]
                     })
-                x_offset += col_widths[col] + HORIZONTAL_GAP
-            y_offset += row_heights[row] + VERTICAL_GAP
+                x_offset += col_widths[col] + horizontal_gap
+            y_offset += row_heights[row] + vertical_gap
 
         current_layout = GridLayout(
             rows=rows,
@@ -99,18 +97,19 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int) -> GridLayou
 
     return best_layout
 
-def layout_tree(node: LayoutModel, x: float = 0, y: float = 0) -> LayoutModel:
+def layout_tree(node: LayoutModel, settings: Settings, x: float = 0, y: float = 0) -> LayoutModel:
     """Recursively layout the tree starting from the given node."""
     if not node.children:
-        node.width = BOX_MIN_WIDTH
-        node.height = BOX_MIN_HEIGHT
+        node.width = settings.get("box_min_width")
+        node.height = settings.get("box_min_height")
         node.x = x
         node.y = y
         return node
 
     layout = find_best_layout(
-        [calculate_node_size(child) for child in node.children],
-        len(node.children)
+        [calculate_node_size(child, settings) for child in node.children],
+        len(node.children),
+        settings
     )
 
     node.width = layout.width
@@ -121,6 +120,7 @@ def layout_tree(node: LayoutModel, x: float = 0, y: float = 0) -> LayoutModel:
     for child, pos in zip(node.children, layout.positions):
         layout_tree(
             child,
+            settings,
             x + pos['x'],
             y + pos['y']
         )
@@ -129,6 +129,6 @@ def layout_tree(node: LayoutModel, x: float = 0, y: float = 0) -> LayoutModel:
 
     return node
 
-def process_layout(model: LayoutModel) -> LayoutModel:
+def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
     """Process the layout for the entire tree."""
-    return layout_tree(model)
+    return layout_tree(model, settings)

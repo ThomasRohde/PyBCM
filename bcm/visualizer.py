@@ -3,6 +3,7 @@ from ttkbootstrap.constants import BOTH, YES, VERTICAL, HORIZONTAL, LEFT, RIGHT,
 import tkinter as tk
 from .layout import process_layout
 from .models import LayoutModel
+from .settings import Settings
 
 class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
@@ -16,7 +17,8 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.geometry("1200x800")
         
         # Process layout
-        self.model = process_layout(model)
+        self.settings = Settings()  # Create settings instance
+        self.model = process_layout(model, self.settings)  # Pass settings to process_layout
         
         # Configure grid weights
         self.grid_columnconfigure(0, weight=1)
