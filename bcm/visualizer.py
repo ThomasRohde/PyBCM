@@ -1,35 +1,45 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
+from ttkbootstrap.constants import BOTH, YES, VERTICAL, HORIZONTAL, LEFT, RIGHT, Y, X, BOTTOM
 import tkinter as tk
-from .layout import process_layout, BOX_MIN_WIDTH, BOX_MIN_HEIGHT
+from .layout import process_layout
 from .models import LayoutModel
 
 class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
         super().__init__(parent)
         self.title("Capability Model Visualizer")
-        self.geometry("800x600")
+        self.geometry("1200x800")
 
         # Process layout
         self.model = process_layout(model)
         
-        # Create canvas with scrollbars
+        # Configure grid weights
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        # Create frame with grid weights
         self.frame = ttk.Frame(self)
-        self.frame.pack(fill=BOTH, expand=YES)
+        self.frame.grid(row=0, column=0, sticky="nsew")
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(0, weight=1)
 
         self.canvas = tk.Canvas(
             self.frame,
-            background='white',
-            width=800,
-            height=600
+            background='white'
         )
         
-        # Add scrollbars
+        # Add scrollbars with grid
         self.v_scrollbar = ttk.Scrollbar(self.frame, orient=VERTICAL)
         self.h_scrollbar = ttk.Scrollbar(self.frame, orient=HORIZONTAL)
-        self.v_scrollbar.pack(side=RIGHT, fill=Y)
-        self.h_scrollbar.pack(side=BOTTOM, fill=X)
-        self.canvas.pack(side=LEFT, fill=BOTH, expand=YES)
+        
+        # Configure grid layout
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.v_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.h_scrollbar.grid(row=1, column=0, sticky="ew")
+
+        # Configure frame grid weights
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(0, weight=1)
 
         # Configure scrolling
         self.v_scrollbar.config(command=self.canvas.yview)
@@ -39,11 +49,20 @@ class CapabilityVisualizer(ttk.Toplevel):
             xscrollcommand=self.h_scrollbar.set
         )
 
+        # Bind resize event
+        self.bind('<Configure>', self._on_resize)
+
         # Enable zooming with mouse wheel
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
 
         # Draw the model
+        self.draw_model()
+
+    def _on_resize(self, event):
+        """Handle window resize events."""
+        # Update canvas size
+        self.canvas.config(width=event.width, height=event.height)
         self.draw_model()
 
     def _on_mousewheel(self, event):
@@ -54,7 +73,7 @@ class CapabilityVisualizer(ttk.Toplevel):
             self.scale *= 0.9
         self.draw_model()
 
-    def draw_box(self, x, y, width, height, text, description=None):
+    def draw_box(self, x, y, width, height, text, description=None, has_children=False):
         """Draw a single capability box with text."""
         # Apply scaling and convert to integers
         sx = int(x * self.scale)
@@ -70,35 +89,27 @@ class CapabilityVisualizer(ttk.Toplevel):
             width=2
         )
 
-        # Add text
-        font_size = int(10 * self.scale)
+        # Calculate adaptive font size based on box dimensions
+        # and scale factor
+        font_size = min(
+            int(10 * self.scale),  # Scale-based size
+            int(sw / (len(text) + 2) * 1.5),  # Width-based size
+            int(sh / 3)  # Height-based size
+        )
+        font_size = max(8, font_size)  # Minimum font size
+
+        # Calculate text position - adjust y coordinate if has children
+        text_x = int(sx + sw/2)
+        padding = max(font_size + 2, 15)  # Add padding based on font size
+        text_y = int(sy + (padding if has_children else sh/2))  # Place text just below top line if has children
+
         self.canvas.create_text(
-            sx + sw//2,  # Integer division
-            sy + sh//2,  # Integer division
+            text_x,
+            text_y,
             text=text,
-            width=max(10, sw - 10),  # Ensure minimum width
+            width=max(10, sw - 10),
             font=('TkDefaultFont', font_size),
             anchor='center'
-        )
-
-    def draw_connection(self, parent_x, parent_y, parent_w, parent_h, 
-                       child_x, child_y, child_w, child_h):
-        """Draw a connection line between parent and child boxes."""
-        # Calculate connection points and convert to integers
-        start_x = int((parent_x + parent_w/2) * self.scale)
-        start_y = int((parent_y + parent_h) * self.scale)
-        end_x = int((child_x + child_w/2) * self.scale)
-        end_y = int(child_y * self.scale)
-        mid_y = start_y + (end_y - start_y)//2  # Integer division
-
-        # Draw line
-        self.canvas.create_line(
-            start_x, start_y,
-            start_x, mid_y,
-            end_x, mid_y,
-            end_x, end_y,
-            smooth=True,
-            width=2
         )
 
     def draw_model(self):
@@ -111,7 +122,8 @@ class CapabilityVisualizer(ttk.Toplevel):
                 node.x, node.y,
                 node.width, node.height,
                 node.name,
-                node.description
+                node.description,
+                bool(node.children)  # Pass whether node has children
             )
 
             # Draw children and connections

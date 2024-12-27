@@ -4,7 +4,7 @@ from .models import LayoutModel
 
 # Layout constants
 BOX_MIN_WIDTH = 120
-BOX_MIN_HEIGHT = 60
+BOX_MIN_HEIGHT = 80
 HORIZONTAL_GAP = 20
 VERTICAL_GAP = 20
 PADDING = 30
