@@ -258,7 +258,7 @@ class App:
         # Start with a root node
         root = {
             "id": "root",
-            "name": "Enterprise Capabilities",
+            "name": "Capability Model",
             "children": [convert_node(cap) for cap in capabilities]
         }
         return root
@@ -275,7 +275,7 @@ class App:
         layout_data = self._convert_to_layout_format(capabilities)
         
         # Read template
-        template_path = os.path.join("bcm", "templates", "layout_model.j2")
+        template_path = os.path.join("bcm", "templates", "layout_model.html")
         with open(template_path, 'r') as f:
             template = Template(f.read())
         
