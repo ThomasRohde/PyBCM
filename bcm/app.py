@@ -258,13 +258,19 @@ class App:
                 result["description"] = node["description"]
             return result
         
-        # Start with a root node
-        root = {
+        # Find root nodes (nodes without parents)
+        root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+        
+        # If there's exactly one root node, use it as the root
+        if len(root_nodes) == 1:
+            return convert_node(root_nodes[0])
+        
+        # Otherwise, create an artificial root node
+        return {
             "id": "root",
             "name": "Capability Model",
-            "children": [convert_node(cap) for cap in capabilities]
+            "children": [convert_node(cap) for cap in capabilities if not cap.get("parent_id")]
         }
-        return root
 
     def _export_to_html(self):
         """Export capabilities to HTML visualization."""
