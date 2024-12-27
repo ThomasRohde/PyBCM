@@ -247,16 +247,16 @@ class App:
             )
 
     def _convert_to_layout_format(self, capabilities):
-        """Convert capabilities to the layout format."""
+        """Convert capabilities to the layout format using LayoutModel."""
+        from .models import LayoutModel
+        
         def convert_node(node):
-            result = {
-                "id": str(node["id"]),
-                "name": node["name"],
-                "children": [convert_node(child) for child in node["children"]]
-            }
-            if node.get("description"):
-                result["description"] = node["description"]
-            return result
+            children = [convert_node(child) for child in node["children"]]
+            return LayoutModel(
+                name=node["name"],
+                description=node.get("description", ""),
+                children=children if children else None
+            ).model_dump()  # Convert to dict for JSON serialization
         
         # Find root nodes (nodes without parents)
         root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
@@ -266,11 +266,10 @@ class App:
             return convert_node(root_nodes[0])
         
         # Otherwise, create an artificial root node
-        return {
-            "id": "root",
-            "name": "Capability Model",
-            "children": [convert_node(cap) for cap in capabilities if not cap.get("parent_id")]
-        }
+        return LayoutModel(
+            name="Capability Model",
+            children=[convert_node(cap) for cap in root_nodes]
+        ).model_dump()  # Convert to dict for JSON serialization
 
     def _export_to_html(self):
         """Export capabilities to HTML visualization."""

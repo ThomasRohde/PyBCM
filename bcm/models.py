@@ -69,6 +69,31 @@ class CapabilityExport(BaseModel):
 # Use RootModel instead of __root__
 CapabilityExportList = RootModel[List[CapabilityExport]]
 
+class LayoutModel(BaseModel):
+    """Pydantic model for representing the hierarchical layout of capabilities."""
+    name: str
+    description: Optional[str] = None
+    children: Optional[List['LayoutModel']] = None
+    # Geometry attributes
+    x: float = 0
+    y: float = 0
+    width: float = 120  # Default to BOX_MIN_WIDTH from template
+    height: float = 60  # Default to BOX_MIN_HEIGHT from template
+
+    class Config:
+        from_attributes = True
+
+# Required for self-referential Pydantic models
+LayoutModel.model_rebuild()
+
+def capability_to_layout(capability: Capability) -> LayoutModel:
+    """Convert a Capability model instance to a LayoutModel instance."""
+    return LayoutModel(
+        name=capability.name,
+        description=capability.description,
+        children=[capability_to_layout(child) for child in capability.children] if capability.children else None
+    )
+
 # Database setup
 def get_db_path():
     """Get absolute path to database file."""
