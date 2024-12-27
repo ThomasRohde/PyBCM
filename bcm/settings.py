@@ -3,6 +3,7 @@ import ttkbootstrap as ttk
 from pathlib import Path
 from pydantic_ai import models
 from typing import get_args
+from tkinter import colorchooser  # For color selection
 
 BOX_MIN_WIDTH_DEFAULT = 120
 BOX_MIN_HEIGHT_DEFAULT = 80
@@ -23,6 +24,15 @@ DEFAULT_SETTINGS = {
     "vertical_gap": VERTICAL_GAP_DEFAULT,
     "padding": PADDING_DEFAULT,
     "target_aspect_ratio": DEFAULT_TARGET_ASPECT_RATIO_DEFAULT,
+    # Color settings for hierarchy levels + leaf nodes
+    "color_0": "#FFA07A",   # Level 0
+    "color_1": "#FA8072",   # Level 1
+    "color_2": "#FF6347",   # Level 2
+    "color_3": "#FF4500",   # Level 3
+    "color_4": "#FF7F50",   # Level 4
+    "color_5": "#E9967A",   # Level 5
+    "color_6": "#F08080",   # Level 6
+    "color_leaf": "#FFD700" # Leaf nodes (shared color)
 }
 
 # Available themes in ttkbootstrap
@@ -88,7 +98,7 @@ class SettingsDialog(ttk.Toplevel):
         self.result = None
         self.iconbitmap("./bcm/business_capability_model.ico")
         self.title("Settings")
-        self.geometry("600x550")
+        self.geometry("600x700")
         self.position_center()
         self.resizable(False, False)
 
@@ -106,6 +116,16 @@ class SettingsDialog(ttk.Toplevel):
         self.vertical_gap_var = ttk.StringVar()
         self.padding_var = ttk.StringVar()
         self.target_aspect_ratio_var = ttk.StringVar()
+
+        # Colors
+        self.color_0_var = ttk.StringVar()
+        self.color_1_var = ttk.StringVar()
+        self.color_2_var = ttk.StringVar()
+        self.color_3_var = ttk.StringVar()
+        self.color_4_var = ttk.StringVar()
+        self.color_5_var = ttk.StringVar()
+        self.color_6_var = ttk.StringVar()
+        self.color_leaf_var = ttk.StringVar()
 
         # Build the UI
         self._create_widgets()
@@ -125,6 +145,16 @@ class SettingsDialog(ttk.Toplevel):
         self.vertical_gap_var.set(str(self.settings.get("vertical_gap")))
         self.padding_var.set(str(self.settings.get("padding")))
         self.target_aspect_ratio_var.set(str(self.settings.get("target_aspect_ratio")))
+
+        # Colors
+        self.color_0_var.set(self.settings.get("color_0"))
+        self.color_1_var.set(self.settings.get("color_1"))
+        self.color_2_var.set(self.settings.get("color_2"))
+        self.color_3_var.set(self.settings.get("color_3"))
+        self.color_4_var.set(self.settings.get("color_4"))
+        self.color_5_var.set(self.settings.get("color_5"))
+        self.color_6_var.set(self.settings.get("color_6"))
+        self.color_leaf_var.set(self.settings.get("color_leaf"))
 
     def _create_widgets(self):
         """Create and initialize all the widgets."""
@@ -235,6 +265,42 @@ class SettingsDialog(ttk.Toplevel):
             width=6
         )
 
+        # --------------
+        # 4) COLOR TAB
+        # --------------
+        self.color_frame = ttk.Frame(self.notebook)
+        self.color_settings_frame = ttk.LabelFrame(
+            self.color_frame,
+            text="Color Settings for Hierarchy",
+            padding=10
+        )
+
+        # We’ll create one row per level (0–6) plus leaf
+        self.color_labels = []
+        self.color_buttons = []
+        self.color_vars = [
+            ("Level 0", self.color_0_var),
+            ("Level 1", self.color_1_var),
+            ("Level 2", self.color_2_var),
+            ("Level 3", self.color_3_var),
+            ("Level 4", self.color_4_var),
+            ("Level 5", self.color_5_var),
+            ("Level 6", self.color_6_var),
+            ("Leaf", self.color_leaf_var)
+        ]
+
+        # We'll store references so we can grid them properly.
+        for i, (label_text, var) in enumerate(self.color_vars):
+            lbl = ttk.Label(self.color_settings_frame, text=f"{label_text} Color:")
+            btn = ttk.Button(
+                self.color_settings_frame,
+                textvariable=var,
+                command=lambda v=var: self._choose_color(v),
+                width=15
+            )
+            self.color_labels.append(lbl)
+            self.color_buttons.append(btn)
+
         # Note about theme
         self.note_label = ttk.Label(
             self,
@@ -293,7 +359,6 @@ class SettingsDialog(ttk.Toplevel):
         # 3) LAYOUT TAB
         # ---------------
         self.layout_frame.pack(fill="both", expand=True)
-
         self.layout_settings_frame.pack(fill="x", padx=10, pady=10)
 
         # Row 1
@@ -317,10 +382,21 @@ class SettingsDialog(ttk.Toplevel):
         self.aspect_ratio_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
         self.aspect_ratio_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
 
+        # --------------
+        # 4) COLOR TAB
+        # --------------
+        self.color_frame.pack(fill="both", expand=True)
+        self.color_settings_frame.pack(fill="x", padx=10, pady=10)
+
+        for i, (lbl, btn) in enumerate(zip(self.color_labels, self.color_buttons)):
+            lbl.grid(row=i, column=0, sticky="w", padx=(0, 5), pady=5)
+            btn.grid(row=i, column=1, sticky="w", padx=(0, 10), pady=5)
+
         # Add tabs to Notebook
         self.notebook.add(self.look_frame, text="Look & Feel")
         self.notebook.add(self.ai_frame, text="AI Generation")
         self.notebook.add(self.layout_frame, text="Layout")
+        self.notebook.add(self.color_frame, text="Coloring")
 
         # Notebook in main window
         self.notebook.pack(expand=True, fill="both", padx=10, pady=(10, 0))
@@ -332,6 +408,19 @@ class SettingsDialog(ttk.Toplevel):
         self.btn_frame.pack(fill="x", padx=10, pady=10)
         self.cancel_btn.pack(side="right", padx=5)
         self.ok_btn.pack(side="right", padx=5)
+
+    def _choose_color(self, color_var: ttk.StringVar):
+        """Open a color chooser dialog and set the variable."""
+        initial_color = color_var.get()
+        chosen_color, _ = colorchooser.askcolor(initialcolor=initial_color, parent=self)
+        if chosen_color:  # If user did not cancel
+            # colorchooser returns an (R, G, B) tuple and a hex string; we only want the hex
+            hex_color = "#{:02x}{:02x}{:02x}".format(
+                int(chosen_color[0]),
+                int(chosen_color[1]),
+                int(chosen_color[2])
+            )
+            color_var.set(hex_color)
 
     def _validate_settings(self):
         """Validate settings before saving."""
@@ -372,10 +461,25 @@ class SettingsDialog(ttk.Toplevel):
             if padding < 0:
                 raise ValueError("Padding cannot be negative")
 
-            # Float check
             aspect_ratio = float(self.target_aspect_ratio_var.get())
             if aspect_ratio <= 0.0:
                 raise ValueError("Target Aspect Ratio must be greater than 0")
+
+            # Color settings: basic check that they are non-empty strings
+            # (You could add more robust color validation if desired.)
+            for i, var in enumerate([
+                self.color_0_var,
+                self.color_1_var,
+                self.color_2_var,
+                self.color_3_var,
+                self.color_4_var,
+                self.color_5_var,
+                self.color_6_var,
+                self.color_leaf_var
+            ]):
+                color_val = var.get()
+                if not color_val or not color_val.startswith('#'):
+                    raise ValueError(f"Invalid color for Level {i} or leaf if i == 7")
 
             # All good
             return True
@@ -390,17 +494,29 @@ class SettingsDialog(ttk.Toplevel):
             return
 
         # Save each setting
+        # Look & Feel
         self.settings.set("theme", self.theme_var.get())
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
         self.settings.set("font_size", int(self.font_size_var.get()))
         self.settings.set("model", self.model_var.get())
 
+        # Layout
         self.settings.set("box_min_width", int(self.box_min_width_var.get()))
         self.settings.set("box_min_height", int(self.box_min_height_var.get()))
         self.settings.set("horizontal_gap", int(self.horizontal_gap_var.get()))
         self.settings.set("vertical_gap", int(self.vertical_gap_var.get()))
         self.settings.set("padding", int(self.padding_var.get()))
         self.settings.set("target_aspect_ratio", float(self.target_aspect_ratio_var.get()))
+
+        # Colors
+        self.settings.set("color_0", self.color_0_var.get())
+        self.settings.set("color_1", self.color_1_var.get())
+        self.settings.set("color_2", self.color_2_var.get())
+        self.settings.set("color_3", self.color_3_var.get())
+        self.settings.set("color_4", self.color_4_var.get())
+        self.settings.set("color_5", self.color_5_var.get())
+        self.settings.set("color_6", self.color_6_var.get())
+        self.settings.set("color_leaf", self.color_leaf_var.get())
 
         self.result = True
         self.destroy()

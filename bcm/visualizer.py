@@ -1,5 +1,5 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import BOTH, YES, VERTICAL, HORIZONTAL, LEFT, RIGHT, Y, X, BOTTOM
+from ttkbootstrap.constants import VERTICAL, HORIZONTAL
 import tkinter as tk
 from .layout import process_layout
 from .models import LayoutModel
