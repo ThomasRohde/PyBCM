@@ -249,11 +249,14 @@ class App:
     def _convert_to_layout_format(self, capabilities):
         """Convert capabilities to the layout format."""
         def convert_node(node):
-            return {
+            result = {
                 "id": str(node["id"]),
                 "name": node["name"],
                 "children": [convert_node(child) for child in node["children"]]
             }
+            if node.get("description"):
+                result["description"] = node["description"]
+            return result
         
         # Start with a root node
         root = {

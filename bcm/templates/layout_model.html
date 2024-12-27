@@ -35,6 +35,34 @@
         .bg-white {
             background: white;
         }
+
+        /* Add styles for SVG tooltips */
+        .capability-tooltip {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+
+        /* Update tooltip styles */
+        title {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+        }
+
+        /* Tooltip styles */
+        svg {
+            pointer-events: none; /* Ensure tooltips work on child elements */
+        }
+        
+        g, rect {
+            pointer-events: all;
+        }
+
+        g:hover, rect:hover {
+            /* Reduce delay before tooltip appears */
+            transition-delay: 0s;
+            transition-duration: 0s;
+        }
     </style>
 </head>
 <body>
@@ -55,7 +83,7 @@
         const LINE_HEIGHT = 16; // Height of each text line
         const PADDING_TOP = 10; // Padding from top of box to text
 
-        // Sample data
+        // Sample data with descriptions
         const capabilityModel = {{model}};
 
         function calculateNodeSize(node) {
@@ -200,6 +228,13 @@
         function renderNode(node) {
             const group = createSVGElement("g");
 
+            // Add tooltip to group
+            if (node.description) {
+                const groupTitle = createSVGElement("title");
+                groupTitle.textContent = `${node.name}\n${node.description}`;
+                group.appendChild(groupTitle);
+            }
+
             const rect = createSVGElement("rect", {
                 x: node.x,
                 y: node.y,
@@ -210,6 +245,14 @@
                 "stroke-width": "1",
                 rx: "4"
             });
+            
+            // Add same tooltip to rectangle
+            if (node.description) {
+                const rectTitle = createSVGElement("title");
+                rectTitle.textContent = `${node.name}\n${node.description}`;
+                rect.appendChild(rectTitle);
+            }
+            
             group.appendChild(rect);
 
             // Wrap text and create multiple text lines
