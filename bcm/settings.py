@@ -25,14 +25,14 @@ DEFAULT_SETTINGS = {
     "padding": PADDING_DEFAULT,
     "target_aspect_ratio": DEFAULT_TARGET_ASPECT_RATIO_DEFAULT,
     # Color settings for hierarchy levels + leaf nodes
-    "color_0": "#FFA07A",   # Level 0
-    "color_1": "#FA8072",   # Level 1
-    "color_2": "#FF6347",   # Level 2
-    "color_3": "#FF4500",   # Level 3
-    "color_4": "#FF7F50",   # Level 4
-    "color_5": "#E9967A",   # Level 5
-    "color_6": "#F08080",   # Level 6
-    "color_leaf": "#FFD700" # Leaf nodes (shared color)
+    "color_0": "#5B8C85",   # Muted teal
+    "color_1": "#6B5B95",   # Muted purple
+    "color_2": "#806D5B",   # Muted brown
+    "color_3": "#5B7065",   # Muted sage
+    "color_4": "#8B635C",   # Muted rust
+    "color_5": "#707C8C",   # Muted steel blue
+    "color_6": "#7C6D78",   # Muted mauve
+    "color_leaf": "#E0E0E0" # Light grey
 }
 
 # Available themes in ttkbootstrap
@@ -278,6 +278,7 @@ class SettingsDialog(ttk.Toplevel):
         # We’ll create one row per level (0–6) plus leaf
         self.color_labels = []
         self.color_buttons = []
+        self.color_previews = []
         self.color_vars = [
             ("Level 0", self.color_0_var),
             ("Level 1", self.color_1_var),
@@ -298,8 +299,21 @@ class SettingsDialog(ttk.Toplevel):
                 command=lambda v=var: self._choose_color(v),
                 width=15
             )
+            preview = ttk.Frame(
+                self.color_settings_frame,
+                width=20,
+                height=20,
+                style='Preview.TFrame'
+            )
+            # Ensure the frame stays at requested size
+            preview.pack_propagate(False)
+            
             self.color_labels.append(lbl)
             self.color_buttons.append(btn)
+            self.color_previews.append(preview)
+            
+            # Update preview when variable changes
+            var.trace_add('write', lambda *args, p=preview, v=var: self._update_preview(p, v.get()))
 
         # Note about theme
         self.note_label = ttk.Label(
@@ -388,9 +402,13 @@ class SettingsDialog(ttk.Toplevel):
         self.color_frame.pack(fill="both", expand=True)
         self.color_settings_frame.pack(fill="x", padx=10, pady=10)
 
-        for i, (lbl, btn) in enumerate(zip(self.color_labels, self.color_buttons)):
+        for i, (lbl, btn, preview) in enumerate(zip(self.color_labels, self.color_buttons, self.color_previews)):
             lbl.grid(row=i, column=0, sticky="w", padx=(0, 5), pady=5)
             btn.grid(row=i, column=1, sticky="w", padx=(0, 10), pady=5)
+            preview.grid(row=i, column=2, sticky="w", padx=5, pady=5)
+            # Initialize preview color with the current variable value
+            var = self.color_vars[i][1]  # Get the StringVar from color_vars
+            self._update_preview(preview, var.get())
 
         # Add tabs to Notebook
         self.notebook.add(self.look_frame, text="Look & Feel")
@@ -409,18 +427,22 @@ class SettingsDialog(ttk.Toplevel):
         self.cancel_btn.pack(side="right", padx=5)
         self.ok_btn.pack(side="right", padx=5)
 
+    def _update_preview(self, preview_frame, color):
+        """Update the color preview frame."""
+        preview_frame.configure(style='Preview.TFrame')
+        style = ttk.Style()
+        style.configure('Preview.TFrame', background=color, relief="solid", borderwidth=1)
+
     def _choose_color(self, color_var: ttk.StringVar):
         """Open a color chooser dialog and set the variable."""
         initial_color = color_var.get()
-        chosen_color, _ = colorchooser.askcolor(initialcolor=initial_color, parent=self)
-        if chosen_color:  # If user did not cancel
-            # colorchooser returns an (R, G, B) tuple and a hex string; we only want the hex
-            hex_color = "#{:02x}{:02x}{:02x}".format(
-                int(chosen_color[0]),
-                int(chosen_color[1]),
-                int(chosen_color[2])
-            )
-            color_var.set(hex_color)
+        chosen_color = colorchooser.askcolor(
+            initialcolor=initial_color,
+            parent=self,
+            title="Choose Color"
+        )
+        if chosen_color[1]:  # If user did not cancel
+            color_var.set(chosen_color[1])
 
     def _validate_settings(self):
         """Validate settings before saving."""
