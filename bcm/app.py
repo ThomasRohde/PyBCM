@@ -256,7 +256,7 @@ class App:
                 name=node["name"],
                 description=node.get("description", ""),
                 children=children if children else None
-            ).model_dump()  # Convert to dict for JSON serialization
+            )
         
         # Find root nodes (nodes without parents)
         root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
@@ -269,7 +269,7 @@ class App:
         return LayoutModel(
             name="Capability Model",
             children=[convert_node(cap) for cap in root_nodes]
-        ).model_dump()  # Convert to dict for JSON serialization
+        )
 
     def _export_to_html(self):
         """Export capabilities to HTML visualization."""
@@ -279,8 +279,9 @@ class App:
         # Get capabilities in hierarchical format
         capabilities = self.db_ops.get_all_capabilities()
         
-        # Convert to layout format
-        layout_data = self._convert_to_layout_format(capabilities)
+        # Convert to layout format and then to JSON
+        layout_model = self._convert_to_layout_format(capabilities)
+        layout_data = layout_model.model_dump()
         
         # Read template
         template_path = os.path.join("bcm", "templates", "layout_model.html")
@@ -507,7 +508,7 @@ class App:
         """Show the settings dialog."""
         dialog = SettingsDialog(self.root, self.settings)
         self.root.wait_window(dialog)
-        if dialog.result:
+        if (dialog.result):
             # Update font sizes immediately
             font_size = self.settings.get("font_size")
             
