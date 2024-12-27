@@ -96,7 +96,8 @@ def build_capability_tree(db_ops, root_caps, current_cap_id: int, level: int = 0
     return tree_lines
 
 def get_capability_context(db_ops, capability_id: int) -> str:
-    """Get context information for AI expansion, including full parent hierarchy."""
+    """Get context information for AI expansion, including full parent hierarchy.
+    """
     capability = db_ops.get_capability(capability_id)
     if not capability:
         return ""

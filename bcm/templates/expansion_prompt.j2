@@ -1,5 +1,17 @@
 Analyze the business capability '{{ capability_name }}' within the context provided below. Decompose this capability into a set of MECE sub-capabilities that adhere to the principles of effective business capability modeling. Create up to {{ max_capabilities }} sub-capabilities.
 
+The context is formatted using section tags that organize the information:
+
+<first_level_capabilities> - Lists all top-level capabilities in the model with their descriptions
+<capability_tree> - Shows the full hierarchical tree structure with the current capability marked
+<parent_hierarchy> - Lists the chain of parent capabilities from root to current capability
+<sibling_context> - Shows other capabilities at the same level under the same parent
+<current_capability> - Contains the name and description of the current capability
+<sub_capabilities> - Lists any existing sub-capabilities under the current capability. You can use this to avoid duplication.
+
+These section tags help structure the context in a way that makes it clear how each piece
+of information relates to the overall capability model hierarchy.
+
 **Context:**
 {{ context }}
 
