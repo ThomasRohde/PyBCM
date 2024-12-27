@@ -88,6 +88,18 @@ class App:
             padding=3
         )
         ToolTip(self.expand_cap_btn, text="AI Expand Capability")
+
+        # Add visualize button
+        self.visualize_btn = ttk.Button(
+            self.toolbar,
+            text="🔍",  # Magnifying glass emoji
+            command=self._show_visualizer,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.visualize_btn, text="Visualize Model")
         
         # Expand All button with icon
         self.expand_btn = ttk.Button(
@@ -150,6 +162,7 @@ class App:
         self.expand_btn.pack(side="left", padx=2)
         self.collapse_btn.pack(side="left", padx=2)
         self.expand_cap_btn.pack(side="left", padx=2)
+        self.visualize_btn.pack(side="left", padx=2)
         ttk.Label(self.toolbar, text="Search:").pack(side="left", padx=(10, 2))
         self.search_entry.pack(side="left", padx=2)
         self.clear_search_btn.pack(side="left", padx=2)
@@ -609,6 +622,19 @@ class App:
                 f"Failed to expand capability: {str(e)}",
                 ok_only=True
             )
+
+    def _show_visualizer(self):
+        """Show the capability model visualizer."""
+        from .visualizer import CapabilityVisualizer
+        
+        # Get capabilities in hierarchical format
+        capabilities = self.db_ops.get_all_capabilities()
+        
+        # Convert to layout format
+        layout_model = self._convert_to_layout_format(capabilities)
+        
+        # Create and show visualizer window
+        CapabilityVisualizer(self.root, layout_model)
 
     def _on_closing(self):
         """Handle application shutdown."""
