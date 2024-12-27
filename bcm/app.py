@@ -54,6 +54,7 @@ class App:
         self.menubar.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Import...", command=self._import_capabilities)
         self.file_menu.add_command(label="Export...", command=self._export_capabilities)
+        self.file_menu.add_command(label="Export to HTML...", command=self._export_to_html)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Settings", command=self._show_settings)
         self.file_menu.add_separator()
@@ -245,6 +246,69 @@ class App:
                 ok_only=True
             )
 
+    def _convert_to_layout_format(self, capabilities):
+        """Convert capabilities to the layout format."""
+        def convert_node(node):
+            return {
+                "id": str(node["id"]),
+                "name": node["name"],
+                "children": [convert_node(child) for child in node["children"]]
+            }
+        
+        # Start with a root node
+        root = {
+            "id": "root",
+            "name": "Enterprise Capabilities",
+            "children": [convert_node(cap) for cap in capabilities]
+        }
+        return root
+
+    def _export_to_html(self):
+        """Export capabilities to HTML visualization."""
+        from jinja2 import Template
+        import os
+        
+        # Get capabilities in hierarchical format
+        capabilities = self.db_ops.get_all_capabilities()
+        
+        # Convert to layout format
+        layout_data = self._convert_to_layout_format(capabilities)
+        
+        # Read template
+        template_path = os.path.join("bcm", "templates", "layout_model.j2")
+        with open(template_path, 'r') as f:
+            template = Template(f.read())
+        
+        # Render template with data
+        html_content = template.render(model=json.dumps(layout_data))
+        
+        # Get save location from user
+        filename = filedialog.asksaveasfilename(
+            title="Export to HTML",
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                
+                create_dialog(
+                    self.root,
+                    "Success",
+                    "Capabilities exported to HTML successfully",
+                    ok_only=True
+                )
+                
+            except Exception as e:
+                create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to export capabilities to HTML: {str(e)}",
+                    ok_only=True
+                )
+    
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
         filename = filedialog.asksaveasfilename(
@@ -562,4 +626,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

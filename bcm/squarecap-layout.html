@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin: 1rem;
+            max-width: 100%;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+            overflow: auto;
+        }
+
+        svg text {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .bg-white {
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">SquareCap Layout: Nested Rectangles</h3>
+        </div>
+        <div class="card-content">
+            <div id="svg-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const BOX_MIN_WIDTH = 120;
+        const BOX_MIN_HEIGHT = 60;
+        const HORIZONTAL_GAP = 20;
+        const VERTICAL_GAP = 20;
+        const PADDING = 30;
+        const DEFAULT_TARGET_ASPECT_RATIO = 1.0;
+        const LINE_HEIGHT = 16; // Height of each text line
+        const PADDING_TOP = 10; // Padding from top of box to text
+
+        // Sample data
+        const capabilityModel = {
+            id: "root",
+            name: "Enterprise Capabilities",
+            children: [
+                {
+                    id: "tech",
+                    name: "Technology",
+                    children: [
+                        { id: "tech1", name: "Infrastructure", children: [] },
+                        { id: "tech2", name: "Applications", children: [] },
+                        { id: "tech3", name: "Security", children: [] }
+                    ]
+                },
+                {
+                    id: "fin",
+                    name: "Financial Management",
+                    children: [
+                        { id: "fin1", name: "Accounting", children: [] },
+                        { id: "fin2", name: "Treasury", children: [] },
+                        { id: "fin3", name: "Tax Management", children: [] }
+                    ]
+                },
+                {
+                    id: "hr",
+                    name: "Human Capital",
+                    children: [
+                        { id: "hr1", name: "Talent Acquisition", children: [] },
+                        { id: "hr2", name: "Learning & Development", children: [] }
+                    ]
+                }
+            ]
+        };
+
+        function calculateNodeSize(node) {
+            if (!node.children || node.children.length === 0) {
+                return {
+                    width: BOX_MIN_WIDTH,
+                    height: BOX_MIN_HEIGHT
+                };
+            }
+
+            const childSizes = node.children.map(calculateNodeSize);
+
+            let bestLayout = {
+                rows: 1,
+                cols: node.children.length,
+                width: 0,
+                height: 0,
+                deviation: Infinity,
+                positions: []
+            };
+
+            for (let rows = 1; rows <= node.children.length; rows++) {
+                const cols = Math.ceil(node.children.length / rows);
+                
+                let rowHeights = new Array(rows).fill(0);
+                let colWidths = new Array(cols).fill(0);
+                
+                for (let i = 0; i < node.children.length; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    const size = childSizes[i];
+                    
+                    rowHeights[row] = Math.max(rowHeights[row], size.height);
+                    colWidths[col] = Math.max(colWidths[col], size.width);
+                }
+                
+                const gridWidth = colWidths.reduce((a, b) => a + b, 0) + (cols - 1) * HORIZONTAL_GAP;
+                const gridHeight = rowHeights.reduce((a, b) => a + b, 0) + (rows - 1) * VERTICAL_GAP;
+                
+                const totalWidth = gridWidth + 2 * PADDING;
+                const totalHeight = gridHeight + 2 * PADDING;
+                const aspectRatio = totalWidth / totalHeight;
+                const deviation = Math.abs(aspectRatio - DEFAULT_TARGET_ASPECT_RATIO);
+
+                const positions = [];
+                let yOffset = PADDING;
+                
+                for (let row = 0; row < rows; row++) {
+                    let xOffset = PADDING;
+                    for (let col = 0; col < cols; col++) {
+                        const index = row * cols + col;
+                        if (index < node.children.length) {
+                            positions[index] = {
+                                x: xOffset,
+                                y: yOffset,
+                                width: colWidths[col],
+                                height: rowHeights[row]
+                            };
+                        }
+                        xOffset += colWidths[col] + HORIZONTAL_GAP;
+                    }
+                    yOffset += rowHeights[row] + VERTICAL_GAP;
+                }
+
+                if (deviation < bestLayout.deviation) {
+                    bestLayout = {
+                        rows,
+                        cols,
+                        width: totalWidth,
+                        height: totalHeight,
+                        deviation,
+                        positions
+                    };
+                }
+            }
+
+            return bestLayout;
+        }
+
+        function layoutTree(node, x = 0, y = 0) {
+            const layout = calculateNodeSize(node);
+            node.x = x;
+            node.y = y;
+            node.width = layout.width;
+            node.height = layout.height;
+
+            if (node.children && node.children.length > 0) {
+                node.children.forEach((child, i) => {
+                    const pos = layout.positions[i];
+                    layoutTree(
+                        child,
+                        x + pos.x,
+                        y + pos.y
+                    );
+                    child.width = pos.width;
+                    child.height = pos.height;
+                });
+            }
+
+            return node;
+        }
+
+        function createSVGElement(tagName, attributes = {}) {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+            Object.entries(attributes).forEach(([key, value]) => {
+                element.setAttribute(key, value);
+            });
+            return element;
+        }
+
+        function wrapText(text, width) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            // Create temporary SVG to measure text
+            const svg = createSVGElement('svg');
+            const tempText = createSVGElement('text', {
+                'font-size': '0.875rem',
+                'font-family': 'system-ui, -apple-system, sans-serif'
+            });
+            svg.appendChild(tempText);
+            document.body.appendChild(svg);
+
+            for (let i = 1; i < words.length; i++) {
+                tempText.textContent = currentLine + ' ' + words[i];
+                const textWidth = tempText.getComputedTextLength();
+
+                if (textWidth < width - 20) {  // 20px padding
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+
+            document.body.removeChild(svg);
+            return lines;
+        }
+
+        function renderNode(node) {
+            const group = createSVGElement("g");
+
+            const rect = createSVGElement("rect", {
+                x: node.x,
+                y: node.y,
+                width: node.width,
+                height: node.height,
+                fill: node.children?.length ? "#f8fafc" : "#fff",
+                stroke: "#475569",
+                "stroke-width": "1",
+                rx: "4"
+            });
+            group.appendChild(rect);
+
+            // Wrap text and create multiple text lines
+            const lines = wrapText(node.name, node.width);
+            const totalTextHeight = lines.length * LINE_HEIGHT;
+            const startY = node.children?.length ? 
+                node.y + PADDING_TOP : 
+                node.y + (node.height - totalTextHeight) / 2;
+
+            lines.forEach((line, index) => {
+                const text = createSVGElement("text", {
+                    x: node.x + node.width / 2,
+                    y: startY + (index * LINE_HEIGHT),
+                    "text-anchor": "middle",
+                    "dominant-baseline": "hanging"
+                });
+                text.textContent = line;
+                group.appendChild(text);
+            });
+
+            if (node.children) {
+                node.children.forEach(child => {
+                    group.appendChild(renderNode(child));
+                });
+            }
+
+            return group;
+        }
+
+        function init() {
+            const layoutedTree = layoutTree(JSON.parse(JSON.stringify(capabilityModel)));
+            
+            const svg = createSVGElement("svg", {
+                width: layoutedTree.width + 40,
+                height: layoutedTree.height + 40,
+                viewBox: `0 0 ${layoutedTree.width + 40} ${layoutedTree.height + 40}`,
+                class: "bg-white"
+            });
+
+            svg.appendChild(renderNode(layoutedTree));
+            document.getElementById("svg-container").appendChild(svg);
+        }
+
+        // Initialize when the page loads
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>
