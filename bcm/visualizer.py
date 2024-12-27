@@ -8,8 +8,13 @@ class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
         super().__init__(parent)
         self.title("Capability Model Visualizer")
-        self.geometry("1200x800")
+        
+        # Fraction of screen size you want to allow. Adjust as necessary.
+        self.max_screen_fraction = 0.8
 
+        # In case you want to set a default geometry:
+        self.geometry("1200x800")
+        
         # Process layout
         self.model = process_layout(model)
         
@@ -17,29 +22,23 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        # Create frame with grid weights
+        # Main frame
         self.frame = ttk.Frame(self)
         self.frame.grid(row=0, column=0, sticky="nsew")
         self.frame.grid_columnconfigure(0, weight=1)
         self.frame.grid_rowconfigure(0, weight=1)
 
+        # Canvas and scrollbars
         self.canvas = tk.Canvas(
             self.frame,
             background='white'
         )
-        
-        # Add scrollbars with grid
         self.v_scrollbar = ttk.Scrollbar(self.frame, orient=VERTICAL)
         self.h_scrollbar = ttk.Scrollbar(self.frame, orient=HORIZONTAL)
-        
-        # Configure grid layout
+
         self.canvas.grid(row=0, column=0, sticky="nsew")
         self.v_scrollbar.grid(row=0, column=1, sticky="ns")
         self.h_scrollbar.grid(row=1, column=0, sticky="ew")
-
-        # Configure frame grid weights
-        self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(0, weight=1)
 
         # Configure scrolling
         self.v_scrollbar.config(command=self.canvas.yview)
@@ -49,24 +48,31 @@ class CapabilityVisualizer(ttk.Toplevel):
             xscrollcommand=self.h_scrollbar.set
         )
 
-        # Bind resize event
-        self.bind('<Configure>', self._on_resize)
-
-        # Enable zooming with mouse wheel
+        # Bind resize and zoom
+        self.bind('<Configure>', self._on_resize) 
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
 
-        # Draw the model
+        # Create a hidden tooltip Toplevel
+        self.tooltip = tk.Toplevel(self, bg="yellow", padx=5, pady=5)
+        self.tooltip.withdraw()        # Hide by default
+        self.tooltip.overrideredirect(True)  # Remove window decorations
+
+        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow")
+        self.tooltip_label.pack()
+
+        # List to hold item references so we can bind hover events
+        self.item_to_description = {}
+
         self.draw_model()
 
     def _on_resize(self, event):
         """Handle window resize events."""
-        # Update canvas size
-        self.canvas.config(width=event.width, height=event.height)
+        # Redraw model on window resize (this also adjusts the scroll region)
         self.draw_model()
 
     def _on_mousewheel(self, event):
-        """Handle zooming with mouse wheel."""
+        """Handle zooming with mouse wheel (Ctrl + Wheel)."""
         if event.delta > 0:
             self.scale *= 1.1
         else:
@@ -74,36 +80,35 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.draw_model()
 
     def draw_box(self, x, y, width, height, text, description=None, has_children=False):
-        """Draw a single capability box with text."""
-        # Apply scaling and convert to integers
+        """Draw a single capability box with text and bind events for tooltip."""
+        # Apply scaling
         sx = int(x * self.scale)
         sy = int(y * self.scale)
         sw = int(width * self.scale)
         sh = int(height * self.scale)
 
-        # Create box
-        self.canvas.create_rectangle(
+        # Draw rectangle
+        rect_id = self.canvas.create_rectangle(
             sx, sy, sx + sw, sy + sh,
             fill='white',
             outline='black',
             width=2
         )
 
-        # Calculate adaptive font size based on box dimensions
-        # and scale factor
+        # Calculate a suitable font size
         font_size = min(
-            int(10 * self.scale),  # Scale-based size
-            int(sw / (len(text) + 2) * 1.5),  # Width-based size
-            int(sh / 3)  # Height-based size
+            int(10 * self.scale),                  # scale-based
+            int(sw / (len(text) + 2) * 1.5),       # width-based
+            int(sh / 3)                            # height-based
         )
-        font_size = max(8, font_size)  # Minimum font size
+        font_size = max(8, font_size)  # minimum
 
-        # Calculate text position - adjust y coordinate if has children
-        text_x = int(sx + sw/2)
-        padding = max(font_size + 2, 15)  # Add padding based on font size
-        text_y = int(sy + (padding if has_children else sh/2))  # Place text just below top line if has children
+        # Adjust text position if node has children (place near top)
+        text_x = sx + sw // 2
+        padding = max(font_size + 2, 15)
+        text_y = sy + (padding if has_children else sh // 2)
 
-        self.canvas.create_text(
+        text_id = self.canvas.create_text(
             text_x,
             text_y,
             text=text,
@@ -112,9 +117,41 @@ class CapabilityVisualizer(ttk.Toplevel):
             anchor='center'
         )
 
+        # Only bind tooltip if there's a description
+        if description:
+            self.item_to_description[rect_id] = description
+            # You can also map text_id if you want the same tooltip on the text
+            self.item_to_description[text_id] = description
+
+            # Bind events for enter/leave
+            self.canvas.tag_bind(rect_id, "<Enter>", self._show_tooltip)
+            self.canvas.tag_bind(rect_id, "<Leave>", self._hide_tooltip)
+            self.canvas.tag_bind(text_id, "<Enter>", self._show_tooltip)
+            self.canvas.tag_bind(text_id, "<Leave>", self._hide_tooltip)
+
+    def _show_tooltip(self, event):
+        """Show the tooltip near the mouse pointer."""
+        item = event.widget.find_withtag("current")
+        if item:
+            item_id = item[0]
+            if item_id in self.item_to_description:
+                desc = self.item_to_description[item_id]
+                # Update tooltip text
+                self.tooltip_label.config(text=desc)
+                # Position tooltip near the mouse
+                x_root = self.winfo_pointerx() + 10
+                y_root = self.winfo_pointery() + 10
+                self.tooltip.geometry(f"+{x_root}+{y_root}")
+                self.tooltip.deiconify()
+
+    def _hide_tooltip(self, event):
+        """Hide the tooltip."""
+        self.tooltip.withdraw()
+
     def draw_model(self):
-        """Draw the entire capability model."""
+        """Draw the entire capability model and then resize the Toplevel if needed."""
         self.canvas.delete('all')  # Clear canvas
+        self.item_to_description.clear()
 
         def draw_node(node: LayoutModel):
             # Draw current node
@@ -123,18 +160,46 @@ class CapabilityVisualizer(ttk.Toplevel):
                 node.width, node.height,
                 node.name,
                 node.description,
-                bool(node.children)  # Pass whether node has children
+                bool(node.children)
             )
+            # Draw children
+            for child in node.children or []:
+                draw_node(child)
 
-            # Draw children and connections
-            if node.children:
-                for child in node.children:
-                    draw_node(child)
-
-        # Draw the model starting from root
+        # Draw the model from the root
         draw_node(self.model)
 
-        # Update canvas scroll region
-        self.canvas.config(
-            scrollregion=self.canvas.bbox('all')
-        )
+        # Update scroll region to fit all elements
+        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+
+        # Optionally resize window to fit content up to a max fraction of the screen
+        self._resize_window_to_content()
+
+    def _resize_window_to_content(self):
+        """Resize the Toplevel so that it fits the drawn content up to a max fraction of screen size."""
+        # bounding box of all items in the canvas
+        bbox = self.canvas.bbox("all")
+        if not bbox:
+            return
+
+        x1, y1, x2, y2 = bbox
+        content_width = x2 - x1
+        content_height = y2 - y1
+
+        # Get screen width/height
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        max_width = int(screen_width * self.max_screen_fraction)
+        max_height = int(screen_height * self.max_screen_fraction)
+
+        # Pick the smaller between content size and max fraction
+        new_width = min(content_width, max_width)
+        new_height = min(content_height, max_height)
+
+        # Add some padding for scrollbars or window borders if desired
+        new_width += 50
+        new_height += 50
+
+        # Update geometry
+        self.geometry(f"{new_width}x{new_height}")
