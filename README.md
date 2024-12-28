@@ -12,6 +12,7 @@ A modern, interactive business capability modeling tool built with Python. This 
 - SQLite database for persistent storage
 - Form validation using Pydantic
 - Rich text descriptions with auto-save
+- Export capabilities to Archimate Open Exchange Format
 
 ### Advanced Features
 - AI-powered capability expansion
@@ -97,6 +98,14 @@ bcm
    - Adjust visualization settings through the settings menu
    - Customize colors for different capability levels
    - Configure layout parameters
+
+4. **Archimate Export**
+   - File > Export to Archimate to save as .archimate file
+   - Compatible with Archi and other Archimate modeling tools
+   - Preserves layout and hierarchy
+   - Capabilities are exported as Archimate Capability elements
+   - Includes descriptions and relationships
+   - Color-coding is preserved in the diagram
 
 ### Advanced Features
 
