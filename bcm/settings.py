@@ -10,6 +10,7 @@ BOX_MIN_HEIGHT_DEFAULT = 80
 HORIZONTAL_GAP_DEFAULT = 20
 VERTICAL_GAP_DEFAULT = 20
 PADDING_DEFAULT = 30
+TOP_PADDING_DEFAULT = 40  # Slightly larger than standard padding by default
 DEFAULT_TARGET_ASPECT_RATIO_DEFAULT = 1.0
 
 DEFAULT_SETTINGS = {
@@ -24,6 +25,7 @@ DEFAULT_SETTINGS = {
     "horizontal_gap": HORIZONTAL_GAP_DEFAULT,
     "vertical_gap": VERTICAL_GAP_DEFAULT,
     "padding": PADDING_DEFAULT,
+    "top_padding": TOP_PADDING_DEFAULT,  # New setting for vertical padding between parent and first child
     "target_aspect_ratio": DEFAULT_TARGET_ASPECT_RATIO_DEFAULT,
     "max_level": 6,  # Add default max level
     # Color settings for hierarchy levels + leaf nodes
@@ -118,8 +120,9 @@ class SettingsDialog(ttk.Toplevel):
         self.horizontal_gap_var = ttk.StringVar()
         self.vertical_gap_var = ttk.StringVar()
         self.padding_var = ttk.StringVar()
+        self.top_padding_var = ttk.StringVar()  # New variable for top padding
         self.target_aspect_ratio_var = ttk.StringVar()
-        self.max_level_var = ttk.StringVar()  # Add this with other variables
+        self.max_level_var = ttk.StringVar()
 
         # Colors
         self.color_0_var = ttk.StringVar()
@@ -149,8 +152,9 @@ class SettingsDialog(ttk.Toplevel):
         self.horizontal_gap_var.set(str(self.settings.get("horizontal_gap")))
         self.vertical_gap_var.set(str(self.settings.get("vertical_gap")))
         self.padding_var.set(str(self.settings.get("padding")))
+        self.top_padding_var.set(str(self.settings.get("top_padding")))  # Load top padding setting
         self.target_aspect_ratio_var.set(str(self.settings.get("target_aspect_ratio")))
-        self.max_level_var.set(str(self.settings.get("max_level")))  # Add this line
+        self.max_level_var.set(str(self.settings.get("max_level")))
 
         # Colors
         self.color_0_var.set(self.settings.get("color_0"))
@@ -260,6 +264,14 @@ class SettingsDialog(ttk.Toplevel):
             width=6
         )
 
+        # top_padding
+        self.top_padding_label = ttk.Label(self.layout_settings_frame, text="Top Padding:")
+        self.top_padding_entry = ttk.Entry(
+            self.layout_settings_frame,
+            textvariable=self.top_padding_var,
+            width=6
+        )
+
         # target_aspect_ratio
         self.aspect_ratio_label = ttk.Label(
             self.layout_settings_frame,
@@ -289,7 +301,7 @@ class SettingsDialog(ttk.Toplevel):
             padding=10
         )
 
-        # We’ll create one row per level (0–6) plus leaf
+        # We'll create one row per level (0–6) plus leaf
         self.color_labels = []
         self.color_buttons = []
         self.color_previews = []
@@ -410,8 +422,12 @@ class SettingsDialog(ttk.Toplevel):
         self.padding_label.grid(row=2, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
         self.padding_entry.grid(row=2, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
 
-        self.aspect_ratio_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
-        self.aspect_ratio_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
+        self.top_padding_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
+        self.top_padding_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
+
+        # Row 4
+        self.aspect_ratio_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.aspect_ratio_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
 
         # Root font size
         self.root_font_size_label = ttk.Label(self.layout_settings_frame, text="Root Font Size:")
@@ -421,13 +437,13 @@ class SettingsDialog(ttk.Toplevel):
             width=6
         )
 
-        # Row 4
-        self.root_font_size_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.root_font_size_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
-
         # Row 5
-        self.max_level_label.grid(row=4, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.max_level_entry.grid(row=4, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+        self.root_font_size_label.grid(row=4, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.root_font_size_entry.grid(row=4, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+
+        # Row 6
+        self.max_level_label.grid(row=5, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.max_level_entry.grid(row=5, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
 
         # --------------
         # 4) COLOR TAB
@@ -516,6 +532,10 @@ class SettingsDialog(ttk.Toplevel):
             if padding < 0:
                 raise ValueError("Padding cannot be negative")
 
+            top_padding = int(self.top_padding_var.get())
+            if top_padding < 0:
+                raise ValueError("Top Padding cannot be negative")
+
             aspect_ratio = float(self.target_aspect_ratio_var.get())
             if aspect_ratio <= 0.0:
                 raise ValueError("Target Aspect Ratio must be greater than 0")
@@ -575,6 +595,7 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("horizontal_gap", int(self.horizontal_gap_var.get()))
         self.settings.set("vertical_gap", int(self.vertical_gap_var.get()))
         self.settings.set("padding", int(self.padding_var.get()))
+        self.settings.set("top_padding", int(self.top_padding_var.get()))  # Save top padding setting
         self.settings.set("target_aspect_ratio", float(self.target_aspect_ratio_var.get()))
         self.settings.set("root_font_size", int(self.root_font_size_var.get()))
         self.settings.set("max_level", int(self.max_level_var.get()))

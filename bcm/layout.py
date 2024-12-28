@@ -68,7 +68,7 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int, settings: Se
 
         # Calculate positions for each child
         positions = []
-        y_offset = padding
+        y_offset = settings.get("top_padding", padding)  # Use top_padding for initial vertical offset
         for row in range(rows):
             x_offset = padding
             for col in range(cols):
