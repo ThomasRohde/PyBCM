@@ -18,6 +18,7 @@ DEFAULT_SETTINGS = {
     "font_size": 10,             # Default font size for main text content
     "model": "openai:gpt-4o",    # Default model
     # Layout
+    "root_font_size": 20,        # Default root font size for layout
     "box_min_width": BOX_MIN_WIDTH_DEFAULT,
     "box_min_height": BOX_MIN_HEIGHT_DEFAULT,
     "horizontal_gap": HORIZONTAL_GAP_DEFAULT,
@@ -111,6 +112,7 @@ class SettingsDialog(ttk.Toplevel):
         self.model_var = ttk.StringVar()
 
         # Layout
+        self.root_font_size_var = ttk.StringVar()
         self.box_min_width_var = ttk.StringVar()
         self.box_min_height_var = ttk.StringVar()
         self.horizontal_gap_var = ttk.StringVar()
@@ -141,6 +143,7 @@ class SettingsDialog(ttk.Toplevel):
         self.model_var.set(self.settings.get("model"))
 
         # Layout
+        self.root_font_size_var.set(str(self.settings.get("root_font_size")))
         self.box_min_width_var.set(str(self.settings.get("box_min_width")))
         self.box_min_height_var.set(str(self.settings.get("box_min_height")))
         self.horizontal_gap_var.set(str(self.settings.get("horizontal_gap")))
@@ -410,9 +413,21 @@ class SettingsDialog(ttk.Toplevel):
         self.aspect_ratio_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
         self.aspect_ratio_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
 
+        # Root font size
+        self.root_font_size_label = ttk.Label(self.layout_settings_frame, text="Root Font Size:")
+        self.root_font_size_entry = ttk.Entry(
+            self.layout_settings_frame,
+            textvariable=self.root_font_size_var,
+            width=6
+        )
+
         # Row 4
-        self.max_level_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.max_level_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+        self.root_font_size_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.root_font_size_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+
+        # Row 5
+        self.max_level_label.grid(row=4, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.max_level_entry.grid(row=4, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
 
         # --------------
         # 4) COLOR TAB
@@ -505,6 +520,13 @@ class SettingsDialog(ttk.Toplevel):
             if aspect_ratio <= 0.0:
                 raise ValueError("Target Aspect Ratio must be greater than 0")
 
+            # Root font size validation
+            root_font_size = int(self.root_font_size_var.get())
+            if root_font_size < 8:
+                raise ValueError("Root font size must be at least 8")
+            if root_font_size > 48:
+                raise ValueError("Root font size cannot exceed 48")
+
             # Add max_level validation
             max_level = int(self.max_level_var.get())
             if max_level < 1:
@@ -554,7 +576,8 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("vertical_gap", int(self.vertical_gap_var.get()))
         self.settings.set("padding", int(self.padding_var.get()))
         self.settings.set("target_aspect_ratio", float(self.target_aspect_ratio_var.get()))
-        self.settings.set("max_level", int(self.max_level_var.get()))  # Add this line
+        self.settings.set("root_font_size", int(self.root_font_size_var.get()))
+        self.settings.set("max_level", int(self.max_level_var.get()))
 
         # Colors
         self.settings.set("color_0", self.color_0_var.get())

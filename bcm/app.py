@@ -55,6 +55,7 @@ class App:
         self.file_menu.add_command(label="Import...", command=self._import_capabilities)
         self.file_menu.add_command(label="Export...", command=self._export_capabilities)
         self.file_menu.add_command(label="Export to HTML...", command=self._export_to_html)
+        self.file_menu.add_command(label="Export to SVG...", command=self._export_to_svg)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Settings", command=self._show_settings)
         self.file_menu.add_separator()
@@ -280,6 +281,59 @@ class App:
             description=node_data.get("description", ""),
             children=children
         )
+
+    def _export_to_svg(self):
+        """Export capabilities to SVG visualization starting from selected node."""
+        from .svg_export import export_to_svg
+        
+        # Get selected node or use root if none selected
+        selected = self.tree.selection()
+        if selected:
+            start_node_id = int(selected[0])
+        else:
+            # Find root node
+            capabilities = self.db_ops.get_all_capabilities()
+            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+            if not root_nodes:
+                return
+            start_node_id = root_nodes[0]["id"]
+        
+        # Get hierarchical data starting from selected node
+        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        
+        # Convert to layout format starting from selected node
+        layout_model = self._convert_to_layout_format(node_data)
+        
+        # Get save location from user
+        filename = filedialog.asksaveasfilename(
+            title="Export to SVG",
+            defaultextension=".svg",
+            filetypes=[("SVG files", "*.svg"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            try:
+                # Generate SVG content
+                svg_content = export_to_svg(layout_model, self.settings)
+                
+                # Write to file
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(svg_content)
+                
+                create_dialog(
+                    self.root,
+                    "Success",
+                    "Capabilities exported to SVG successfully",
+                    ok_only=True
+                )
+                
+            except Exception as e:
+                create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to export capabilities to SVG: {str(e)}",
+                    ok_only=True
+                )
 
     def _export_to_html(self):
         """Export capabilities to HTML visualization starting from selected node."""
