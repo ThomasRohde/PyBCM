@@ -263,12 +263,17 @@ class App:
         """Convert capabilities to the layout format using LayoutModel."""
         from .models import LayoutModel
         
-        def convert_node(node):
-            children = [convert_node(child) for child in node["children"]]
+        def convert_node(node, level=0):
+            # Only create children if we haven't reached max_level
+            max_level = self.settings.get("max_level", 6)
+            children = None
+            if node["children"] and level < max_level:
+                children = [convert_node(child, level + 1) for child in node["children"]]
+            
             return LayoutModel(
                 name=node["name"],
                 description=node.get("description", ""),
-                children=children if children else None
+                children=children
             )
         
         # Find root nodes (nodes without parents)
@@ -276,12 +281,12 @@ class App:
         
         # If there's exactly one root node, use it as the root
         if len(root_nodes) == 1:
-            return convert_node(root_nodes[0])
+            return convert_node(root_nodes[0], 0)
         
         # Otherwise, create an artificial root node
         return LayoutModel(
             name="Capability Model",
-            children=[convert_node(cap) for cap in root_nodes]
+            children=[convert_node(cap, 0) for cap in root_nodes]
         )
 
     def _export_to_html(self):
