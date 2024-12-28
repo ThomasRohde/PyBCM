@@ -24,6 +24,7 @@ DEFAULT_SETTINGS = {
     "vertical_gap": VERTICAL_GAP_DEFAULT,
     "padding": PADDING_DEFAULT,
     "target_aspect_ratio": DEFAULT_TARGET_ASPECT_RATIO_DEFAULT,
+    "max_level": 6,  # Add default max level
     # Color settings for hierarchy levels + leaf nodes
     "color_0": "#5B8C85",   # Muted teal
     "color_1": "#6B5B95",   # Muted purple
@@ -116,6 +117,7 @@ class SettingsDialog(ttk.Toplevel):
         self.vertical_gap_var = ttk.StringVar()
         self.padding_var = ttk.StringVar()
         self.target_aspect_ratio_var = ttk.StringVar()
+        self.max_level_var = ttk.StringVar()  # Add this with other variables
 
         # Colors
         self.color_0_var = ttk.StringVar()
@@ -145,6 +147,7 @@ class SettingsDialog(ttk.Toplevel):
         self.vertical_gap_var.set(str(self.settings.get("vertical_gap")))
         self.padding_var.set(str(self.settings.get("padding")))
         self.target_aspect_ratio_var.set(str(self.settings.get("target_aspect_ratio")))
+        self.max_level_var.set(str(self.settings.get("max_level")))  # Add this line
 
         # Colors
         self.color_0_var.set(self.settings.get("color_0"))
@@ -262,6 +265,14 @@ class SettingsDialog(ttk.Toplevel):
         self.aspect_ratio_entry = ttk.Entry(
             self.layout_settings_frame,
             textvariable=self.target_aspect_ratio_var,
+            width=6
+        )
+
+        # max_level
+        self.max_level_label = ttk.Label(self.layout_settings_frame, text="Max Level:")
+        self.max_level_entry = ttk.Entry(
+            self.layout_settings_frame,
+            textvariable=self.max_level_var,
             width=6
         )
 
@@ -399,6 +410,10 @@ class SettingsDialog(ttk.Toplevel):
         self.aspect_ratio_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
         self.aspect_ratio_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
 
+        # Row 4
+        self.max_level_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
+        self.max_level_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+
         # --------------
         # 4) COLOR TAB
         # --------------
@@ -490,6 +505,13 @@ class SettingsDialog(ttk.Toplevel):
             if aspect_ratio <= 0.0:
                 raise ValueError("Target Aspect Ratio must be greater than 0")
 
+            # Add max_level validation
+            max_level = int(self.max_level_var.get())
+            if max_level < 1:
+                raise ValueError("Max Level must be at least 1")
+            if max_level > 10:
+                raise ValueError("Max Level cannot exceed 10")
+
             # Color settings: basic check that they are non-empty strings
             # (You could add more robust color validation if desired.)
             for i, var in enumerate([
@@ -532,6 +554,7 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("vertical_gap", int(self.vertical_gap_var.get()))
         self.settings.set("padding", int(self.padding_var.get()))
         self.settings.set("target_aspect_ratio", float(self.target_aspect_ratio_var.get()))
+        self.settings.set("max_level", int(self.max_level_var.get()))  # Add this line
 
         # Colors
         self.settings.set("color_0", self.color_0_var.get())
