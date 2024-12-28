@@ -25,7 +25,7 @@ Given a set of child nodes, the algorithm enumerates potential grid layouts by v
 - Distribute extra horizontal/vertical space across columns/rows for balance.
 
 #### 2.3 Positioning and Recursion
-Once the best layout for a node’s children is found, each child is assigned an (x, y) coordinate and sized according to the computed row and column dimensions. The algorithm then recurses into each child to lay out its own children similarly.
+Once the best layout for a node’s children is found, each child is assigned an (x, y) coordinate and sized according to the computed row and column dimensions. The algorithm then recurses into each child to lay out its own children similarly.
 
 ### 3. Detailed Steps
 
