@@ -106,6 +106,9 @@ class SettingsDialog(ttk.Toplevel):
         self.position_center()
         self.resizable(False, False)
 
+        # Bind Return key to OK button
+        self.bind('<Return>', lambda e: self._on_ok())
+
         # Create all variables that will be used in the UI
         # Look & Feel
         self.theme_var = ttk.StringVar()
@@ -404,31 +407,6 @@ class SettingsDialog(ttk.Toplevel):
         self.layout_frame.pack(fill="both", expand=True)
         self.layout_settings_frame.pack(fill="x", padx=10, pady=10)
 
-        # Row 1
-        self.box_min_width_label.grid(row=0, column=0, padx=(0, 5), pady=(0, 5), sticky="w")
-        self.box_min_width_entry.grid(row=0, column=1, padx=(0, 10), pady=(0, 5), sticky="w")
-
-        self.box_min_height_label.grid(row=0, column=2, padx=(10, 5), pady=(0, 5), sticky="w")
-        self.box_min_height_entry.grid(row=0, column=3, padx=(0, 10), pady=(0, 5), sticky="w")
-
-        # Row 2
-        self.horizontal_gap_label.grid(row=1, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.horizontal_gap_entry.grid(row=1, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
-
-        self.vertical_gap_label.grid(row=1, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
-        self.vertical_gap_entry.grid(row=1, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
-
-        # Row 3
-        self.padding_label.grid(row=2, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.padding_entry.grid(row=2, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
-
-        self.top_padding_label.grid(row=2, column=2, padx=(10, 5), pady=(5, 5), sticky="w")
-        self.top_padding_entry.grid(row=2, column=3, padx=(0, 10), pady=(5, 5), sticky="w")
-
-        # Row 4
-        self.aspect_ratio_label.grid(row=3, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.aspect_ratio_entry.grid(row=3, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
-
         # Root font size
         self.root_font_size_label = ttk.Label(self.layout_settings_frame, text="Root Font Size:")
         self.root_font_size_entry = ttk.Entry(
@@ -437,13 +415,35 @@ class SettingsDialog(ttk.Toplevel):
             width=6
         )
 
-        # Row 5
-        self.root_font_size_label.grid(row=4, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.root_font_size_entry.grid(row=4, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+        # Grid layout - Left column
+        self.root_font_size_label.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.root_font_size_entry.grid(row=0, column=1, padx=(0, 10), pady=5, sticky="w")
 
-        # Row 6
-        self.max_level_label.grid(row=5, column=0, padx=(0, 5), pady=(5, 5), sticky="w")
-        self.max_level_entry.grid(row=5, column=1, padx=(0, 10), pady=(5, 5), sticky="w")
+        self.box_min_width_label.grid(row=1, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.box_min_width_entry.grid(row=1, column=1, padx=(0, 10), pady=5, sticky="w")
+
+        self.horizontal_gap_label.grid(row=2, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.horizontal_gap_entry.grid(row=2, column=1, padx=(0, 10), pady=5, sticky="w")
+
+        self.padding_label.grid(row=3, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.padding_entry.grid(row=3, column=1, padx=(0, 10), pady=5, sticky="w")
+
+        # Grid layout - Right column
+        self.max_level_label.grid(row=0, column=2, padx=(10, 5), pady=5, sticky="w")
+        self.max_level_entry.grid(row=0, column=3, padx=(0, 10), pady=5, sticky="w")
+
+        self.box_min_height_label.grid(row=1, column=2, padx=(10, 5), pady=5, sticky="w")
+        self.box_min_height_entry.grid(row=1, column=3, padx=(0, 10), pady=5, sticky="w")
+
+        self.vertical_gap_label.grid(row=2, column=2, padx=(10, 5), pady=5, sticky="w")
+        self.vertical_gap_entry.grid(row=2, column=3, padx=(0, 10), pady=5, sticky="w")
+
+        self.top_padding_label.grid(row=3, column=2, padx=(10, 5), pady=5, sticky="w")
+        self.top_padding_entry.grid(row=3, column=3, padx=(0, 10), pady=5, sticky="w")
+
+        # Aspect ratio at the bottom spanning both columns
+        self.aspect_ratio_label.grid(row=4, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.aspect_ratio_entry.grid(row=4, column=1, padx=(0, 10), pady=5, sticky="w")
 
         # --------------
         # 4) COLOR TAB
@@ -612,6 +612,7 @@ class SettingsDialog(ttk.Toplevel):
 
         self.result = True
         self.destroy()
+
 
     def position_center(self):
         """Helper method to center the dialog on the parent."""
