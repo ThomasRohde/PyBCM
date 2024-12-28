@@ -1,6 +1,6 @@
 import uuid
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional
+from typing import Dict
 
 from .models import LayoutModel
 from .layout import process_layout
@@ -29,7 +29,7 @@ def create_relationship(root: ET.Element, source_id: str, target_id: str,
                        rel_type: str = "Composition") -> str:
     """Create a relationship between two elements."""
     identifier = generate_id()
-    rel = ET.SubElement(root.find("relationships"), "relationship", {
+    ET.SubElement(root.find("relationships"), "relationship", {
         "identifier": identifier,
         "source": source_id,
         "target": target_id,
@@ -59,14 +59,14 @@ def create_node(view: ET.Element, element_id: str, x: float, y: float,
     g = int(color[3:5], 16)
     b = int(color[5:7], 16)
     
-    fill_color = ET.SubElement(style, "fillColor", {
+    ET.SubElement(style, "fillColor", {
         "r": str(r),
         "g": str(g),
         "b": str(b),
         "a": "100"
     })
     
-    line_color = ET.SubElement(style, "lineColor", {
+    ET.SubElement(style, "lineColor", {
         "r": "92",
         "g": "92",
         "b": "92",
@@ -78,7 +78,7 @@ def create_node(view: ET.Element, element_id: str, x: float, y: float,
         "size": "9"
     })
     
-    font_color = ET.SubElement(font, "color", {
+    ET.SubElement(font, "color", {
         "r": "0",
         "g": "0",
         "b": "0"

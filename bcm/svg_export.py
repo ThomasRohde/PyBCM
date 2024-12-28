@@ -1,5 +1,5 @@
 import math
-from typing import List, Tuple, Dict
+from typing import List
 import xml.etree.ElementTree as ET
 import textwrap
 
@@ -79,7 +79,7 @@ def add_node_to_svg(svg: ET.Element, node: LayoutModel, settings: Settings, leve
         color = settings.get(f"color_{min(level, 6)}")
     
     # Add rectangle for node
-    rect = ET.SubElement(g, 'rect', {
+    ET.SubElement(g, 'rect', {
         'x': str(node.x),
         'y': str(node.y),
         'width': str(node.width),

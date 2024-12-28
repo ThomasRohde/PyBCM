@@ -249,7 +249,7 @@ class DatabaseOperations:
                     )
                     db_capability = self.create_capability(cap)
                     id_mapping[item["id"]] = db_capability.id
-                except Exception as e:
+                except Exception:
                     raise
             
             # Second pass: Update parent relationships
