@@ -1,5 +1,4 @@
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import VERTICAL, HORIZONTAL
 import tkinter as tk
 from .layout import process_layout
 from .models import LayoutModel
@@ -30,22 +29,9 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.frame.grid_columnconfigure(0, weight=1)
         self.frame.grid_rowconfigure(0, weight=1)
 
-        # Canvas and scrollbars
+        # Canvas setup
         self.canvas = tk.Canvas(self.frame, background='white')
-        self.v_scrollbar = ttk.Scrollbar(self.frame, orient=VERTICAL)
-        self.h_scrollbar = ttk.Scrollbar(self.frame, orient=HORIZONTAL)
-
         self.canvas.grid(row=0, column=0, sticky="nsew")
-        self.v_scrollbar.grid(row=0, column=1, sticky="ns")
-        self.h_scrollbar.grid(row=1, column=0, sticky="ew")
-
-        # Configure scrolling
-        self.v_scrollbar.config(command=self.canvas.yview)
-        self.h_scrollbar.config(command=self.canvas.xview)
-        self.canvas.config(
-            yscrollcommand=self.v_scrollbar.set,
-            xscrollcommand=self.h_scrollbar.set
-        )
 
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
@@ -66,7 +52,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.tooltip.overrideredirect(True)  # Remove window decorations
 
         # IMPORTANT: wraplength to set a max width
-        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow", wraplength=300)
+        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow", wraplength=500)
         self.tooltip_label.pack()
 
         # List to hold item references so we can bind hover events
@@ -212,9 +198,6 @@ class CapabilityVisualizer(ttk.Toplevel):
         new_width = min(content_width, max_width)
         new_height = min(content_height, max_height)
 
-        # Add some padding for scrollbars or window borders if desired
-        new_width += 50
-        new_height += 50
 
         # Update geometry just once
         self.geometry(f"{new_width}x{new_height}")
