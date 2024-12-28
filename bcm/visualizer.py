@@ -80,7 +80,7 @@ class CapabilityVisualizer(ttk.Toplevel):
             self.scale *= 0.9
         self.draw_model()
 
-    def draw_box(self, x, y, width, height, text, description=None, has_children=False):
+    def draw_box(self, x, y, width, height, text, description=None, has_children=False, level=0):
         """Draw a single capability box with text and bind events for tooltip."""
         # Apply scaling
         sx = int(x * self.scale)
@@ -88,10 +88,18 @@ class CapabilityVisualizer(ttk.Toplevel):
         sw = int(width * self.scale)
         sh = int(height * self.scale)
 
+        # Determine fill color based on level and whether it's a leaf node
+        if not has_children:
+            fill_color = self.settings.get("color_leaf")
+        else:
+            # Use color_0 through color_6 based on level, defaulting to color_6 for deeper levels
+            color_key = f"color_{min(level, 6)}"
+            fill_color = self.settings.get(color_key)
+
         # Draw rectangle
         rect_id = self.canvas.create_rectangle(
             sx, sy, sx + sw, sy + sh,
-            fill='white',
+            fill=fill_color,
             outline='black',
             width=2
         )
@@ -153,20 +161,21 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.canvas.delete('all')  # Clear canvas
         self.item_to_description.clear()
 
-        def draw_node(node: LayoutModel):
+        def draw_node(node: LayoutModel, level=0):
             # Draw current node
             self.draw_box(
                 node.x, node.y,
                 node.width, node.height,
                 node.name,
                 node.description,
-                bool(node.children)
+                bool(node.children),
+                level
             )
-            # Recursively draw children
+            # Recursively draw children with incremented level
             for child in node.children or []:
-                draw_node(child)
+                draw_node(child, level + 1)
 
-        # Draw from the root
+        # Draw from the root with level 0
         draw_node(self.model)
 
         # Update scroll region to fit all elements
