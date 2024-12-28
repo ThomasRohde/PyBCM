@@ -61,33 +61,54 @@ def find_best_layout(child_sizes: List[NodeSize], child_count: int, settings: Se
         grid_width = sum(col_widths) + (cols - 1) * horizontal_gap
         grid_height = sum(row_heights) + (rows - 1) * vertical_gap
         
+        # Calculate total dimensions including padding
         total_width = grid_width + 2 * padding
         total_height = grid_height + 2 * padding
+        
+        # Ensure the layout height accounts for both top and bottom padding
+        available_height = total_height - (settings.get("top_padding", padding) + padding)
+        if grid_height > available_height:
+            total_height = grid_height + settings.get("top_padding", padding) + padding
+            
         aspect_ratio = total_width / total_height
         deviation = abs(aspect_ratio - target_aspect_ratio)
 
-        # Calculate positions for each child
+        # Calculate positions for each child, ensuring they fit within padding bounds
         positions = []
         y_offset = settings.get("top_padding", padding)  # Use top_padding for initial vertical offset
+        max_y = total_height - padding  # Maximum allowed y position
+        
         for row in range(rows):
             x_offset = padding
             for col in range(cols):
                 idx = row * cols + col
                 if idx < child_count:
-                    positions.append({
+                    # Calculate the position and dimensions for this child
+                    child_position = {
                         'x': x_offset,
                         'y': y_offset,
                         'width': col_widths[col],
                         'height': row_heights[row]
-                    })
+                    }
+                    
+                    # Check if this child would extend beyond the bottom padding
+                    child_bottom = y_offset + row_heights[row]
+                    if child_bottom > max_y:
+                        # Adjust total height to accommodate this child with proper padding
+                        total_height = child_bottom + padding
+                    
+                    positions.append(child_position)
                 x_offset += col_widths[col] + horizontal_gap
             y_offset += row_heights[row] + vertical_gap
 
+        # Ensure final height includes proper bottom padding
+        final_height = max(total_height, y_offset + padding)
+        
         current_layout = GridLayout(
             rows=rows,
             cols=cols,
             width=total_width,
-            height=total_height,
+            height=final_height,
             deviation=deviation,
             positions=positions
         )
