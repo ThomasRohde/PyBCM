@@ -9,7 +9,7 @@ class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
         super().__init__(parent)
         self.title("Capability Model Visualizer")
-        
+        self.iconbitmap("./bcm/business_capability_model.ico")
         # Fraction of screen size you want to allow. Adjust as necessary.
         self.max_screen_fraction = 0.8
 
