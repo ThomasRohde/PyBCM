@@ -10,15 +10,19 @@ def generate_id() -> str:
     """Generate a unique identifier for Archimate elements."""
     return f"id-{str(uuid.uuid4()).replace('-', '')}"
 
-def create_archimate_element(root: ET.Element, name: str, x_type: str = "Capability") -> str:
+def create_archimate_element(root: ET.Element, name: str, documentation: str) -> str:
     """Create an Archimate element and return its identifier."""
     identifier = generate_id()
     element = ET.SubElement(root.find("elements"), "element", {
         "identifier": identifier,
-        "xsi:type": x_type
+        "xsi:type": "Capability"
     })
     name_elem = ET.SubElement(element, "name", {"xml:lang": "en"})
     name_elem.text = name
+
+    documentatio_elem = ET.SubElement(element, "documentation", {"xml:lang": "en"})
+    documentatio_elem.text = documentation
+
     return identifier
 
 def create_relationship(root: ET.Element, source_id: str, target_id: str, 
@@ -86,7 +90,7 @@ def process_node(root: ET.Element, view: ET.Element, node: LayoutModel,
                 settings: Settings, level: int = 0) -> Dict[str, str]:
     """Process a node and its children recursively."""
     # Create element
-    element_id = create_archimate_element(root, node.name)
+    element_id = create_archimate_element(root, node.name, node.description)
     
     # Determine node color based on level
     if not node.children:
