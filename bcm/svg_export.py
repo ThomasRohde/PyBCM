@@ -48,7 +48,7 @@ def add_wrapped_text(g: ET.Element, text: str, x: float, y: float, height: float
     
     # For nodes with children, position text near top
     if has_children:
-        start_y = y + font_size + 0  # Add small padding from top
+        start_y = y + font_size - 4  # Add small padding from top
     else:
         # For leaf nodes, center text vertically
         # Adjust the calculation to ensure perfect centering
