@@ -50,6 +50,16 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
         self.scale = 1.0
 
+        # Add panning variables
+        self._pan_start_x = 0
+        self._pan_start_y = 0
+        self._panning = False
+
+        # Add mouse bindings for panning
+        self.canvas.bind('<ButtonPress-1>', self._start_pan)
+        self.canvas.bind('<B1-Motion>', self._pan)
+        self.canvas.bind('<ButtonRelease-1>', self._stop_pan)
+
         # Create a hidden tooltip Toplevel
         self.tooltip = tk.Toplevel(self, bg="yellow", padx=5, pady=5)
         self.tooltip.withdraw()        # Hide by default
@@ -208,3 +218,32 @@ class CapabilityVisualizer(ttk.Toplevel):
 
         # Update geometry just once
         self.geometry(f"{new_width}x{new_height}")
+
+    def _start_pan(self, event):
+        """Start panning by recording the initial position."""
+        self.canvas.configure(cursor="fleur")  # Change cursor to indicate panning
+        self._pan_start_x = event.x
+        self._pan_start_y = event.y
+        self._panning = True
+
+    def _pan(self, event):
+        """Pan the canvas based on mouse movement."""
+        if not self._panning:
+            return
+
+        # Calculate the distance moved
+        dx = event.x - self._pan_start_x
+        dy = event.y - self._pan_start_y
+
+        # Move the canvas contents
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
+        self.canvas.scan_mark(event.x, event.y)
+
+        # Update start position
+        self._pan_start_x = event.x
+        self._pan_start_y = event.y
+
+    def _stop_pan(self, event):
+        """Stop panning."""
+        self.canvas.configure(cursor="")  # Reset cursor
+        self._panning = False
