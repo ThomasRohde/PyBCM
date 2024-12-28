@@ -4,17 +4,30 @@ A modern, interactive business capability modeling tool built with Python. This 
 
 ## Features
 
+### Core Features
 - Hierarchical capability tree visualization
 - Drag-and-drop capability reordering
 - CRUD operations for managing capabilities
 - Modern Bootstrap-styled interface
 - SQLite database for persistent storage
 - Form validation using Pydantic
+- Rich text descriptions with auto-save
+
+### Advanced Features
 - AI-powered capability expansion
 - Search functionality for capabilities
 - Import/Export capabilities to JSON
-- Rich text descriptions with auto-save
 - Expand/Collapse all tree nodes
+
+### Visualization Features
+- Interactive capability model visualization
+  - Zoomable canvas (Ctrl + MouseWheel)
+  - Pan navigation with mouse drag
+  - Color-coded capability levels
+  - Tooltips showing capability descriptions
+  - Auto-sizing and responsive layout
+- SVG export for capability models
+- Customizable visualization settings
 
 ## Requirements
 
@@ -65,6 +78,26 @@ bcm
    - Drag and drop capabilities in the tree
    - The order is automatically saved
 
+### Working with Visualizations
+
+1. **Opening the Visualizer**
+   - Select View > Visualize Model from the menu
+   - A new window opens with the capability model visualization
+
+2. **Navigation**
+   - Zoom: Use Ctrl + Mouse Wheel to zoom in/out
+   - Pan: Click and drag to move around the canvas
+   - Tooltips: Hover over capabilities to view descriptions
+
+3. **Exporting**
+   - File > Export as SVG to save the visualization
+   - The SVG file can be opened in any vector graphics editor
+
+4. **Customization**
+   - Adjust visualization settings through the settings menu
+   - Customize colors for different capability levels
+   - Configure layout parameters
+
 ### Advanced Features
 
 1. **AI Capability Expansion**
@@ -95,10 +128,15 @@ pybcm/
 │   ├── app.py           # Main application and UI
 │   ├── database.py      # Database operations
 │   ├── dialogs.py       # Custom dialog windows
+│   ├── layout.py        # Layout engine for visualization
 │   ├── models.py        # Data models and schemas
 │   ├── pb.py           # Progress bar implementation
-│   ├── treeview.py     # Custom tree view widget
-│   └── utils.py        # Utility functions
+│   ├── settings.py      # Application settings management
+│   ├── svg_export.py    # SVG export functionality
+│   ├── treeview.py      # Custom tree view widget
+│   ├── utils.py         # Utility functions
+│   ├── visualizer.py    # Interactive capability visualizer
+│   └── templates/       # Template files for layouts and prompts
 ├── pyproject.toml       # Project configuration
 └── README.md           # Documentation
 ```
