@@ -92,7 +92,7 @@ class App:
         # Add visualize button
         self.visualize_btn = ttk.Button(
             self.toolbar,
-            text="🔍",  # Magnifying glass emoji
+            text="🗺️",  # Map emoji
             command=self._show_visualizer,
             style="info-outline.TButton",
             width=3,
@@ -259,46 +259,50 @@ class App:
                 ok_only=True
             )
 
-    def _convert_to_layout_format(self, capabilities):
-        """Convert capabilities to the layout format using LayoutModel."""
+    def _convert_to_layout_format(self, node_data, level=0):
+        """Convert a node and its children to the layout format using LayoutModel.
+        
+        Args:
+            node_data: The node data to convert
+            level: Current level relative to start node
+        """
         from .models import LayoutModel
         
-        def convert_node(node, level=0):
-            # Only create children if we haven't reached max_level
-            max_level = self.settings.get("max_level", 6)
-            children = None
-            if node["children"] and level < max_level:
-                children = [convert_node(child, level + 1) for child in node["children"]]
-            
-            return LayoutModel(
-                name=node["name"],
-                description=node.get("description", ""),
-                children=children
-            )
+        # Only create children if we haven't reached max_level
+        max_level = self.settings.get("max_level", 6)
+        children = None
+        if node_data["children"] and level < max_level:
+            children = [self._convert_to_layout_format(child, level + 1) 
+                       for child in node_data["children"]]
         
-        # Find root nodes (nodes without parents)
-        root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-        
-        # If there's exactly one root node, use it as the root
-        if len(root_nodes) == 1:
-            return convert_node(root_nodes[0], 0)
-        
-        # Otherwise, create an artificial root node
         return LayoutModel(
-            name="Capability Model",
-            children=[convert_node(cap, 0) for cap in root_nodes]
+            name=node_data["name"],
+            description=node_data.get("description", ""),
+            children=children
         )
 
     def _export_to_html(self):
-        """Export capabilities to HTML visualization."""
+        """Export capabilities to HTML visualization starting from selected node."""
         from jinja2 import Template
         import os
         
-        # Get capabilities in hierarchical format
-        capabilities = self.db_ops.get_all_capabilities()
+        # Get selected node or use root if none selected
+        selected = self.tree.selection()
+        if selected:
+            start_node_id = int(selected[0])
+        else:
+            # Find root node
+            capabilities = self.db_ops.get_all_capabilities()
+            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+            if not root_nodes:
+                return
+            start_node_id = root_nodes[0]["id"]
         
-        # Convert to layout format and then to JSON
-        layout_model = self._convert_to_layout_format(capabilities)
+        # Get hierarchical data starting from selected node
+        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        
+        # Convert to layout format starting from selected node
+        layout_model = self._convert_to_layout_format(node_data)
         layout_data = layout_model.model_dump()
         
         # Read template
@@ -629,14 +633,26 @@ class App:
             )
 
     def _show_visualizer(self):
-        """Show the capability model visualizer."""
+        """Show the capability model visualizer starting from selected node."""
         from .visualizer import CapabilityVisualizer
         
-        # Get capabilities in hierarchical format
-        capabilities = self.db_ops.get_all_capabilities()
+        # Get selected node or use root if none selected
+        selected = self.tree.selection()
+        if selected:
+            start_node_id = int(selected[0])
+        else:
+            # Find root node
+            capabilities = self.db_ops.get_all_capabilities()
+            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+            if not root_nodes:
+                return
+            start_node_id = root_nodes[0]["id"]
         
-        # Convert to layout format
-        layout_model = self._convert_to_layout_format(capabilities)
+        # Get hierarchical data starting from selected node
+        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        
+        # Convert to layout format starting from selected node
+        layout_model = self._convert_to_layout_format(node_data)
         
         # Create and show visualizer window
         CapabilityVisualizer(self.root, layout_model)

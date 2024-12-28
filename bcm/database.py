@@ -62,6 +62,36 @@ class DatabaseOperations:
         
         return build_hierarchy()
 
+    def get_capability_with_children(self, capability_id: int) -> Optional[dict]:
+        """Get a capability and its children in a hierarchical structure."""
+        def build_hierarchy(parent_id: int) -> List[dict]:
+            capabilities = self.get_capabilities(parent_id)
+            result = []
+            for cap in capabilities:
+                cap_dict = {
+                    "id": cap.id,
+                    "name": cap.name,
+                    "description": cap.description,
+                    "order_position": cap.order_position,
+                    "children": build_hierarchy(cap.id)
+                }
+                result.append(cap_dict)
+            return result
+
+        # Get the starting capability
+        capability = self.get_capability(capability_id)
+        if not capability:
+            return None
+
+        # Return the capability with its children
+        return {
+            "id": capability.id,
+            "name": capability.name,
+            "description": capability.description,
+            "order_position": capability.order_position,
+            "children": build_hierarchy(capability.id)
+        }
+
     def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
         """Update a capability."""
         db_capability = self.get_capability(capability_id)
