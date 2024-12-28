@@ -142,6 +142,7 @@ class SettingsDialog(ttk.Toplevel):
         self._create_layout()
 
         # Load current settings into UI
+
         # Look & Feel
         self.theme_var.set(self.settings.get("theme"))
         self.max_cap_var.set(str(self.settings.get("max_ai_capabilities")))
@@ -175,9 +176,7 @@ class SettingsDialog(ttk.Toplevel):
         # Create a Notebook for tabbed settings
         self.notebook = ttk.Notebook(self)
 
-        # --------------------
-        # 1) LOOK & FEEL TAB
-        # --------------------
+        # Look & Feel tab
         self.look_frame = ttk.Frame(self.notebook)
 
         # Font size
@@ -194,9 +193,7 @@ class SettingsDialog(ttk.Toplevel):
             state="readonly"
         )
 
-        # ----------------------
-        # 2) AI GENERATION TAB
-        # ----------------------
+        # Ai generation tab
         self.ai_frame = ttk.Frame(self.notebook)
 
         # Max capabilities
@@ -216,9 +213,7 @@ class SettingsDialog(ttk.Toplevel):
             state="readonly"
         )
 
-        # ---------------
-        # 3) LAYOUT TAB
-        # ---------------
+        # Layout tab
         self.layout_frame = ttk.Frame(self.notebook)
 
         self.layout_settings_frame = ttk.LabelFrame(
@@ -294,9 +289,7 @@ class SettingsDialog(ttk.Toplevel):
             width=6
         )
 
-        # --------------
-        # 4) COLOR TAB
-        # --------------
+        # Color tab
         self.color_frame = ttk.Frame(self.notebook)
         self.color_settings_frame = ttk.LabelFrame(
             self.color_frame,
@@ -375,9 +368,7 @@ class SettingsDialog(ttk.Toplevel):
     def _create_layout(self):
         """Lay out all the widgets in the dialog."""
 
-        # --------------------
-        # 1) LOOK & FEEL TAB
-        # --------------------
+        # Look & Feel tab
         self.look_frame.pack(fill="both", expand=True)
 
         # Font frame layout
@@ -389,9 +380,7 @@ class SettingsDialog(ttk.Toplevel):
         self.theme_frame.pack(fill="x", padx=10, pady=5)
         self.theme_combo.pack(fill="x")
 
-        # ----------------------
-        # 2) AI GENERATION TAB
-        # ----------------------
+        # AI generation tab
         self.ai_frame.pack(fill="both", expand=True)
 
         self.cap_frame.pack(fill="x", padx=10, pady=(10, 5))
@@ -401,9 +390,7 @@ class SettingsDialog(ttk.Toplevel):
         self.model_frame.pack(fill="x", padx=10, pady=5)
         self.model_combo.pack(fill="x")
 
-        # ---------------
-        # 3) LAYOUT TAB
-        # ---------------
+        # Layout tab
         self.layout_frame.pack(fill="both", expand=True)
         self.layout_settings_frame.pack(fill="x", padx=10, pady=10)
 
@@ -445,9 +432,7 @@ class SettingsDialog(ttk.Toplevel):
         self.aspect_ratio_label.grid(row=4, column=0, padx=(0, 5), pady=5, sticky="w")
         self.aspect_ratio_entry.grid(row=4, column=1, padx=(0, 10), pady=5, sticky="w")
 
-        # --------------
-        # 4) COLOR TAB
-        # --------------
+        # Color tab
         self.color_frame.pack(fill="both", expand=True)
         self.color_settings_frame.pack(fill="x", padx=10, pady=10)
 
