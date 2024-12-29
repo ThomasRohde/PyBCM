@@ -44,7 +44,8 @@ async def generate_first_level_capabilities(organisation_name: str, organisation
 
     prompt = first_level_template.render(
         organisation_name=organisation_name,
-        organisation_description=organisation_description
+        organisation_description=organisation_description,
+        first_level=settings.get("first_level_range")
     )
 
     result = await agent.run(prompt)

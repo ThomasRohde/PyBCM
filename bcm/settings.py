@@ -16,6 +16,7 @@ DEFAULT_TARGET_ASPECT_RATIO_DEFAULT = 1.0
 DEFAULT_SETTINGS = {
     "theme": "litera",           # Default ttkbootstrap theme
     "max_ai_capabilities": 10,   # Default max number of AI-generated capabilities
+    "first_level_range": "5-10", # Default range for first level capabilities
     "font_size": 10,             # Default font size for main text content
     "model": "openai:gpt-4o",    # Default model
     # Layout
@@ -113,6 +114,7 @@ class SettingsDialog(ttk.Toplevel):
         # Look & Feel
         self.theme_var = ttk.StringVar()
         self.max_cap_var = ttk.StringVar()
+        self.first_level_range_var = ttk.StringVar()
         self.font_size_var = ttk.StringVar()
         self.model_var = ttk.StringVar()
 
@@ -146,6 +148,7 @@ class SettingsDialog(ttk.Toplevel):
         # Look & Feel
         self.theme_var.set(self.settings.get("theme"))
         self.max_cap_var.set(str(self.settings.get("max_ai_capabilities")))
+        self.first_level_range_var.set(str(self.settings.get("first_level_range")))
         self.font_size_var.set(str(self.settings.get("font_size")))
         self.model_var.set(self.settings.get("model"))
 
@@ -200,6 +203,10 @@ class SettingsDialog(ttk.Toplevel):
         self.cap_frame = ttk.LabelFrame(self.ai_frame, text="AI Generation Settings", padding=10)
         self.max_cap_label = ttk.Label(self.cap_frame, text="Maximum capabilities to generate:")
         self.max_cap_entry = ttk.Entry(self.cap_frame, textvariable=self.max_cap_var, width=5)
+        
+        # First level range
+        self.first_level_range_label = ttk.Label(self.cap_frame, text="First level capabilities range (e.g. 5-10):")
+        self.first_level_range_entry = ttk.Entry(self.cap_frame, textvariable=self.first_level_range_var, width=10)
 
         # Model selection
         self.model_frame = ttk.LabelFrame(self.ai_frame, text="Model Selection", padding=10)
@@ -386,6 +393,8 @@ class SettingsDialog(ttk.Toplevel):
         self.cap_frame.pack(fill="x", padx=10, pady=(10, 5))
         self.max_cap_label.pack(anchor="w")
         self.max_cap_entry.pack(anchor="w")
+        self.first_level_range_label.pack(anchor="w", pady=(10,0))
+        self.first_level_range_entry.pack(anchor="w")
 
         self.model_frame.pack(fill="x", padx=10, pady=5)
         self.model_combo.pack(fill="x")
@@ -489,6 +498,15 @@ class SettingsDialog(ttk.Toplevel):
             if max_cap > 10:
                 raise ValueError("Maximum capabilities cannot exceed 10")
 
+            # First level range validation
+            first_level_range = self.first_level_range_var.get()
+            try:
+                min_val, max_val = map(int, first_level_range.split('-'))
+                if min_val < 1 or max_val < min_val:
+                    raise ValueError
+            except:
+                raise ValueError("First level range must be in format 'min-max' (e.g. 5-10)")
+
             # Font
             font_size = int(self.font_size_var.get())
             if font_size < 8:
@@ -571,6 +589,7 @@ class SettingsDialog(ttk.Toplevel):
         # Look & Feel
         self.settings.set("theme", self.theme_var.get())
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
+        self.settings.set("first_level_range", self.first_level_range_var.get())
         self.settings.set("font_size", int(self.font_size_var.get()))
         self.settings.set("model", self.model_var.get())
 
@@ -597,7 +616,6 @@ class SettingsDialog(ttk.Toplevel):
 
         self.result = True
         self.destroy()
-
 
     def position_center(self):
         """Helper method to center the dialog on the parent."""
