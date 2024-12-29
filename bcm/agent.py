@@ -331,13 +331,12 @@ class ChatDialogV2(ttk.Toplevel):
             )
             sender_label.pack(fill="x", padx=5)
             
-            # HTML label for rendered markdown
-            html_label = HtmlLabel(container)
-            html_label.pack(fill="x", expand=True, padx=5)
-            
-            # Convert markdown to HTML and display
+            # Convert markdown to HTML first
             html_content = self._convert_markdown_to_html(message)
-            html_label.add_html(html_content)
+            
+            # HTML label for rendered markdown
+            html_label = HtmlLabel(container, text=html_content)
+            html_label.pack(fill="x", expand=True, padx=5)
             
             # Store reference to container
             self.ai_response_frames[len(self.messages)] = (container, html_label)
@@ -358,11 +357,18 @@ class ChatDialogV2(ttk.Toplevel):
     def _update_label(self, message_index: int, sender: str, message: str):
         """Update an AI response with new content."""
         if message_index in self.ai_response_frames:
-            _, html_label = self.ai_response_frames[message_index]
+            container, old_label = self.ai_response_frames[message_index]
             
-            # Convert markdown to HTML and update
+            # Remove old label
+            old_label.pack_forget()
+            
+            # Create new label with updated content
             html_content = self._convert_markdown_to_html(message)
-            html_label.add_html(html_content)
+            html_label = HtmlLabel(container, text=html_content)
+            html_label.pack(fill="x", expand=True, padx=5)
+            
+            # Update reference
+            self.ai_response_frames[message_index] = (container, html_label)
             
             self._update_scroll_region()
             self.chat_canvas.yview_moveto(1.0)
@@ -402,10 +408,26 @@ class ChatDialogV2(ttk.Toplevel):
                 # Create initial empty response
                 self.display_message("Assistant", "")
                 
-                # Stream response
+                # Stream response with batched updates
+                import time
+                last_update = time.time()
+                update_interval = 0.05  # 50ms in seconds
+                needs_update = False
+                
                 async for chunk in result.stream_text(delta=True):
                     response_text += chunk
-                    # Update UI in main thread
+                    needs_update = True
+                    current_time = time.time()
+                    
+                    # Only update if enough time has passed
+                    if current_time - last_update >= update_interval:
+                        # Update UI in main thread
+                        self.after(0, self._update_label, message_index, "Assistant", response_text)
+                        last_update = current_time
+                        needs_update = False
+                
+                # Ensure final state is displayed
+                if needs_update:
                     self.after(0, self._update_label, message_index, "Assistant", response_text)
                 
                 # Add to message history
