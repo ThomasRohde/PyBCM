@@ -2,6 +2,7 @@ import asyncio
 import threading
 import tkinter as tk
 import ttkbootstrap as ttk
+from tkinterweb import HtmlFrame
 import re
 import markdown
 from pydantic_ai import Agent, RunContext
@@ -188,6 +189,42 @@ class ChatDialogV2(ttk.Toplevel):
         style = ttk.Style()
         style.configure('chat.TFrame', background='#ffffff')  # match canvas bg
         
+        # Add CSS styling for the HTML content
+        self.html_style = """
+        <style>
+            body { 
+                font-family: TkDefaultFont; 
+                font-size: 10pt; 
+                margin: 0; 
+                padding: 8px; 
+            }
+            h1 { font-size: 14pt; font-weight: bold; margin: 8px 0; }
+            h2 { font-size: 12pt; font-weight: bold; margin: 8px 0; }
+            h3 { font-size: 11pt; font-weight: bold; margin: 8px 0; }
+            pre { 
+                background: #f5f5f5; 
+                padding: 8px; 
+                border-radius: 4px; 
+                margin: 8px 0;
+            }
+            code { 
+                font-family: "Courier New", Courier, monospace; 
+                background: #f0f0f0; 
+                padding: 2px 4px; 
+                border-radius: 3px;
+            }
+            ul, ol { margin: 8px 0 8px 20px; padding: 0; }
+            li { margin: 4px 0; }
+            p { margin: 8px 0; }
+            blockquote {
+                margin: 8px 0;
+                padding-left: 12px;
+                border-left: 3px solid #ccc;
+                color: #666;
+            }
+        </style>
+        """
+        
         # Input frame
         self.input_frame = ttk.Frame(self.main_container)
         self.input_frame.pack(fill="x", pady=(0, 5))
@@ -262,12 +299,23 @@ class ChatDialogV2(ttk.Toplevel):
         self.update_idletasks()
         self.chat_canvas.configure(scrollregion=self.chat_canvas.bbox("all"))
     
+    def _convert_markdown_to_html(self, markdown_text: str) -> str:
+        """Convert markdown to HTML with extended features."""
+        # Enable common markdown extensions
+        html_content = markdown.markdown(
+            markdown_text,
+            extensions=[
+                'markdown.extensions.fenced_code',
+                'markdown.extensions.tables',
+                'markdown.extensions.nl2br',
+                'markdown.extensions.extra'
+            ]
+        )
+        return f"{self.html_style}<div class='markdown-body'>{html_content}</div>"
+
     def display_message(self, sender: str, message: str):
         """Display a message in the chat."""
         if sender == "Assistant":
-            # Convert markdown to plain text
-            text_content = message
-            
             # Create frame with matching background
             container = ttk.Frame(self.messages_frame, style='chat.TFrame')
             container.pack(fill="x", expand=True, padx=5, pady=2)
@@ -281,92 +329,16 @@ class ChatDialogV2(ttk.Toplevel):
             )
             sender_label.pack(fill="x", padx=5)
             
-            # Text widget with matching background
-            text_widget = tk.Text(
-                container,
-                wrap="word",
-                height=1,
-                borderwidth=0,
-                highlightthickness=0,
-                relief="flat",
-                font=("TkDefaultFont", 10),
-                background='#ffffff'  # match container bg
-            )
+            # HTML frame for rendered markdown
+            html_frame = HtmlFrame(container, messages_enabled=False)
+            html_frame.pack(fill="x", expand=True, padx=5)
             
-            # Configure tags for markdown formatting
-            text_widget.tag_configure("h1", font=("TkDefaultFont", 14, "bold"))
-            text_widget.tag_configure("h2", font=("TkDefaultFont", 12, "bold"))
-            text_widget.tag_configure("h3", font=("TkDefaultFont", 11, "bold"))
-            text_widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
-            text_widget.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
-            text_widget.tag_configure("code", font=("Courier", 9), background="#f0f0f0")
-            text_widget.tag_configure("bullet", lmargin1=20, lmargin2=20)
-            text_widget.tag_configure("link", foreground="blue", underline=True)
-            
-            text_widget.pack(fill="x", expand=True, padx=5)
-            
-            # Apply markdown formatting
-            lines = text_content.split('\n')
-            for line in lines:
-                # Handle headers
-                if line.startswith('### '):
-                    text_widget.insert("end", line[4:] + "\n", "h3")
-                    continue
-                if line.startswith('## '):
-                    text_widget.insert("end", line[3:] + "\n", "h2")
-                    continue
-                if line.startswith('# '):
-                    text_widget.insert("end", line[2:] + "\n", "h1")
-                    continue
-                
-                # Handle bullet points
-                if line.strip().startswith('- '):
-                    text_widget.insert("end", line + "\n", "bullet")
-                    continue
-                
-                # Handle code blocks
-                if line.strip().startswith('`') and line.strip().endswith('`'):
-                    code = line.strip()[1:-1]
-                    text_widget.insert("end", code + "\n", "code")
-                    continue
-                
-                # Handle bold
-                while '**' in line:
-                    start = line.find('**')
-                    end = line.find('**', start + 2)
-                    if end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+2:end], "bold")
-                    line = line[end+2:]
-                
-                # Handle italic
-                while '*' in line:
-                    start = line.find('*')
-                    end = line.find('*', start + 1)
-                    if end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+1:end], "italic")
-                    line = line[end+1:]
-                
-                # Handle links
-                while '[' in line and '](' in line and ')' in line:
-                    start = line.find('[')
-                    mid = line.find('](', start)
-                    end = line.find(')', mid)
-                    if mid == -1 or end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+1:mid], "link")
-                    line = line[end+1:]
-                
-                text_widget.insert("end", line + "\n")
-            
-            # Calculate required height based on content
-            text_height = int(text_widget.index('end-1c').split('.')[0])
-            text_widget.configure(height=text_height)
-            text_widget.configure(state="disabled")
+            # Convert markdown to HTML with extended features and display
+            html_content = self._convert_markdown_to_html(message)
+            html_frame.load_html(html_content)
             
             # Store reference to container
-            self.ai_response_frames[len(self.messages)] = (container, text_widget)
+            self.ai_response_frames[len(self.messages)] = (container, html_frame)
         else:
             # Display user messages as before
             message_label = ttk.Label(
@@ -384,72 +356,15 @@ class ChatDialogV2(ttk.Toplevel):
     def _update_label(self, message_index: int, sender: str, message: str):
         """Update an AI response with new content."""
         if message_index in self.ai_response_frames:
-            _, text_widget = self.ai_response_frames[message_index]
-            text_widget.configure(state="normal", relief="flat")
-            text_widget.delete("1.0", "end")
+            _, html_frame = self.ai_response_frames[message_index]
             
-            # Apply markdown formatting
-            lines = message.split('\n')
-            for line in lines:
-                # Handle headers
-                if line.startswith('### '):
-                    text_widget.insert("end", line[4:] + "\n", "h3")
-                    continue
-                if line.startswith('## '):
-                    text_widget.insert("end", line[3:] + "\n", "h2")
-                    continue
-                if line.startswith('# '):
-                    text_widget.insert("end", line[2:] + "\n", "h1")
-                    continue
-                
-                # Handle bullet points
-                if line.strip().startswith('- '):
-                    text_widget.insert("end", line + "\n", "bullet")
-                    continue
-                
-                # Handle code blocks
-                if line.strip().startswith('`') and line.strip().endswith('`'):
-                    code = line.strip()[1:-1]
-                    text_widget.insert("end", code + "\n", "code")
-                    continue
-                
-                # Handle bold
-                while '**' in line:
-                    start = line.find('**')
-                    end = line.find('**', start + 2)
-                    if end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+2:end], "bold")
-                    line = line[end+2:]
-                
-                # Handle italic
-                while '*' in line:
-                    start = line.find('*')
-                    end = line.find('*', start + 1)
-                    if end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+1:end], "italic")
-                    line = line[end+1:]
-                
-                # Handle links
-                while '[' in line and '](' in line and ')' in line:
-                    start = line.find('[')
-                    mid = line.find('](', start)
-                    end = line.find(')', mid)
-                    if mid == -1 or end == -1: break
-                    text_widget.insert("end", line[:start])
-                    text_widget.insert("end", line[start+1:mid], "link")
-                    line = line[end+1:]
-                
-                text_widget.insert("end", line + "\n")
+            # Convert markdown to HTML with extended features and update
+            html_content = self._convert_markdown_to_html(message)
+            html_frame.load_html(html_content)
             
-            # Calculate required height based on content
-            text_height = int(text_widget.index('end-1c').split('.')[0])
-            text_widget.configure(height=text_height)
-            text_widget.configure(state="disabled")
             self._update_scroll_region()
             self.chat_canvas.yview_moveto(1.0)
-    
+
     def _send_message(self):
         """Handle sending a message."""
         message = self.message_var.get().strip()
