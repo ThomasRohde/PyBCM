@@ -56,6 +56,7 @@ class App:
         self.file_menu.add_command(label="Export...", command=self._export_capabilities)
         # self.file_menu.add_command(label="Export to HTML...", command=self._export_to_html)
         self.file_menu.add_command(label="Export to SVG...", command=self._export_to_svg)
+        self.file_menu.add_command(label="Export to PowerPoint...", command=self._export_to_pptx)
         self.file_menu.add_command(label="Export to Archimate...", command=self._export_to_archimate)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Settings", command=self._show_settings)
@@ -333,6 +334,58 @@ class App:
                     self.root,
                     "Error",
                     f"Failed to export capabilities to Archimate format: {str(e)}",
+                    ok_only=True
+                )
+
+    def _export_to_pptx(self):
+        """Export capabilities to PowerPoint visualization starting from selected node."""
+        from .pptx_export import export_to_pptx
+        
+        # Get selected node or use root if none selected
+        selected = self.tree.selection()
+        if selected:
+            start_node_id = int(selected[0])
+        else:
+            # Find root node
+            capabilities = self.db_ops.get_all_capabilities()
+            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+            if not root_nodes:
+                return
+            start_node_id = root_nodes[0]["id"]
+        
+        # Get hierarchical data starting from selected node
+        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        
+        # Convert to layout format starting from selected node
+        layout_model = self._convert_to_layout_format(node_data)
+        
+        # Get save location from user
+        filename = filedialog.asksaveasfilename(
+            title="Export to PowerPoint",
+            defaultextension=".pptx",
+            filetypes=[("PowerPoint files", "*.pptx"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            try:
+                # Generate PowerPoint presentation
+                prs = export_to_pptx(layout_model, self.settings)
+                
+                # Save presentation
+                prs.save(filename)
+                
+                create_dialog(
+                    self.root,
+                    "Success",
+                    "Capabilities exported to PowerPoint successfully",
+                    ok_only=True
+                )
+                
+            except Exception as e:
+                create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to export capabilities to PowerPoint: {str(e)}",
                     ok_only=True
                 )
 
