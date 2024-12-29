@@ -2,12 +2,117 @@ import asyncio
 import threading
 import tkinter as tk
 import ttkbootstrap as ttk
-from pydantic_ai import Agent
-from typing import List
+from pydantic_ai import Agent, RunContext
+from typing import List, Optional, Dict
 from datetime import datetime
+from .database import DatabaseOperations
+from sqlalchemy.orm import Session
+
+from .models import get_db, SessionLocal
+import threading
+
+# Create thread-local storage for database sessions
+thread_local = threading.local()
+
+def get_thread_db():
+    """Get a database session for the current thread."""
+    if not hasattr(thread_local, "db"):
+        thread_local.db = SessionLocal()
+    return thread_local.db
 
 # Initialize the agent at module level
-agent = Agent('ollama:llama3.2', system_prompt='You are a helpful assistant.')
+agent = Agent('openai:gpt-4o-mini', system_prompt="""You are a Business Capability Model assistant. You can help users by:
+- Retrieving capability information
+- Searching capabilities
+- Viewing capability hierarchies
+- Providing capability insights
+
+Available tools:
+- get_capability: Get details about a specific capability by ID
+- get_capabilities: Get capabilities under a specific parent
+- get_capability_with_children: Get a capability and its children
+- search_capabilities: Search capabilities by name/description
+- get_markdown_hierarchy: Get a markdown representation of the hierarchy
+""", retries=3)
+
+def cleanup_thread_db():
+    """Clean up thread-local database session."""
+    if hasattr(thread_local, "db"):
+        thread_local.db.close()
+        delattr(thread_local, "db")
+
+@agent.tool
+async def get_capability(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+    """Get details about a specific capability by ID."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        capability = db_ops.get_capability(capability_id)
+        if capability:
+            return {
+                "id": capability.id,
+                "name": capability.name,
+                "description": capability.description,
+                "parent_id": capability.parent_id,
+                "order_position": capability.order_position
+            }
+        return None
+    finally:
+        cleanup_thread_db()
+
+@agent.tool
+async def get_capabilities(ctx: RunContext, parent_id: Optional[int] = None) -> List[Dict]:
+    """Get all capabilities under a specific parent ID."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        capabilities = db_ops.get_capabilities(parent_id)
+        return [{
+            "id": cap.id,
+            "name": cap.name,
+            "description": cap.description,
+            "parent_id": cap.parent_id,
+            "order_position": cap.order_position
+        } for cap in capabilities]
+    finally:
+        cleanup_thread_db()
+
+@agent.tool
+async def get_capability_with_children(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+    """Get a capability and its full hierarchy of children."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        return db_ops.get_capability_with_children(capability_id)
+    finally:
+        cleanup_thread_db()
+
+@agent.tool
+async def search_capabilities(ctx: RunContext, query: str) -> List[Dict]:
+    """Search capabilities by name or description."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        capabilities = db_ops.search_capabilities(query)
+        return [{
+            "id": cap.id,
+            "name": cap.name,
+            "description": cap.description,
+            "parent_id": cap.parent_id,
+            "order_position": cap.order_position
+        } for cap in capabilities]
+    finally:
+        cleanup_thread_db()
+
+@agent.tool
+async def get_markdown_hierarchy(ctx: RunContext) -> str:
+    """Get a markdown representation of the capability hierarchy."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        return db_ops.get_markdown_hierarchy()
+    finally:
+        cleanup_thread_db()
 
 class Message:
     def __init__(self, content: str, is_user: bool, timestamp: datetime = None):
@@ -16,7 +121,7 @@ class Message:
         self.timestamp = timestamp or datetime.now()
 
 class ChatDialog(ttk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, db_session: Session):
         super().__init__(parent)
         self.title("AI Chat")
         
@@ -202,6 +307,8 @@ class ChatDialog(ttk.Toplevel):
         except Exception as e:
             self.after(0, self.display_message, "Assistant", f"Error: {str(e)}")
         finally:
+            # Clean up thread-local database session
+            cleanup_thread_db()
             # Re-enable input in main thread
             self.after(0, lambda: [
                 self.entry.configure(state="normal"),
@@ -213,10 +320,10 @@ class ChatDialog(ttk.Toplevel):
         """Handle window closing."""
         self.destroy()
 
-def show_chat_dialog(parent):
+def show_chat_dialog(parent, db_session: Session):
     """Show the chat dialog."""
     try:
-        dialog = ChatDialog(parent)
+        dialog = ChatDialog(parent, db_session)
         return dialog
     except Exception as e:
         raise e
