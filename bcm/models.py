@@ -46,19 +46,6 @@ class CapabilityUpdate(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
 
-class CapabilityResponse(BaseModel):
-    """Pydantic model for capability responses."""
-    id: int
-    name: str
-    description: Optional[str] = None
-    parent_id: Optional[int] = None
-    order_position: int
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
 class CapabilityExport(BaseModel):
     id: str  # UUID string
     name: str
@@ -85,6 +72,24 @@ class LayoutModel(BaseModel):
 
 # Required for self-referential Pydantic models
 LayoutModel.model_rebuild()
+
+class SubCapability(BaseModel):
+    name: str = Field(description="Name of the sub-capability")
+    description: str = Field(description="Clear description of the sub-capability's purpose and scope")
+
+class CapabilityExpansion(BaseModel):
+    subcapabilities: List[SubCapability] = Field(
+        description="List of sub-capabilities that would logically extend the given capability"
+    )
+
+class FirstLevelCapability(BaseModel):
+    name: str = Field(description="Name of the first-level capability")
+    description: str = Field(description="Description of the first-level capability's purpose and scope")
+
+class FirstLevelCapabilities(BaseModel):
+    capabilities: List[FirstLevelCapability] = Field(
+        description="List of first-level capabilities for the organization"
+    )
 
 def capability_to_layout(capability: Capability, settings=None, current_level: int = 0) -> LayoutModel:
     """

@@ -1,31 +1,13 @@
 from typing import List, Dict
 from pydantic_ai import Agent
-from pydantic import BaseModel, Field
 from jinja2 import Environment, FileSystemLoader
 import os
 from bcm.settings import Settings
+from bcm.models import CapabilityExpansion, FirstLevelCapabilities
 
 # Setup Jinja2 environment
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = Environment(loader=FileSystemLoader(template_dir))
-
-class SubCapability(BaseModel):
-    name: str = Field(description="Name of the sub-capability")
-    description: str = Field(description="Clear description of the sub-capability's purpose and scope")
-
-class CapabilityExpansion(BaseModel):
-    subcapabilities: List[SubCapability] = Field(
-        description="List of sub-capabilities that would logically extend the given capability"
-    )
-
-class FirstLevelCapability(BaseModel):
-    name: str = Field(description="Name of the first-level capability")
-    description: str = Field(description="Description of the first-level capability's purpose and scope")
-
-class FirstLevelCapabilities(BaseModel):
-    capabilities: List[FirstLevelCapability] = Field(
-        description="List of first-level capabilities for the organization"
-    )
 
 async def generate_first_level_capabilities(organisation_name: str, organisation_description: str) -> Dict[str, str]:
     """
