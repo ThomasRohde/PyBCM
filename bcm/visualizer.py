@@ -110,7 +110,7 @@ class CapabilityVisualizer(ttk.Toplevel):
 
         # Adjust text position if node has children (place near top)
         text_x = sx + sw // 2
-        padding = max(font_size + 2, 15)
+        padding = max(font_size + 20, 15)
         text_y = sy + (padding if has_children else sh // 2)
 
         text_id = self.canvas.create_text(
@@ -119,7 +119,8 @@ class CapabilityVisualizer(ttk.Toplevel):
             text=text,
             width=max(10, sw - 10),
             font=('TkDefaultFont', font_size),
-            anchor='center'
+            anchor='center',
+            justify='center'
         )
 
         # Only bind tooltip if there's a description
