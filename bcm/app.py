@@ -5,6 +5,7 @@ from tkinter import filedialog
 import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
+from .agent import show_chat_dialog
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
@@ -104,6 +105,18 @@ class App:
         )
         ToolTip(self.visualize_btn, text="Visualize Model")
         
+        # Add chat button
+        self.chat_btn = ttk.Button(
+            self.toolbar,
+            text="🤖",  # Chat emoji
+            command=self._show_chat,
+            style="info-outline.TButton",
+            width=3,
+            bootstyle="info-outline",
+            padding=3
+        )
+        ToolTip(self.chat_btn, text="AI Chat")
+        
         # Expand All button with icon
         self.expand_btn = ttk.Button(
             self.toolbar,
@@ -166,6 +179,7 @@ class App:
         self.collapse_btn.pack(side="left", padx=2)
         self.expand_cap_btn.pack(side="left", padx=2)
         self.visualize_btn.pack(side="left", padx=2)
+        self.chat_btn.pack(side="left", padx=2)
         ttk.Label(self.toolbar, text="Search:").pack(side="left", padx=(10, 2))
         self.search_entry.pack(side="left", padx=2)
         self.clear_search_btn.pack(side="left", padx=2)
@@ -793,6 +807,10 @@ class App:
                 ok_only=True
             )
 
+    def _show_chat(self):
+        """Show the AI chat dialog."""
+        show_chat_dialog(self.root)
+        
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
         from .visualizer import CapabilityVisualizer
