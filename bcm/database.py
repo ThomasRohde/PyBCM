@@ -274,3 +274,16 @@ class DatabaseOperations:
             print(f"Error during import: {str(e)}")
             self.session.rollback()
             raise
+
+    def get_markdown_hierarchy(self) -> str:
+        """Generate a markdown representation of the capability hierarchy."""
+        def build_hierarchy(parent_id: Optional[int] = None, level: int = 0) -> str:
+            capabilities = self.get_capabilities(parent_id)
+            result = []
+            for cap in capabilities:
+                indent = "  " * level
+                result.append(f"{indent}- {cap.name}")
+                result.append(build_hierarchy(cap.id, level + 1))
+            return "\n".join(result)
+        
+        return build_hierarchy()
