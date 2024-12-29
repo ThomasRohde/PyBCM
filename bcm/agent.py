@@ -29,6 +29,7 @@ agent = Agent('openai:gpt-4o-mini', system_prompt="""You are a Business Capabili
 
 Available tools:
 - get_capability: Get details about a specific capability by ID
+- get_capability_by_name: Get a capability by its name
 - get_capabilities: Get capabilities under a specific parent
 - get_capability_with_children: Get a capability and its children
 - search_capabilities: Search capabilities by name/description
@@ -111,6 +112,25 @@ async def get_markdown_hierarchy(ctx: RunContext) -> str:
         db = get_thread_db()
         db_ops = DatabaseOperations(db)
         return db_ops.get_markdown_hierarchy()
+    finally:
+        cleanup_thread_db()
+
+@agent.tool
+async def get_capability_by_name(ctx: RunContext, name: str) -> Optional[Dict]:
+    """Get a capability by its name (case insensitive)."""
+    try:
+        db = get_thread_db()
+        db_ops = DatabaseOperations(db)
+        capability = db_ops.get_capability_by_name(name)
+        if capability:
+            return {
+                "id": capability.id,
+                "name": capability.name,
+                "description": capability.description,
+                "parent_id": capability.parent_id,
+                "order_position": capability.order_position
+            }
+        return None
     finally:
         cleanup_thread_db()
 

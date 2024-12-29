@@ -34,6 +34,12 @@ class DatabaseOperations:
         result = self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    def get_capability_by_name(self, name: str) -> Optional[Capability]:
+        """Get a capability by name (case insensitive)."""
+        stmt = select(Capability).where(func.lower(Capability.name) == func.lower(name))
+        result = self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     def get_capabilities(self, parent_id: Optional[int] = None) -> List[Capability]:
         """Get all capabilities, optionally filtered by parent_id."""
         try:

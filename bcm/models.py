@@ -5,6 +5,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.pool import NullPool
 import sqlite3
 
 Base = declarative_base()
@@ -122,7 +123,9 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False},
     # Enable SQLite foreign key support
-    creator=lambda: sqlite3.connect(get_db_path(), detect_types=sqlite3.PARSE_DECLTYPES)
+    creator=lambda: sqlite3.connect(get_db_path(), detect_types=sqlite3.PARSE_DECLTYPES),
+    # Disable connection pooling
+    poolclass=NullPool
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
