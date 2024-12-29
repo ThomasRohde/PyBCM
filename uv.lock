@@ -473,6 +473,15 @@ wheels = [
 ]
 
 [[package]]
+name = "markdown"
+version = "3.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/28/3af612670f82f4c056911fbbbb42760255801b3068c48de792d354ff4472/markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2", size = 357086 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/08/83871f3c50fc983b88547c196d11cf8c3340e37c32d2e9d6152abe2c61f7/Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803", size = 106349 },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -782,20 +791,24 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
+    { name = "markdown" },
     { name = "pydantic" },
     { name = "pydantic-ai", extra = ["logfire"] },
     { name = "python-pptx" },
     { name = "sqlalchemy" },
+    { name = "tkinterweb" },
     { name = "ttkbootstrap" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.5" },
+    { name = "markdown", specifier = ">=3.7" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-ai", extras = ["logfire"], specifier = ">=0.0.15" },
     { name = "python-pptx", specifier = ">=1.0.2" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "tkinterweb", specifier = ">=3.24.8" },
     { name = "ttkbootstrap", specifier = ">=1.10.1" },
 ]
 
@@ -1046,6 +1059,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/95/81babb6089938680dfe2cd3f88cd3fd39cccd1543b7cb603b21ad881bff1/SQLAlchemy-2.0.36-cp313-cp313-win32.whl", hash = "sha256:0572f4bd6f94752167adfd7c1bed84f4b240ee6203a95e05d1e208d488d0d436", size = 2060439 },
     { url = "https://files.pythonhosted.org/packages/c1/ce/5f7428df55660d6879d0522adc73a3364970b5ef33ec17fa125c5dbcac1d/SQLAlchemy-2.0.36-cp313-cp313-win_amd64.whl", hash = "sha256:8c78ac40bde930c60e0f78b3cd184c580f89456dd87fc08f9e3ee3ce8765ce88", size = 2084574 },
     { url = "https://files.pythonhosted.org/packages/b8/49/21633706dd6feb14cd3f7935fc00b60870ea057686035e1a99ae6d9d9d53/SQLAlchemy-2.0.36-py3-none-any.whl", hash = "sha256:fddbe92b4760c6f5d48162aef14824add991aeda8ddadb3c31d56eb15ca69f8e", size = 1883787 },
+]
+
+[[package]]
+name = "tkinterweb"
+version = "3.24.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/a7/88f7c3b21adf5c0c3a0fa04575aea0f3e081d766149d9412ec14281f96eb/tkinterweb-3.24.8.tar.gz", hash = "sha256:7a810574f1772f34616b7ebb2cb2c181944fb57db558e80179e26f0160651cba", size = 1417399 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/83/a52f5cf8ae6dfd31d6b47d62d23a741f2de05dfbf957e6ec0901d1158005/tkinterweb-3.24.8-py3-none-any.whl", hash = "sha256:a3fabf661a7d669fcc319750aed3838973b856b27d8a16fe49ed51166ab5d1cd", size = 1426484 },
+    { url = "https://files.pythonhosted.org/packages/98/54/f5d4e1fa6689e6034d9d1ce061f20fbd07952a9c28e60b7dd8a42005641f/tkinterweb-3.24.8-py3-none-linux_armv7l.whl", hash = "sha256:69447ee7a6f1814035ebf19846f3f92d2a04744640aa45a22b1fddcb3d8374c5", size = 282164 },
+    { url = "https://files.pythonhosted.org/packages/21/7f/2b7d5a667286e47969f2c75d2ea8985780a670d53acd568ec56b19d9fc7e/tkinterweb-3.24.8-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:97780c365ec51dd35329786f548bac58ddcc0a31b79b6160695cfd260424a173", size = 284091 },
+    { url = "https://files.pythonhosted.org/packages/14/27/df64557e132017452c6a3371bf478e8c1076b3c1048cf8150aabe4c1d4e7/tkinterweb-3.24.8-py3-none-macosx_11_0_arm64.whl", hash = "sha256:06029305a5a801cb114690ce8c71351c55b458ad6a7af94177bc47951f6ad85c", size = 260431 },
+    { url = "https://files.pythonhosted.org/packages/73/84/8ff9ea5c92ec64189a2b864c749d201b0da3248c0144d5c8f3a431725f66/tkinterweb-3.24.8-py3-none-manylinux1_i686.whl", hash = "sha256:77155757bb8d3fd159fd58123801da2d0835318e2ef8a600ed750ad17d0f2260", size = 305839 },
+    { url = "https://files.pythonhosted.org/packages/8f/c8/2bfb420d0d4ce0776949e71bbab7f83d4e9ae958644f51c75f914778987d/tkinterweb-3.24.8-py3-none-manylinux1_x86_64.whl", hash = "sha256:74a7b651bb032dcc272a56f26c327e2d906f4ec2a1450e86e92f91370e25d063", size = 301327 },
+    { url = "https://files.pythonhosted.org/packages/4f/85/38f8b392f1798fd3b81c97b44b795d9cd99e3264279bf01eaeb93ea8b7b2/tkinterweb-3.24.8-py3-none-win32.whl", hash = "sha256:217f2cce83a82a62a7ef6ef6a8324a0822d45899ea42c0afbc7e5cb0677f3d4f", size = 398238 },
+    { url = "https://files.pythonhosted.org/packages/64/fb/882f34f8eba80ea503f7cf9cb026639ca621c4af63fb32ad32d2f9e380c9/tkinterweb-3.24.8-py3-none-win_amd64.whl", hash = "sha256:135585d0046ca5d33c737d383f1a68adbe4c5008ff549a34e2f692749cecbc6c", size = 398725 },
 ]
 
 [[package]]

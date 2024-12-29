@@ -10,6 +10,8 @@ dependencies = [
     "pydantic-ai[logfire]>=0.0.15",
     "jinja2>=3.1.5",
     "python-pptx>=1.0.2",
+    "markdown>=3.7",
+    "tkinterweb>=3.24.8",
 ]
 requires-python = ">=3.11"
 

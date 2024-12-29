@@ -2,6 +2,8 @@ import asyncio
 import threading
 import tkinter as tk
 import ttkbootstrap as ttk
+import re
+import markdown
 from pydantic_ai import Agent, RunContext
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -10,6 +12,12 @@ from sqlalchemy.orm import Session
 
 from .models import get_db, SessionLocal
 import threading
+import sys
+
+# Version check to ensure we're using latest code
+_MODULE_VERSION = "2.0.0"
+if not hasattr(sys.modules[__name__], '_LOADED_VERSION') or sys.modules[__name__]._LOADED_VERSION != _MODULE_VERSION:
+    sys.modules[__name__]._LOADED_VERSION = _MODULE_VERSION
 
 # Create thread-local storage for database sessions
 thread_local = threading.local()
@@ -140,14 +148,15 @@ class Message:
         self.is_user = is_user
         self.timestamp = timestamp or datetime.now()
 
-class ChatDialog(ttk.Toplevel):
+class ChatDialogV2(ttk.Toplevel):
     def __init__(self, parent, db_session: Session):
         super().__init__(parent)
         self.title("AI Chat")
         
         # Initialize message history
         self.messages: List[Message] = []
-        self.ai_response_labels = {}  # Dictionary to store AI response labels
+
+        self.ai_response_frames = {}  # Dictionary to store AI response frames
         self.is_scrolling = False
         
         # Create main container
@@ -162,14 +171,22 @@ class ChatDialog(ttk.Toplevel):
         self.scrollbar = ttk.Scrollbar(self.chat_frame)
         self.scrollbar.pack(side="right", fill="y")
         
-        # Canvas to hold the chat messages
-        self.chat_canvas = tk.Canvas(self.chat_frame, yscrollcommand=self.scrollbar.set)
+        # Canvas to hold the chat messages - remove border and set bg
+        self.chat_canvas = tk.Canvas(
+            self.chat_frame, 
+            yscrollcommand=self.scrollbar.set,
+            borderwidth=0,
+            highlightthickness=0,
+            background='#ffffff'  # or use system color
+        )
         self.chat_canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.config(command=self.chat_canvas.yview)
         
-        # Frame inside the canvas to hold the messages
-        self.messages_frame = ttk.Frame(self.chat_canvas)
+        # Frame inside canvas - set matching background
+        self.messages_frame = ttk.Frame(self.chat_canvas, style='chat.TFrame')
         self.chat_canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
+        style = ttk.Style()
+        style.configure('chat.TFrame', background='#ffffff')  # match canvas bg
         
         # Input frame
         self.input_frame = ttk.Frame(self.main_container)
@@ -248,18 +265,110 @@ class ChatDialog(ttk.Toplevel):
     def display_message(self, sender: str, message: str):
         """Display a message in the chat."""
         if sender == "Assistant":
-            # Create a new label for the AI response
-            ai_label = ttk.Label(
-                self.messages_frame,
-                text=f"{sender}: {message}",
-                wraplength=self.chat_canvas.winfo_width()-20,
+            # Convert markdown to plain text
+            text_content = message
+            
+            # Create frame with matching background
+            container = ttk.Frame(self.messages_frame, style='chat.TFrame')
+            container.pack(fill="x", expand=True, padx=5, pady=2)
+            
+            # Label with matching background
+            sender_label = ttk.Label(
+                container, 
+                text=f"{sender}:", 
                 anchor="w",
-                justify="left"
+                style='chat.TLabel'
             )
-            ai_label.pack(fill="x", expand=True, padx=5, pady=2)
-            self.ai_response_labels[len(self.messages)] = ai_label
+            sender_label.pack(fill="x", padx=5)
+            
+            # Text widget with matching background
+            text_widget = tk.Text(
+                container,
+                wrap="word",
+                height=1,
+                borderwidth=0,
+                highlightthickness=0,
+                relief="flat",
+                font=("TkDefaultFont", 10),
+                background='#ffffff'  # match container bg
+            )
+            
+            # Configure tags for markdown formatting
+            text_widget.tag_configure("h1", font=("TkDefaultFont", 14, "bold"))
+            text_widget.tag_configure("h2", font=("TkDefaultFont", 12, "bold"))
+            text_widget.tag_configure("h3", font=("TkDefaultFont", 11, "bold"))
+            text_widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
+            text_widget.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
+            text_widget.tag_configure("code", font=("Courier", 9), background="#f0f0f0")
+            text_widget.tag_configure("bullet", lmargin1=20, lmargin2=20)
+            text_widget.tag_configure("link", foreground="blue", underline=True)
+            
+            text_widget.pack(fill="x", expand=True, padx=5)
+            
+            # Apply markdown formatting
+            lines = text_content.split('\n')
+            for line in lines:
+                # Handle headers
+                if line.startswith('### '):
+                    text_widget.insert("end", line[4:] + "\n", "h3")
+                    continue
+                if line.startswith('## '):
+                    text_widget.insert("end", line[3:] + "\n", "h2")
+                    continue
+                if line.startswith('# '):
+                    text_widget.insert("end", line[2:] + "\n", "h1")
+                    continue
+                
+                # Handle bullet points
+                if line.strip().startswith('- '):
+                    text_widget.insert("end", line + "\n", "bullet")
+                    continue
+                
+                # Handle code blocks
+                if line.strip().startswith('`') and line.strip().endswith('`'):
+                    code = line.strip()[1:-1]
+                    text_widget.insert("end", code + "\n", "code")
+                    continue
+                
+                # Handle bold
+                while '**' in line:
+                    start = line.find('**')
+                    end = line.find('**', start + 2)
+                    if end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+2:end], "bold")
+                    line = line[end+2:]
+                
+                # Handle italic
+                while '*' in line:
+                    start = line.find('*')
+                    end = line.find('*', start + 1)
+                    if end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+1:end], "italic")
+                    line = line[end+1:]
+                
+                # Handle links
+                while '[' in line and '](' in line and ')' in line:
+                    start = line.find('[')
+                    mid = line.find('](', start)
+                    end = line.find(')', mid)
+                    if mid == -1 or end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+1:mid], "link")
+                    line = line[end+1:]
+                
+                text_widget.insert("end", line + "\n")
+            
+            # Calculate required height based on content
+            text_height = int(text_widget.index('end-1c').split('.')[0])
+            text_widget.configure(height=text_height)
+            text_widget.configure(state="disabled")
+            
+            # Store reference to container
+            self.ai_response_frames[len(self.messages)] = (container, text_widget)
         else:
-            # Display user messages
+            # Display user messages as before
             message_label = ttk.Label(
                 self.messages_frame,
                 text=f"{sender}: {message}",
@@ -273,10 +382,71 @@ class ChatDialog(ttk.Toplevel):
         self.chat_canvas.yview_moveto(1.0)
     
     def _update_label(self, message_index: int, sender: str, message: str):
-        """Update an AI response label with new content."""
-        if message_index in self.ai_response_labels:
-            label = self.ai_response_labels[message_index]
-            label.config(text=f"{sender}: {message}")
+        """Update an AI response with new content."""
+        if message_index in self.ai_response_frames:
+            _, text_widget = self.ai_response_frames[message_index]
+            text_widget.configure(state="normal", relief="flat")
+            text_widget.delete("1.0", "end")
+            
+            # Apply markdown formatting
+            lines = message.split('\n')
+            for line in lines:
+                # Handle headers
+                if line.startswith('### '):
+                    text_widget.insert("end", line[4:] + "\n", "h3")
+                    continue
+                if line.startswith('## '):
+                    text_widget.insert("end", line[3:] + "\n", "h2")
+                    continue
+                if line.startswith('# '):
+                    text_widget.insert("end", line[2:] + "\n", "h1")
+                    continue
+                
+                # Handle bullet points
+                if line.strip().startswith('- '):
+                    text_widget.insert("end", line + "\n", "bullet")
+                    continue
+                
+                # Handle code blocks
+                if line.strip().startswith('`') and line.strip().endswith('`'):
+                    code = line.strip()[1:-1]
+                    text_widget.insert("end", code + "\n", "code")
+                    continue
+                
+                # Handle bold
+                while '**' in line:
+                    start = line.find('**')
+                    end = line.find('**', start + 2)
+                    if end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+2:end], "bold")
+                    line = line[end+2:]
+                
+                # Handle italic
+                while '*' in line:
+                    start = line.find('*')
+                    end = line.find('*', start + 1)
+                    if end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+1:end], "italic")
+                    line = line[end+1:]
+                
+                # Handle links
+                while '[' in line and '](' in line and ')' in line:
+                    start = line.find('[')
+                    mid = line.find('](', start)
+                    end = line.find(')', mid)
+                    if mid == -1 or end == -1: break
+                    text_widget.insert("end", line[:start])
+                    text_widget.insert("end", line[start+1:mid], "link")
+                    line = line[end+1:]
+                
+                text_widget.insert("end", line + "\n")
+            
+            # Calculate required height based on content
+            text_height = int(text_widget.index('end-1c').split('.')[0])
+            text_widget.configure(height=text_height)
+            text_widget.configure(state="disabled")
             self._update_scroll_region()
             self.chat_canvas.yview_moveto(1.0)
     
@@ -343,7 +513,7 @@ class ChatDialog(ttk.Toplevel):
 def show_chat_dialog(parent, db_session: Session):
     """Show the chat dialog."""
     try:
-        dialog = ChatDialog(parent, db_session)
+        dialog = ChatDialogV2(parent, db_session)
         return dialog
     except Exception as e:
         raise e
