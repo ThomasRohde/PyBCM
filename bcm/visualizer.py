@@ -215,10 +215,6 @@ class CapabilityVisualizer(ttk.Toplevel):
         if not self._panning:
             return
 
-        # Calculate the distance moved
-        dx = event.x - self._pan_start_x
-        dy = event.y - self._pan_start_y
-
         # Move the canvas contents
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         self.canvas.scan_mark(event.x, event.y)
