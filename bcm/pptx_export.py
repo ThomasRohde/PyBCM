@@ -26,8 +26,8 @@ def calculate_font_size(root_size: int, level: int, is_leaf: bool) -> int:
         # Leaf nodes get a slightly smaller size than their parent level
         return max(base_size - 2, 8)
     else:
-        # Non-leaf nodes use the level's base size
-        return max(base_size, 10)
+        # Non-leaf nodes get a more significantly reduced size
+        return max(base_size - 4, 10)
 
 def add_node_to_slide(slide, node: LayoutModel, settings: Settings, level: int = 0):
     """Add a node and its children to the PowerPoint slide."""
@@ -69,7 +69,7 @@ def add_node_to_slide(slide, node: LayoutModel, settings: Settings, level: int =
     # Add text
     text_frame = shape.text_frame
     text_frame.word_wrap = True
-    text_frame.auto_size = True
+    text_frame.auto_size = None  # Disable auto-sizing to maintain shape dimensions
     # Use top alignment for nodes with children, middle for leaf nodes
     text_frame.vertical_anchor = MSO_ANCHOR.TOP if node.children else MSO_ANCHOR.MIDDLE
     
