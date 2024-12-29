@@ -2,7 +2,7 @@ import asyncio
 import threading
 import tkinter as tk
 import ttkbootstrap as ttk
-from tkinterweb import HtmlFrame
+from tkinterweb import HtmlLabel
 import re
 import markdown
 from pydantic_ai import Agent, RunContext
@@ -311,7 +311,9 @@ class ChatDialogV2(ttk.Toplevel):
                 'markdown.extensions.extra'
             ]
         )
-        return f"{self.html_style}<div class='markdown-body'>{html_content}</div>"
+        return f"""<div style="font-family: TkDefaultFont; font-size: 10pt; margin: 0; padding: 8px;">
+{html_content}
+</div>"""
 
     def display_message(self, sender: str, message: str):
         """Display a message in the chat."""
@@ -329,16 +331,16 @@ class ChatDialogV2(ttk.Toplevel):
             )
             sender_label.pack(fill="x", padx=5)
             
-            # HTML frame for rendered markdown
-            html_frame = HtmlFrame(container, messages_enabled=False)
-            html_frame.pack(fill="x", expand=True, padx=5)
+            # HTML label for rendered markdown
+            html_label = HtmlLabel(container)
+            html_label.pack(fill="x", expand=True, padx=5)
             
-            # Convert markdown to HTML with extended features and display
+            # Convert markdown to HTML and display
             html_content = self._convert_markdown_to_html(message)
-            html_frame.load_html(html_content)
+            html_label.add_html(html_content)
             
             # Store reference to container
-            self.ai_response_frames[len(self.messages)] = (container, html_frame)
+            self.ai_response_frames[len(self.messages)] = (container, html_label)
         else:
             # Display user messages as before
             message_label = ttk.Label(
@@ -356,11 +358,11 @@ class ChatDialogV2(ttk.Toplevel):
     def _update_label(self, message_index: int, sender: str, message: str):
         """Update an AI response with new content."""
         if message_index in self.ai_response_frames:
-            _, html_frame = self.ai_response_frames[message_index]
+            _, html_label = self.ai_response_frames[message_index]
             
-            # Convert markdown to HTML with extended features and update
+            # Convert markdown to HTML and update
             html_content = self._convert_markdown_to_html(message)
-            html_frame.load_html(html_content)
+            html_label.add_html(html_content)
             
             self._update_scroll_region()
             self.chat_canvas.yview_moveto(1.0)
