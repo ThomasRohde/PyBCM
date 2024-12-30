@@ -3,6 +3,8 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.shapes import MSO_SHAPE
+
 from typing import List, Dict
 from dataclasses import dataclass
 
@@ -167,11 +169,6 @@ def layout_tree(node: LayoutModel, settings: Settings, x: float = 0, y: float = 
 
     return node
 
-
-def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
-    """Process the layout for the entire tree."""
-    return layout_tree(model, settings)
-
 def hex_to_rgb(hex_color: str) -> tuple:
     """Convert hex color to RGB tuple."""
     hex_color = hex_color.lstrip('#')
@@ -211,12 +208,23 @@ def add_node_to_slide(slide, node: LayoutModel, settings: Settings, scale_factor
 
     # Add shape
     shape = slide.shapes.add_shape(
-        1,  # Rectangle shape
+        MSO_SHAPE.ROUNDED_RECTANGLE,  # Rectangle shape
         Inches(left),
         Inches(top),
         Inches(width),
         Inches(height)
     )
+
+    # Calculate the adjustment value
+    smaller_dimension = min(width, height)
+    adjustment_value = (0.015 / smaller_dimension) 
+    
+    # To ensure that the radius does not exceed the maximum possible curvature, we limit the radius to 0.5 or 50% of the smallest dimension
+    if adjustment_value > 0.5:
+        adjustment_value = 0.5
+        print("Radius exceeds maximum allowed. Setting to maximum.")
+
+    shape.adjustments[0] = adjustment_value
 
     # Set shape fill color
     shape.fill.solid()
