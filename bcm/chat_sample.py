@@ -1,12 +1,11 @@
 import asyncio
 import threading
 import tkinter as tk
-from tkinter import scrolledtext, VERTICAL
+from tkinter import VERTICAL
 import ttkbootstrap as ttk
 from pydantic_ai import Agent
 from typing_extensions import TypedDict, NotRequired
 from typing import List
-from pydantic import Field
 
 
 class Step(TypedDict, total=False):

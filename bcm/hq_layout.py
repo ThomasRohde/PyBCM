@@ -1,6 +1,5 @@
 from typing import List, Dict
 from dataclasses import dataclass
-from itertools import permutations
 
 from .models import LayoutModel
 from .settings import Settings
