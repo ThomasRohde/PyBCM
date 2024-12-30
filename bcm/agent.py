@@ -144,7 +144,18 @@ class Message:
 class ChatDialog(ttk.Toplevel):
     def __init__(self, parent, db_session: Session):
         super().__init__(parent)
+        self.withdraw()  # Hide window initially
+        self.iconbitmap("./bcm/business_capability_model.ico")
         self.title("AI Chat")
+        
+        # Set initial size before creating widgets
+        self.geometry("800x600")
+        
+        # Calculate position relative to parent
+        self.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - 800) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - 600) // 2
+        self.geometry(f"+{x}+{y}")
         
         # Initialize message history
         self.messages: List[Message] = []
@@ -181,52 +192,22 @@ class ChatDialog(ttk.Toplevel):
         style = ttk.Style()
         style.configure('chat.TFrame', background='#ffffff')  # match canvas bg
         
-        # Add CSS styling for the HTML content
-        self.html_style = """
-        <style>
-            body { 
-                font-family: TkDefaultFont; 
-                font-size: 10pt; 
-                margin: 0; 
-                padding: 8px; 
-            }
-            .user-message {
-                background-color: #e3f2fd;
-                border-radius: 8px;
-                padding: 8px;
-                margin: 4px;
-            }
-            .assistant-message {
-                background-color: #ffffff;
-                border-radius: 8px;
-                padding: 8px;
-                margin: 4px;
-            }
-            h1 { font-size: 14pt; font-weight: bold; margin: 8px 0; }
-            h2 { font-size: 12pt; font-weight: bold; margin: 8px 0; }
-            h3 { font-size: 11pt; font-weight: bold; margin: 8px 0; }
-            pre { 
-                background: #f5f5f5; 
-                padding: 8px; 
-                border-radius: 4px; 
-                margin: 8px 0;
-            }
-            code { 
-                font-family: "Courier New", Courier, monospace; 
-                background: #f0f0f0; 
-                padding: 2px 4px; 
-                border-radius: 3px;
-            }
-            ul, ol { margin: 8px 0 8px 20px; padding: 0; }
-            li { margin: 4px 0; }
-            p { margin: 8px 0; }
-            blockquote {
-                margin: 8px 0;
-                padding-left: 12px;
-                border-left: 3px solid #ccc;
-                color: #666;
-            }
-        </style>
+        # Update message styles
+        self.message_styles = """
+            <style>
+                .user-message {
+                    background-color: #e3f2fd;
+                    border-radius: 8px;
+                    padding: 8px;
+                    margin: 4px;
+                }
+                .assistant-message {
+                    background-color: #f5f5f5;
+                    border-radius: 8px;
+                    padding: 8px;
+                    margin: 4px;
+                }
+            </style>
         """
         
         # Input frame
@@ -271,15 +252,11 @@ class ChatDialog(ttk.Toplevel):
         # Focus entry
         self.entry.focus_set()
         
-        # Set initial size and position
-        self.geometry("800x600")
-        self.update_idletasks()
-        x = parent.winfo_x() + (parent.winfo_width() - self.winfo_width()) // 2
-        y = parent.winfo_y() + (parent.winfo_height() - self.winfo_height()) // 2
-        self.geometry(f"+{x}+{y}")
-        
-        # Welcome message
+        # Display welcome message
         self.display_message("Assistant", "Hello! I'm your AI assistant. How can I help you today?")
+        
+        # Show window after everything is set up
+        self.deiconify()
     
     def _on_scroll_start(self, event):
         self.is_scrolling = True
@@ -316,8 +293,9 @@ class ChatDialog(ttk.Toplevel):
             ]
         )
         css_class = "user-message" if is_user else "assistant-message"
-        return f"""<div class="{css_class}">
-{html_content}
+        return f"""{self.message_styles}
+<div class="{css_class}">
+    {html_content}
 </div>"""
 
     def display_message(self, sender: str, message: str):
@@ -358,7 +336,8 @@ class ChatDialog(ttk.Toplevel):
             old_label.pack_forget()
             
             # Create new label with updated content
-            html_content = self._convert_markdown_to_html(message)
+            is_user = sender == "You"
+            html_content = self._convert_markdown_to_html(message, is_user)
             html_label = HtmlLabel(container, text=html_content)
             html_label.pack(fill="x", expand=True, padx=5)
             
