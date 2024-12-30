@@ -1,6 +1,6 @@
 import ttkbootstrap as ttk
 import tkinter as tk
-from .layout import process_layout
+from .layout_manager import process_layout
 from .models import LayoutModel
 from .settings import Settings
 

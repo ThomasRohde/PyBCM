@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from typing import Dict
 
 from .models import LayoutModel
-from .layout import process_layout
+from .layout_manager import process_layout
 from .settings import Settings
 
 def generate_id() -> str:

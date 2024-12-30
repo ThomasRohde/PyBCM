@@ -12,7 +12,7 @@ from dataclasses import dataclass
 # and your layout algorithm in a module named 'layout'
 # Update these imports according to your project structure
 from .models import LayoutModel  
-from .layout import process_layout
+from .layout_manager import process_layout
 from .settings import Settings
 
 @dataclass

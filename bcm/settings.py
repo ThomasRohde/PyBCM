@@ -20,6 +20,7 @@ DEFAULT_SETTINGS = {
     "font_size": 10,             # Default font size for main text content
     "model": "openai:gpt-4o",    # Default model
     # Layout
+    "layout_algorithm": "standard", # Layout algorithm to use (standard or hq)
     "root_font_size": 20,        # Default root font size for layout
     "box_min_width": BOX_MIN_WIDTH_DEFAULT,
     "box_min_height": BOX_MIN_HEIGHT_DEFAULT,
@@ -119,13 +120,14 @@ class SettingsDialog(ttk.Toplevel):
         self.model_var = ttk.StringVar()
 
         # Layout
+        self.layout_algorithm_var = ttk.StringVar()  # New variable for layout algorithm
         self.root_font_size_var = ttk.StringVar()
         self.box_min_width_var = ttk.StringVar()
         self.box_min_height_var = ttk.StringVar()
         self.horizontal_gap_var = ttk.StringVar()
         self.vertical_gap_var = ttk.StringVar()
         self.padding_var = ttk.StringVar()
-        self.top_padding_var = ttk.StringVar()  # New variable for top padding
+        self.top_padding_var = ttk.StringVar()
         self.target_aspect_ratio_var = ttk.StringVar()
         self.max_level_var = ttk.StringVar()
 
@@ -153,13 +155,14 @@ class SettingsDialog(ttk.Toplevel):
         self.model_var.set(self.settings.get("model"))
 
         # Layout
+        self.layout_algorithm_var.set(self.settings.get("layout_algorithm"))  # Load layout algorithm
         self.root_font_size_var.set(str(self.settings.get("root_font_size")))
         self.box_min_width_var.set(str(self.settings.get("box_min_width")))
         self.box_min_height_var.set(str(self.settings.get("box_min_height")))
         self.horizontal_gap_var.set(str(self.settings.get("horizontal_gap")))
         self.vertical_gap_var.set(str(self.settings.get("vertical_gap")))
         self.padding_var.set(str(self.settings.get("padding")))
-        self.top_padding_var.set(str(self.settings.get("top_padding")))  # Load top padding setting
+        self.top_padding_var.set(str(self.settings.get("top_padding")))
         self.target_aspect_ratio_var.set(str(self.settings.get("target_aspect_ratio")))
         self.max_level_var.set(str(self.settings.get("max_level")))
 
@@ -223,6 +226,20 @@ class SettingsDialog(ttk.Toplevel):
         # Layout tab
         self.layout_frame = ttk.Frame(self.notebook)
 
+        # Layout algorithm selection
+        self.layout_algorithm_frame = ttk.LabelFrame(
+            self.layout_frame,
+            text="Layout Algorithm",
+            padding=10
+        )
+        self.layout_algorithm_combo = ttk.Combobox(
+            self.layout_algorithm_frame,
+            textvariable=self.layout_algorithm_var,
+            values=["standard", "hq"],
+            state="readonly"
+        )
+
+        # Layout settings
         self.layout_settings_frame = ttk.LabelFrame(
             self.layout_frame,
             text="Layout Settings",
@@ -401,7 +418,13 @@ class SettingsDialog(ttk.Toplevel):
 
         # Layout tab
         self.layout_frame.pack(fill="both", expand=True)
-        self.layout_settings_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Layout algorithm frame
+        self.layout_algorithm_frame.pack(fill="x", padx=10, pady=(10,5))
+        self.layout_algorithm_combo.pack(fill="x")
+        
+        # Layout settings frame
+        self.layout_settings_frame.pack(fill="x", padx=10, pady=5)
 
         # Root font size
         self.root_font_size_label = ttk.Label(self.layout_settings_frame, text="Root Font Size:")
@@ -557,6 +580,10 @@ class SettingsDialog(ttk.Toplevel):
             if max_level > 10:
                 raise ValueError("Max Level cannot exceed 10")
 
+            # Layout algorithm validation
+            if self.layout_algorithm_var.get() not in ["standard", "hq"]:
+                raise ValueError("Invalid layout algorithm selected")
+
             # Color settings: basic check that they are non-empty strings
             # (You could add more robust color validation if desired.)
             for i, var in enumerate([
@@ -594,12 +621,13 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("model", self.model_var.get())
 
         # Layout
+        self.settings.set("layout_algorithm", self.layout_algorithm_var.get())  # Save layout algorithm
         self.settings.set("box_min_width", int(self.box_min_width_var.get()))
         self.settings.set("box_min_height", int(self.box_min_height_var.get()))
         self.settings.set("horizontal_gap", int(self.horizontal_gap_var.get()))
         self.settings.set("vertical_gap", int(self.vertical_gap_var.get()))
         self.settings.set("padding", int(self.padding_var.get()))
-        self.settings.set("top_padding", int(self.top_padding_var.get()))  # Save top padding setting
+        self.settings.set("top_padding", int(self.top_padding_var.get()))
         self.settings.set("target_aspect_ratio", float(self.target_aspect_ratio_var.get()))
         self.settings.set("root_font_size", int(self.root_font_size_var.get()))
         self.settings.set("max_level", int(self.max_level_var.get()))

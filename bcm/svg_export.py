@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import textwrap
 
 from .models import LayoutModel
-from .layout import process_layout
+from .layout_manager import process_layout
 from .settings import Settings
 
 def create_svg_element(width: int, height: int) -> ET.Element:
