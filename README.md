@@ -27,8 +27,21 @@ A modern, interactive business capability modeling tool built with Python. This 
   - Color-coded capability levels
   - Tooltips showing capability descriptions
   - Auto-sizing and responsive layout
-- SVG export for capability models
-- Customizable visualization settings
+- Multiple export formats:
+  - SVG export for vector graphics
+  - PowerPoint export with preserved styling
+  - Archimate Open Exchange Format
+- Advanced layout algorithms:
+  - Optimized grid-based layout
+  - Intelligent child node placement
+  - Aspect ratio optimization
+  - Automatic space distribution
+  - High-quality node ordering
+- Customizable visualization settings:
+  - Adjustable padding and gaps
+  - Custom color schemes
+  - Font size control
+  - Layout parameters
 
 ## Requirements
 
@@ -99,13 +112,26 @@ bcm
    - Customize colors for different capability levels
    - Configure layout parameters
 
-4. **Archimate Export**
-   - File > Export to Archimate to save as .archimate file
-   - Compatible with Archi and other Archimate modeling tools
-   - Preserves layout and hierarchy
-   - Capabilities are exported as Archimate Capability elements
-   - Includes descriptions and relationships
-   - Color-coding is preserved in the diagram
+4. **Export Options**
+   - **SVG Export**
+     - File > Export as SVG
+     - Vector graphics format
+     - Ideal for documentation
+   
+   - **PowerPoint Export**
+     - File > Export to PowerPoint
+     - Preserves layout and styling
+     - Automatic scaling and font sizing
+     - Color-coded capability levels
+     - Professional presentation format
+   
+   - **Archimate Export**
+     - File > Export to Archimate
+     - Compatible with Archi and other tools
+     - Preserves layout and hierarchy
+     - Capabilities as Archimate elements
+     - Includes descriptions and relationships
+     - Color-coding preserved in diagram
 
 ### Advanced Features
 
