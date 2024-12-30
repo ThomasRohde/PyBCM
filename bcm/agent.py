@@ -9,8 +9,21 @@ from typing import List, Optional, Dict
 from datetime import datetime
 from .database import DatabaseOperations
 from sqlalchemy.orm import Session
+from jinja2 import Environment, FileSystemLoader
+import os
 
 from .models import SessionLocal
+
+# Set up Jinja environment
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+jinja_env = Environment(loader=FileSystemLoader(template_dir))
+
+# Load system prompt template
+system_prompt_template = jinja_env.get_template('system_prompt.j2')
+system_prompt = system_prompt_template.render()
+
+# Initialize the agent at module level
+agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3)
 
 # Create thread-local storage for database sessions
 thread_local = threading.local()
@@ -20,22 +33,6 @@ def get_thread_db():
     if not hasattr(thread_local, "db"):
         thread_local.db = SessionLocal()
     return thread_local.db
-
-# Initialize the agent at module level
-agent = Agent('openai:gpt-4o-mini', system_prompt="""You are a Business Capability Model assistant. You can help users by:
-- Retrieving capability information
-- Searching capabilities
-- Viewing capability hierarchies
-- Providing capability insights
-
-Available tools:
-- get_capability: Get details about a specific capability by ID
-- get_capability_by_name: Get a capability by its name
-- get_capabilities: Get capabilities under a specific parent
-- get_capability_with_children: Get a capability and its children
-- search_capabilities: Search capabilities by name/description
-- get_markdown_hierarchy: Get a markdown representation of the hierarchy
-""", retries=3)
 
 def cleanup_thread_db():
     """Clean up thread-local database session."""
