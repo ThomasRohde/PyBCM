@@ -189,8 +189,8 @@ def calculate_font_size(root_size: int, level: int, is_leaf: bool, scale_factor:
     scaled_font_size = max(int(font_size * scale_factor), 1)
     return scaled_font_size
 
-def add_node_to_slide(slide, node: LayoutModel, settings: Settings, scale_factor: float, level: int = 0):
-    """Add a node and its children to the PowerPoint slide."""
+def add_node_to_group(parent_group, node: LayoutModel, settings: Settings, scale_factor: float, level: int = 0):
+    """Add a node and its children to the group shape."""
     # Convert coordinates and dimensions to inches, applying scaling
     left = pixels_to_inches(node.x, scale_factor)
     top = pixels_to_inches(node.y, scale_factor)
@@ -206,8 +206,11 @@ def add_node_to_slide(slide, node: LayoutModel, settings: Settings, scale_factor
     # Convert hex color to RGB
     rgb_color = hex_to_rgb(color)
 
-    # Add shape
-    shape = slide.shapes.add_shape(
+    # Add group shape for the current node and its children
+    group = parent_group.shapes.add_group_shape()
+
+    # Add shape to group
+    shape = group.shapes.add_shape(
         MSO_SHAPE.ROUNDED_RECTANGLE,  # Rectangle shape
         Inches(left),
         Inches(top),
@@ -256,7 +259,7 @@ def add_node_to_slide(slide, node: LayoutModel, settings: Settings, scale_factor
     # Recursively add child nodes
     if node.children:
         for child in node.children:
-            add_node_to_slide(slide, child, settings, scale_factor, level + 1)
+            add_node_to_group(group, child, settings, scale_factor, level + 1)
 
 def export_to_pptx(model: LayoutModel, settings: Settings, scale_factor: float = 0.3) -> Presentation:
     """
@@ -287,7 +290,10 @@ def export_to_pptx(model: LayoutModel, settings: Settings, scale_factor: float =
     prs.slide_width = Inches(pixels_to_inches(width, 1))
     prs.slide_height = Inches(pixels_to_inches(height, 1))
 
+    # Add group shape to slide
+    group_shape = slide.shapes.add_group_shape()
+
     # Add nodes recursively with scaling
-    add_node_to_slide(slide, processed_model, settings, scale_factor)
+    add_node_to_group(group_shape, processed_model, settings, scale_factor)
 
     return prs
