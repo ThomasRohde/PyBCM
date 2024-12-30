@@ -3,7 +3,6 @@ import threading
 import tkinter as tk
 import ttkbootstrap as ttk
 from tkinterweb import HtmlLabel
-import re
 import markdown
 from pydantic_ai import Agent, RunContext
 from typing import List, Optional, Dict
@@ -11,14 +10,7 @@ from datetime import datetime
 from .database import DatabaseOperations
 from sqlalchemy.orm import Session
 
-from .models import get_db, SessionLocal
-import threading
-import sys
-
-# Version check to ensure we're using latest code
-_MODULE_VERSION = "2.0.0"
-if not hasattr(sys.modules[__name__], '_LOADED_VERSION') or sys.modules[__name__]._LOADED_VERSION != _MODULE_VERSION:
-    sys.modules[__name__]._LOADED_VERSION = _MODULE_VERSION
+from .models import SessionLocal
 
 # Create thread-local storage for database sessions
 thread_local = threading.local()
@@ -149,7 +141,7 @@ class Message:
         self.is_user = is_user
         self.timestamp = timestamp or datetime.now()
 
-class ChatDialogV2(ttk.Toplevel):
+class ChatDialog(ttk.Toplevel):
     def __init__(self, parent, db_session: Session):
         super().__init__(parent)
         self.title("AI Chat")
@@ -452,7 +444,7 @@ class ChatDialogV2(ttk.Toplevel):
 def show_chat_dialog(parent, db_session: Session):
     """Show the chat dialog."""
     try:
-        dialog = ChatDialogV2(parent, db_session)
+        dialog = ChatDialog(parent, db_session)
         return dialog
     except Exception as e:
         raise e
