@@ -22,8 +22,24 @@ jinja_env = Environment(loader=FileSystemLoader(template_dir))
 system_prompt_template = jinja_env.get_template('system_prompt.j2')
 system_prompt = system_prompt_template.render()
 
-# Initialize the agent at module level
-agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3)
+# Initialize the agent at module level with deps_type
+agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=str)
+
+@agent.system_prompt
+def add_user_name() -> str:
+    """Add the user's name to system prompt."""
+    # Get system username using os.getlogin() or fallback to environment variable
+    try:
+        username = os.getlogin()
+    except OSError:
+        username = os.environ.get('USERNAME', 'User')
+    print(f"User: {username}")
+    return f"The user's system name is {username}."
+
+@agent.system_prompt
+def add_current_time() -> str:
+    """Add the current time to system prompt."""
+    return f"The current time and date is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
 
 # Create thread-local storage for database sessions
 thread_local = threading.local()

@@ -13,6 +13,7 @@ from .settings import Settings, SettingsDialog
 import logfire
 
 logfire.configure()
+logfire.instrument_openai()
 class App:
 
     def __init__(self):
