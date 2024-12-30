@@ -88,13 +88,28 @@ class CapabilityVisualizer(ttk.Toplevel):
         if not has_children:
             fill_color = self.settings.get("color_leaf")
         else:
-            # Use color_0 through color_6 based on level, defaulting to color_6 for deeper levels
             color_key = f"color_{min(level, 6)}"
             fill_color = self.settings.get(color_key)
 
-        # Draw rectangle
-        rect_id = self.canvas.create_rectangle(
-            sx, sy, sx + sw, sy + sh,
+        # Set corner radius (scaled with the box size)
+        radius = min(20 * self.scale, sw/8, sh/8)  # Limit radius to prevent oversized corners
+        
+        # Draw rounded rectangle using arcs and lines
+        rect_id = self.canvas.create_polygon(
+            sx + radius, sy,                    # Top line start
+            sx + sw - radius, sy,               # Top line end
+            sx + sw, sy,                        # Top right corner
+            sx + sw, sy + radius,
+            sx + sw, sy + sh - radius,         # Right line
+            sx + sw, sy + sh,                  # Bottom right corner
+            sx + sw - radius, sy + sh,
+            sx + radius, sy + sh,              # Bottom line
+            sx, sy + sh,                       # Bottom left corner
+            sx, sy + sh - radius,
+            sx, sy + radius,                   # Left line
+            sx, sy,                            # Top left corner
+            sx + radius, sy,                   # Back to start
+            smooth=True,                       # This creates the rounded effect
             fill=fill_color,
             outline='black',
             width=2
@@ -111,7 +126,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         # Adjust text position if node has children (place near top)
         text_x = sx + sw // 2
         padding = max(font_size + 20, 15)
-        text_y = sy + (padding if has_children else sh // 2)
+        text_y = sy + (padding // 2 if has_children else sh // 2)
 
         text_id = self.canvas.create_text(
             text_x,
