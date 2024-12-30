@@ -190,6 +190,18 @@ class ChatDialog(ttk.Toplevel):
                 margin: 0; 
                 padding: 8px; 
             }
+            .user-message {
+                background-color: #e3f2fd;
+                border-radius: 8px;
+                padding: 8px;
+                margin: 4px;
+            }
+            .assistant-message {
+                background-color: #ffffff;
+                border-radius: 8px;
+                padding: 8px;
+                margin: 4px;
+            }
             h1 { font-size: 14pt; font-weight: bold; margin: 8px 0; }
             h2 { font-size: 12pt; font-weight: bold; margin: 8px 0; }
             h3 { font-size: 11pt; font-weight: bold; margin: 8px 0; }
@@ -291,7 +303,7 @@ class ChatDialog(ttk.Toplevel):
         self.update_idletasks()
         self.chat_canvas.configure(scrollregion=self.chat_canvas.bbox("all"))
     
-    def _convert_markdown_to_html(self, markdown_text: str) -> str:
+    def _convert_markdown_to_html(self, markdown_text: str, is_user: bool = False) -> str:
         """Convert markdown to HTML with extended features."""
         # Enable common markdown extensions
         html_content = markdown.markdown(
@@ -303,45 +315,36 @@ class ChatDialog(ttk.Toplevel):
                 'markdown.extensions.extra'
             ]
         )
-        return f"""<div style="font-family: TkDefaultFont; font-size: 10pt; margin: 0; padding: 8px;">
+        css_class = "user-message" if is_user else "assistant-message"
+        return f"""<div class="{css_class}">
 {html_content}
 </div>"""
 
     def display_message(self, sender: str, message: str):
         """Display a message in the chat."""
-        if sender == "Assistant":
-            # Create frame with matching background
-            container = ttk.Frame(self.messages_frame, style='chat.TFrame')
-            container.pack(fill="x", expand=True, padx=5, pady=2)
-            
-            # Label with matching background
-            sender_label = ttk.Label(
-                container, 
-                text=f"{sender}:", 
-                anchor="w",
-                style='chat.TLabel'
-            )
-            sender_label.pack(fill="x", padx=5)
-            
-            # Convert markdown to HTML first
-            html_content = self._convert_markdown_to_html(message)
-            
-            # HTML label for rendered markdown
-            html_label = HtmlLabel(container, text=html_content)
-            html_label.pack(fill="x", expand=True, padx=5)
-            
-            # Store reference to container
-            self.ai_response_frames[len(self.messages)] = (container, html_label)
-        else:
-            # Display user messages as before
-            message_label = ttk.Label(
-                self.messages_frame,
-                text=f"{sender}: {message}",
-                wraplength=self.chat_canvas.winfo_width()-20,
-                anchor="w",
-                justify="left"
-            )
-            message_label.pack(fill="x", expand=True, padx=5, pady=2)
+        # Create frame with matching background
+        container = ttk.Frame(self.messages_frame, style='chat.TFrame')
+        container.pack(fill="x", expand=True, padx=5, pady=2)
+        
+        # Label with matching background
+        sender_label = ttk.Label(
+            container, 
+            text=f"{sender}:", 
+            anchor="w",
+            style='chat.TLabel'
+        )
+        sender_label.pack(fill="x", padx=5)
+        
+        # Convert markdown to HTML first
+        is_user = sender == "You"
+        html_content = self._convert_markdown_to_html(message, is_user)
+        
+        # HTML label for rendered markdown
+        html_label = HtmlLabel(container, text=html_content)
+        html_label.pack(fill="x", expand=True, padx=5)
+        
+        # Store reference to container
+        self.ai_response_frames[len(self.messages)] = (container, html_label)
         
         self._update_scroll_region()
         self.chat_canvas.yview_moveto(1.0)
