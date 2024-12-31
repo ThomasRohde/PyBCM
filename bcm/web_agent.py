@@ -270,7 +270,8 @@ CHAT_HTML = """
                         if (!currentAssistantMessage) {
                             currentAssistantMessage = addMessage('', false);
                         }
-                        currentAssistantMessage.innerHTML += data.content;
+                        // Replace placeholder characters for HTML entities
+                        currentAssistantMessage.innerHTML = data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     }
                 }
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
