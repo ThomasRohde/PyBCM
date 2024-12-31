@@ -281,48 +281,60 @@ async def get():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
-    await websocket.accept()
-    
-    # Send chat history
-    await websocket.send_json({
-        "type": "history",
-        "messages": [msg.to_dict() for msg in chat_history]
-    })
-    
-    while True:
-        try:
-            message = await websocket.receive_json()
-            user_content = message["content"]
-            
-            # Add user message to history
-            chat_history.append(Message(user_content, True))
-            await websocket.send_json({
-                "content": user_content,
-                "is_user": True
-            })
-            
-            # Process with AI
-            deps = Deps(db=db)
-            async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
-                response_text = ""
-                async for chunk in result.stream_text(delta=True):
-                    response_text += chunk
+    try:
+        await websocket.accept()
+        
+        # Send chat history
+        await websocket.send_json({
+            "type": "history",
+            "messages": [msg.to_dict() for msg in chat_history]
+        })
+        
+        while True:
+            try:
+                message = await websocket.receive_json()
+                user_content = message["content"]
+                
+                # Add user message to history
+                chat_history.append(Message(user_content, True))
+                if websocket.client_state == WebSocketState.CONNECTED:
                     await websocket.send_json({
-                        "content": response_text,
-                        "is_user": False
+                        "content": user_content,
+                        "is_user": True
                     })
                 
-                chat_history.append(Message(response_text, False))
-                
-        except Exception as e:
-            print(f"WebSocket error: {e}")
-            if not websocket.client_state == WebSocketState.DISCONNECTED:
-                error_msg = f"Error: {str(e)}"
-                await websocket.send_json({
-                    "content": error_msg,
-                    "is_user": False
-                })
-                chat_history.append(Message(error_msg, False))
+                # Process with AI
+                deps = Deps(db=db)
+                async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
+                    response_text = ""
+                    async for chunk in result.stream_text(delta=True):
+                        if websocket.client_state != WebSocketState.CONNECTED:
+                            break
+                        response_text += chunk
+                        await websocket.send_json({
+                            "content": response_text,
+                            "is_user": False
+                        })
+                    
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        chat_history.append(Message(response_text, False))
+                    
+            except Exception as e:
+                if isinstance(e, RuntimeError) and "disconnect" in str(e):
+                    break
+                print(f"WebSocket error: {e}")
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    error_msg = f"Error: {str(e)}"
+                    await websocket.send_json({
+                        "content": error_msg,
+                        "is_user": False
+                    })
+                    chat_history.append(Message(error_msg, False))
+    except Exception as e:
+        print(f"WebSocket connection error: {e}")
+    finally:
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()
 
 class Message:
     def __init__(self, content: str, is_user: bool):

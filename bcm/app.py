@@ -821,9 +821,16 @@ class App:
         import threading
         import webbrowser
         from .web_agent import start_server
+        import asyncio
+        import sys
+        
+        def run_server():
+            if sys.platform == 'win32':
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            start_server()
         
         # Start the FastAPI server in a background thread
-        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
         
         # Give the server a moment to start
