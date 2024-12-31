@@ -434,18 +434,7 @@ class ChatDialog(ttk.Toplevel):
                 self.send_button.configure(state="normal"),
                 self.entry.focus_set()
             ])
-            # Ensure the async generator is properly closed
-            if hasattr(result, 'aclose'):
-                await result.aclose()
-
-    def _handle_ai_response(self, message: str):
-        """Handle getting AI response in background thread."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._fetch_and_display_response(message))
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
-
+    
     def _on_closing(self):
         """Handle window closing."""
         self.destroy()
