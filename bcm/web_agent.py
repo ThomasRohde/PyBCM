@@ -335,7 +335,23 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 chat_history.append(user_msg)
 
                 # Process with AI using the properly structured chat history
-=======>>>>>>> REPLACE
+                deps = Deps(db=db)
+                print("  preparing model and tools")
+                async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
+                    print("  model request started")
+                    async for text in result.stream(debounce_by=0.01):
+                        if websocket.client_state != WebSocketState.CONNECTED:
+                            break
+                        # Create a ModelResponse with TextPart for each chunk
+                        msg = ModelResponse(
+                            parts=[TextPart(content=text)],
+                            timestamp=result.timestamp()
+                        )
+                        await websocket.send_json(to_chat_message(msg))
+                    
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        # Add the final complete response to history
+                        chat_history.append(result.response)
 ```
 
 bcm\web_agent.py
