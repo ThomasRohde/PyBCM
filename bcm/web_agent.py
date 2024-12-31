@@ -303,9 +303,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                         "is_user": True
                     })
                 
+                # Convert chat history to list of tuples (content, is_user)
+                history = [(msg.content, msg.is_user) for msg in chat_history]
+                
                 # Process with AI
                 deps = Deps(db=db)
-                async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
+                async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
                     response_text = ""
                     async for chunk in result.stream_text(delta=True):
                         if websocket.client_state != WebSocketState.CONNECTED:
