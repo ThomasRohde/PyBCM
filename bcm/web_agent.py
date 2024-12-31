@@ -310,10 +310,9 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 
                 # Process with AI
                 deps = Deps(db=db)
-                try:
-                    print("  preparing model and tools")
-                    async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
-                        print("  model request started")
+                print("  preparing model and tools")
+                async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
+                    print("  model request started")
                     response_text = ""
                     async for chunk in result.stream_text(delta=True):
                         if websocket.client_state != WebSocketState.CONNECTED:
