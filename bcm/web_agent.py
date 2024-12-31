@@ -285,7 +285,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
     # Send chat history
     await websocket.send_json({
         "type": "history",
-        "messages": [{"content": msg.content, "is_user": msg.is_user} for msg in chat_history]
+        "messages": [msg.to_dict() for msg in chat_history]
     })
     
     try:
@@ -332,6 +332,13 @@ class Message:
         self.content = content
         self.is_user = is_user
         self.timestamp = datetime.now()
+    
+    def to_dict(self):
+        return {
+            "content": self.content,
+            "is_user": self.is_user,
+            "timestamp": self.timestamp.isoformat()
+        }
 
 def start_server():
     import uvicorn
