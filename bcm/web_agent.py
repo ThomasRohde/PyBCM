@@ -352,6 +352,35 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                     if websocket.client_state == WebSocketState.CONNECTED:
                         # Add the final complete response to history
                         chat_history.append(result.response)
+                        
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
+            except Exception as e:
+                print(f"WebSocket error: {e}")
+                print(f"Error type: {type(e)}")
+                import traceback
+                print(f"Traceback:\n{traceback.format_exc()}")
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    error_msg = f"Error: {str(e)}"
+                    error_response = ModelResponse(
+                        parts=[TextPart(content=error_msg)],
+                        timestamp=datetime.now(tz=timezone.utc)
+                    )
+                    await websocket.send_json(to_chat_message(error_response))
+                    chat_history.append(error_response)
+    except Exception as e:
+        print(f"WebSocket connection error: {e}")
+    finally:
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()
+
+def start_server():
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+if __name__ == "__main__":
+    start_server()
 ```
 
 bcm\web_agent.py
