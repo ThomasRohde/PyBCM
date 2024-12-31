@@ -119,16 +119,29 @@ def get_db_path():
     return os.path.join(base_dir, "bcm.db")
 
 DATABASE_URL = f"sqlite:///{get_db_path()}"
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    # Enable SQLite foreign key support
-    creator=lambda: sqlite3.connect(get_db_path(), detect_types=sqlite3.PARSE_DECLTYPES),
-    # Disable connection pooling
-    poolclass=NullPool
-)
+def create_engine_instance():
+    return create_engine(
+        DATABASE_URL,
+        # Remove check_same_thread=False as we'll handle connections properly
+        connect_args={},
+        # Enable SQLite foreign key support
+        creator=lambda: sqlite3.connect(
+            get_db_path(),
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            check_same_thread=True
+        ),
+        # Keep NullPool to ensure fresh connections
+        poolclass=NullPool
+    )
 
+engine = create_engine_instance()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db_session():
+    """Create a new database session for the current thread."""
+    engine = create_engine_instance()
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return SessionLocal()
 
 def init_db():
     """Initialize the database by creating all tables."""

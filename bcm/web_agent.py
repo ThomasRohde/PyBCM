@@ -82,11 +82,15 @@ def add_current_time() -> str:
 
 # Database dependency
 def get_db():
-    db = SessionLocal()
+    db = get_db_session()
     try:
         yield db
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            # Safely ignore any closing errors
+            pass
 
 # Agent tools
 @agent.tool
