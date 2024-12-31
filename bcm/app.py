@@ -818,7 +818,9 @@ class App:
 
     def _show_chat(self):
         """Show the AI chat dialog."""
-        show_chat_dialog(self.root)
+        # Launch web browser to chat interface
+        import webbrowser
+        webbrowser.open('http://127.0.0.1:8000')
         
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
