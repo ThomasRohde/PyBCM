@@ -303,8 +303,11 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                         "is_user": True
                     })
                 
-                # Convert chat history to list of tuples (content, is_user)
-                history = [(msg.content, msg.is_user) for msg in chat_history]
+                # Convert chat history to list of role-based messages
+                history = []
+                for msg in chat_history:
+                    role = "user" if msg.is_user else "assistant"
+                    history.append({"role": role, "content": msg.content})
                 print(f"agent run stream prompt={user_content}")
                 print(f"  history={history}")
                 
