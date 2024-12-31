@@ -818,8 +818,19 @@ class App:
 
     def _show_chat(self):
         """Show the AI chat dialog."""
-        # Launch web browser to chat interface
+        import threading
         import webbrowser
+        from .web_agent import start_server
+        
+        # Start the FastAPI server in a background thread
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        
+        # Give the server a moment to start
+        import time
+        time.sleep(1)
+        
+        # Launch web browser to chat interface
         webbrowser.open('http://127.0.0.1:8000')
         
     def _show_visualizer(self):
