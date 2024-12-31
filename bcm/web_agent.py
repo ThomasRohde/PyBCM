@@ -305,10 +305,15 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 
                 # Convert chat history to list of tuples (content, is_user)
                 history = [(msg.content, msg.is_user) for msg in chat_history]
+                print(f"agent run stream prompt={user_content}")
+                print(f"  history={history}")
                 
                 # Process with AI
                 deps = Deps(db=db)
-                async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
+                try:
+                    print("  preparing model and tools")
+                    async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
+                        print("  model request started")
                     response_text = ""
                     async for chunk in result.stream_text(delta=True):
                         if websocket.client_state != WebSocketState.CONNECTED:
@@ -326,6 +331,9 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 if isinstance(e, RuntimeError) and "disconnect" in str(e):
                     break
                 print(f"WebSocket error: {e}")
+                print(f"Error type: {type(e)}")
+                import traceback
+                print(f"Traceback:\n{traceback.format_exc()}")
                 if websocket.client_state == WebSocketState.CONNECTED:
                     error_msg = f"Error: {str(e)}"
                     await websocket.send_json({
