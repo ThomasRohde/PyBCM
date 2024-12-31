@@ -1,4 +1,5 @@
-from fastapi import FastAPI, WebSocket, Depends, WebSocketState
+from fastapi import FastAPI, WebSocket, Depends
+from fastapi.websockets import WebSocketState
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import asyncio
