@@ -7,12 +7,17 @@ import markdown
 from pydantic_ai import Agent, RunContext
 from typing import List, Optional, Dict
 from datetime import datetime
+from dataclasses import dataclass
 from .database import DatabaseOperations
 from sqlalchemy.orm import Session
 from jinja2 import Environment, FileSystemLoader
 import os
 
 from .models import SessionLocal
+
+@dataclass
+class Deps:
+    db: Session
 
 # Set up Jinja environment
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -23,7 +28,7 @@ system_prompt_template = jinja_env.get_template('system_prompt.j2')
 system_prompt = system_prompt_template.render()
 
 # Initialize the agent at module level with deps_type
-agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=str)
+agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=Deps)
 
 @agent.system_prompt
 def add_user_name() -> str:
@@ -41,112 +46,73 @@ def add_current_time() -> str:
     """Add the current time to system prompt."""
     return f"The current time and date is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
 
-# Create thread-local storage for database sessions
-thread_local = threading.local()
-
-def get_thread_db():
-    """Get a database session for the current thread."""
-    if not hasattr(thread_local, "db"):
-        thread_local.db = SessionLocal()
-    return thread_local.db
-
-def cleanup_thread_db():
-    """Clean up thread-local database session."""
-    if hasattr(thread_local, "db"):
-        thread_local.db.close()
-        delattr(thread_local, "db")
-
 @agent.tool
-async def get_capability(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+async def get_capability(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
     """Get details about a specific capability by ID."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capability = db_ops.get_capability(capability_id)
-        if capability:
-            return {
-                "id": capability.id,
-                "name": capability.name,
-                "description": capability.description,
-                "parent_id": capability.parent_id,
-                "order_position": capability.order_position
-            }
-        return None
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    capability = db_ops.get_capability(capability_id)
+    if capability:
+        return {
+            "id": capability.id,
+            "name": capability.name,
+            "description": capability.description,
+            "parent_id": capability.parent_id,
+            "order_position": capability.order_position
+        }
+    return None
 
 @agent.tool
-async def get_capabilities(ctx: RunContext, parent_id: Optional[int] = None) -> List[Dict]:
+async def get_capabilities(ctx: RunContext[Deps], parent_id: Optional[int] = None) -> List[Dict]:
     """Get all capabilities under a specific parent ID."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capabilities = db_ops.get_capabilities(parent_id)
-        return [{
-            "id": cap.id,
-            "name": cap.name,
-            "description": cap.description,
-            "parent_id": cap.parent_id,
-            "order_position": cap.order_position
-        } for cap in capabilities]
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    capabilities = db_ops.get_capabilities(parent_id)
+    return [{
+        "id": cap.id,
+        "name": cap.name,
+        "description": cap.description,
+        "parent_id": cap.parent_id,
+        "order_position": cap.order_position
+    } for cap in capabilities]
 
 @agent.tool
-async def get_capability_with_children(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+async def get_capability_with_children(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
     """Get a capability and its full hierarchy of children."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        return db_ops.get_capability_with_children(capability_id)
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    return db_ops.get_capability_with_children(capability_id)
 
 @agent.tool
-async def search_capabilities(ctx: RunContext, query: str) -> List[Dict]:
+async def search_capabilities(ctx: RunContext[Deps], query: str) -> List[Dict]:
     """Search capabilities by name or description."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capabilities = db_ops.search_capabilities(query)
-        return [{
-            "id": cap.id,
-            "name": cap.name,
-            "description": cap.description,
-            "parent_id": cap.parent_id,
-            "order_position": cap.order_position
-        } for cap in capabilities]
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    capabilities = db_ops.search_capabilities(query)
+    return [{
+        "id": cap.id,
+        "name": cap.name,
+        "description": cap.description,
+        "parent_id": cap.parent_id,
+        "order_position": cap.order_position
+    } for cap in capabilities]
 
 @agent.tool
-async def get_markdown_hierarchy(ctx: RunContext) -> str:
+async def get_markdown_hierarchy(ctx: RunContext[Deps]) -> str:
     """Get a markdown representation of the capability hierarchy."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        return db_ops.get_markdown_hierarchy()
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    return db_ops.get_markdown_hierarchy()
 
 @agent.tool
-async def get_capability_by_name(ctx: RunContext, name: str) -> Optional[Dict]:
+async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[Dict]:
     """Get a capability by its name (case insensitive)."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capability = db_ops.get_capability_by_name(name)
-        if capability:
-            return {
-                "id": capability.id,
-                "name": capability.name,
-                "description": capability.description,
-                "parent_id": capability.parent_id,
-                "order_position": capability.order_position
-            }
-        return None
-    finally:
-        cleanup_thread_db()
+    db_ops = DatabaseOperations(ctx.deps.db)
+    capability = db_ops.get_capability_by_name(name)
+    if capability:
+        return {
+            "id": capability.id,
+            "name": capability.name,
+            "description": capability.description,
+            "parent_id": capability.parent_id,
+            "order_position": capability.order_position
+        }
+    return None
 
 class Message:
     def __init__(self, content: str, is_user: bool, timestamp: datetime = None):
@@ -155,7 +121,7 @@ class Message:
         self.timestamp = timestamp or datetime.now()
 
 class ChatDialog(ttk.Toplevel):
-    def __init__(self, parent, db_session: Session):
+    def __init__(self, parent):
         super().__init__(parent)
         try:
             self.withdraw()  # Hide window initially
@@ -423,7 +389,6 @@ class ChatDialog(ttk.Toplevel):
             self.after(0, self.display_message, "Assistant", f"Error: {str(e)}")
         finally:
             loop.close()
-            cleanup_thread_db()
     
     async def _fetch_and_display_response(self, message: str):
         """Fetch and display the AI response with streaming."""
@@ -439,7 +404,10 @@ class ChatDialog(ttk.Toplevel):
             # Create a lock for thread-safe updates
             update_lock = asyncio.Lock()
             
-            async with agent.run_stream(message, message_history=self.messages) as result:
+            # Create new database session for this thread
+            db = SessionLocal()
+            deps = Deps(db=db)
+            async with agent.run_stream(message, message_history=self.messages, deps=deps) as result:
                 import time
                 last_update = time.time()
                 update_interval = 0.05  # 50ms in seconds
@@ -489,9 +457,8 @@ class ChatDialog(ttk.Toplevel):
         except Exception as e:
             self.after(0, self.display_message, "Assistant", f"Error: {str(e)}")
         finally:
-            # Clean up thread-local database session
-            cleanup_thread_db()
-            # Re-enable input in main thread
+            # Clean up database session and re-enable input
+            deps.db.close()
             self.after(0, lambda: [
                 self.entry.configure(state="normal"),
                 self.send_button.configure(state="normal"),
@@ -516,10 +483,10 @@ class ChatDialog(ttk.Toplevel):
         except Exception as e:
             print(f"Error handling mouse wheel: {e}")
 
-def show_chat_dialog(parent, db_session: Session):
+def show_chat_dialog(parent):
     """Show the chat dialog."""
     try:
-        dialog = ChatDialog(parent, db_session)
+        dialog = ChatDialog(parent)
         return dialog
     except Exception as e:
         print(f"Error showing chat dialog: {e}")

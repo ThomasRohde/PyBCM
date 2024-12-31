@@ -810,7 +810,7 @@ class App:
 
     def _show_chat(self):
         """Show the AI chat dialog."""
-        show_chat_dialog(self.root, self.db)
+        show_chat_dialog(self.root)
         
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
