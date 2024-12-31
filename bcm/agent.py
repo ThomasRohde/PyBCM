@@ -124,93 +124,116 @@ class ChatDialog(ttk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         try:
-            self.withdraw()  # Hide window initially
+            self.withdraw()
             self.iconbitmap("./bcm/business_capability_model.ico")
-            self.title("AI Chat")
+            self.title("AI Assistant")
             
-            # Set initial size before creating widgets
+            # Set theme colors using ttkbootstrap compatible styling
+            style = ttk.Style()
+            bg_color = style.colors.light
+            
+            # Set initial size and position
             self.geometry("1200x800")
-            
-            # Calculate position relative to parent
             self.update_idletasks()
-            x = parent.winfo_x() + (parent.winfo_width() - 800) // 2
-            y = parent.winfo_y() + (parent.winfo_height() - 600) // 2
+            x = parent.winfo_x() + (parent.winfo_width() - 1200) // 2
+            y = parent.winfo_y() + (parent.winfo_height() - 800) // 2
             self.geometry(f"+{x}+{y}")
             
-            # Initialize message history
-            self.messages: List[Message] = []
-
-            self.ai_response_frames = {}  # Dictionary to store AI response frames
+            self.messages = []
+            self.ai_response_frames = {}
             self.is_scrolling = False
             
-            # Create main container
-            self.main_container = ttk.Frame(self)
-            self.main_container.pack(fill="both", expand=True, padx=10, pady=5)
-            
-            # Chat frame with canvas for scrolling
-            self.chat_frame = ttk.Frame(self.main_container)
-            self.chat_frame.pack(fill="both", expand=True, pady=(0, 10))
-            
-            # Scrollbar for the chat display
-            self.scrollbar = ttk.Scrollbar(self.chat_frame)
-            self.scrollbar.pack(side="right", fill="y")
-            
-            # Canvas to hold the chat messages - remove border and set bg
-            self.chat_canvas = tk.Canvas(
-                self.chat_frame, 
-                yscrollcommand=self.scrollbar.set,
-                borderwidth=0,
-                highlightthickness=0,
-                background='#ffffff'  # or use system color
-            )
-            self.chat_canvas.pack(side="left", fill="both", expand=True)
-            self.scrollbar.config(command=self.chat_canvas.yview)
-            
-            # Frame inside canvas - set matching background
-            self.messages_frame = ttk.Frame(self.chat_canvas, style='chat.TFrame')
-            self.chat_canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
-            style = ttk.Style()
-            style.configure('chat.TFrame', background='#ffffff')  # match canvas bg
-            
-            # Update message styles
+            # Update message styles with modern look
             self.message_styles = """
                 <style>
                     .user-message {
-                        background-color: #e3f2fd;
-                        border-radius: 8px;
-                        padding: 8px;
-                        margin: 4px;
+                        background-color: #0d6efd;
+                        color: white;
+                        border-radius: 18px;
+                        padding: 12px 18px;
+                        margin: 8px;
+                        max-width: 80%;
+                        float: right;
+                        clear: both;
+                        font-family: 'Segoe UI', sans-serif;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                     }
                     .assistant-message {
-                        background-color: #f5f5f5;
+                        background-color: #f8f9fa;
+                        color: #212529;
+                        border-radius: 18px;
+                        padding: 12px 18px;
+                        margin: 8px;
+                        max-width: 80%;
+                        float: left;
+                        clear: both;
+                        font-family: 'Segoe UI', sans-serif;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    }
+                    code {
+                        background-color: #e9ecef;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-family: 'Consolas', monospace;
+                    }
+                    pre {
+                        background-color: #e9ecef;
+                        padding: 12px;
                         border-radius: 8px;
-                        padding: 8px;
-                        margin: 4px;
+                        overflow-x: auto;
                     }
                 </style>
             """
             
-            # Input frame
-            self.input_frame = ttk.Frame(self.main_container)
-            self.input_frame.pack(fill="x", pady=(0, 5))
+            # Main container
+            self.main_container = ttk.Frame(self)
+            self.main_container.pack(fill="both", expand=True)
             
-            # Message entry
+            # Chat display area
+            self.chat_frame = ttk.Frame(self.main_container)
+            self.chat_frame.pack(fill="both", expand=True, padx=20, pady=(20, 10))
+            
+            # Scrollbar
+            self.scrollbar = ttk.Scrollbar(self.chat_frame)
+            self.scrollbar.pack(side="right", fill="y")
+            
+            # Canvas
+            self.chat_canvas = tk.Canvas(
+                self.chat_frame,
+                yscrollcommand=self.scrollbar.set,
+                borderwidth=0,
+                highlightthickness=0,
+                background=bg_color
+            )
+            self.chat_canvas.pack(side="left", fill="both", expand=True)
+            self.scrollbar.config(command=self.chat_canvas.yview)
+            
+            # Messages frame
+            self.messages_frame = ttk.Frame(self.chat_canvas)
+            self.chat_canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
+            
+            # Input area
+            self.input_frame = ttk.Frame(self.main_container)
+            self.input_frame.pack(fill="x", padx=20, pady=20)
+            
+            # Input field
             self.message_var = tk.StringVar()
             self.entry = ttk.Entry(
                 self.input_frame,
                 textvariable=self.message_var,
-                font=("TkDefaultFont", 10)
+                font=("Segoe UI", 11)
             )
+            
+            # Send button using ttkbootstrap primary style
             self.send_button = ttk.Button(
                 self.input_frame,
                 text="Send",
                 command=self._send_message,
-                style="primary.TButton",
-                width=10
+                style="primary.TButton"
             )
             
             # Layout
-            self.entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            self.entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
             self.send_button.pack(side="right")
             
             # Bind events
@@ -300,35 +323,39 @@ class ChatDialog(ttk.Toplevel):
     def display_message(self, sender: str, message: str):
         """Display a message in the chat."""
         try:
-            # Create frame with matching background
-            container = ttk.Frame(self.messages_frame, style='chat.TFrame')
-            container.pack(fill="x", expand=True, padx=5, pady=2)
+            container = ttk.Frame(self.messages_frame)
+            container.pack(fill="x", expand=True, padx=10, pady=5)
             
-            # Label with matching background
-            sender_label = ttk.Label(
-                container, 
-                text=f"{sender}:", 
-                anchor="w",
-                style='chat.TLabel'
-            )
-            sender_label.pack(fill="x", padx=5)
-            
-            # Convert markdown to HTML first
+            # Skip sender label for cleaner look
             is_user = sender == "You"
             html_content = self._convert_markdown_to_html(message, is_user)
             
-            # HTML label for rendered markdown
             html_label = HtmlLabel(container, text=html_content)
-            html_label.pack(fill="x", expand=True, padx=5)
+            html_label.pack(fill="x", expand=True)
             
-            # Store reference to container
             self.ai_response_frames[len(self.messages)] = (container, html_label)
             
             self._update_scroll_region()
             self.chat_canvas.yview_moveto(1.0)
+            
+            # Add subtle animation effect
+            container.update()
+            container._opacity = 0
+            self._fade_in(container)
+            
         except Exception as e:
             print(f"Error displaying message: {e}")
-    
+
+    def _fade_in(self, widget, steps=10):
+        """Animate message appearance"""
+        def update_opacity(step):
+            if step <= steps:
+                opacity = step / steps
+                widget._opacity = opacity
+                widget.update()
+                self.after(20, update_opacity, step + 1)
+        update_opacity(1)
+
     def _update_label(self, message_index: int, sender: str, message: str):
         """Update an AI response with new content."""
         try:
