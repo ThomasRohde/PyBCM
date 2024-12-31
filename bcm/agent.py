@@ -151,7 +151,7 @@ class ChatDialog(ttk.Toplevel):
         self.title("AI Chat")
         
         # Set initial size before creating widgets
-        self.geometry("800x600")
+        self.geometry("1200x800")
         
         # Calculate position relative to parent
         self.update_idletasks()
@@ -243,6 +243,9 @@ class ChatDialog(ttk.Toplevel):
         self.chat_canvas.bind("<ButtonRelease-1>", self._on_scroll_end)
         self.scrollbar.bind("<B1-Motion>", self._on_scroll_start)
         self.scrollbar.bind("<ButtonRelease-1>", self._on_scroll_end)
+        
+        # Bind mouse wheel event for scrolling
+        self.chat_canvas.bind_all("<MouseWheel>", self._on_mouse_wheel)
         
         # Make dialog modal
         self.transient(parent)
@@ -428,6 +431,10 @@ class ChatDialog(ttk.Toplevel):
         loop.run_until_complete(self._fetch_and_display_response(message))
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+
+    def _on_mouse_wheel(self, event):
+        """Scroll the chat canvas with the mouse wheel."""
+        self.chat_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
     def _on_closing(self):
         """Handle window closing."""
