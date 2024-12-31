@@ -4,31 +4,46 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import asyncio
 import json
-from typing import List, Optional, Dict
-from datetime import datetime
+from typing import List, Optional, Dict, AsyncIterator
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from .models import SessionLocal
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelMessagesTypeAdapter,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 
-class Message:
-    def __init__(self, content: str, is_user: bool):
-        self.content = content
-        self.is_user = is_user
-        self.timestamp = datetime.now()
-    
-    def to_dict(self):
-        return {
-            "content": self.content,
-            "is_user": self.is_user,
-            "timestamp": self.timestamp.isoformat()
-        }
+def to_chat_message(m: ModelMessage) -> dict:
+    """Convert a ModelMessage to a chat message dict for the frontend."""
+    first_part = m.parts[0]
+    if isinstance(m, ModelRequest):
+        if isinstance(first_part, UserPromptPart):
+            return {
+                "role": "user",
+                "timestamp": first_part.timestamp.isoformat(),
+                "content": first_part.content,
+            }
+    elif isinstance(m, ModelResponse):
+        if isinstance(first_part, TextPart):
+            return {
+                "role": "assistant",
+                "timestamp": m.timestamp.isoformat(),
+                "content": first_part.content,
+            }
+    raise UnexpectedModelBehavior(f"Unexpected message type for chat app: {m}")
 
 # Create FastAPI app
 app = FastAPI()
@@ -317,33 +332,32 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                         "is_user": True
                     })
                 
-                # Convert chat history to pydantic-ai message objects
-                history = []
-                for msg in chat_history:
-                    if msg.is_user:
-                        history.append(ModelRequest(text=msg.content))  # Corrected parameter
-                    else:
-                        history.append(ModelResponse(text=msg.content))  # Corrected parameter
-                print(f"agent run stream prompt={user_content}")
-                print(f"  history={history}")
-                
-                # Process with AI
+                # Send the user message immediately
+                user_msg = ModelRequest.from_text(
+                    content=user_content,
+                    timestamp=datetime.now(tz=timezone.utc)
+                )
+                await websocket.send_json(to_chat_message(user_msg))
+                chat_history.append(user_msg)
+
+                # Process with AI using the full chat history
                 deps = Deps(db=db)
                 print("  preparing model and tools")
-                async with agent.run_stream(user_content, message_history=history, deps=deps) as result:
+                async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
                     print("  model request started")
-                    response_text = ""
-                    async for chunk in result.stream_text(delta=True):
+                    async for text in result.stream(debounce_by=0.01):
                         if websocket.client_state != WebSocketState.CONNECTED:
                             break
-                        response_text += chunk
-                        await websocket.send_json({
-                            "content": response_text,
-                            "is_user": False
-                        })
+                        # Create a ModelResponse for each chunk
+                        msg = ModelResponse.from_text(
+                            content=text,
+                            timestamp=result.timestamp()
+                        )
+                        await websocket.send_json(to_chat_message(msg))
                     
                     if websocket.client_state == WebSocketState.CONNECTED:
-                        chat_history.append(Message(response_text, False))
+                        # Add the final complete response to history
+                        chat_history.append(result.response)
                     
             except WebSocketDisconnect:
                 print("Client disconnected")
