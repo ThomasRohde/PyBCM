@@ -11,6 +11,9 @@ from .database import DatabaseOperations
 from sqlalchemy.orm import Session
 from jinja2 import Environment, FileSystemLoader
 import os
+from dataclasses import dataclass
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from .models import SessionLocal
 
@@ -22,8 +25,12 @@ jinja_env = Environment(loader=FileSystemLoader(template_dir))
 system_prompt_template = jinja_env.get_template('system_prompt.j2')
 system_prompt = system_prompt_template.render()
 
+@dataclass
+class Deps:
+    db: DatabaseOperations
+
 # Initialize the agent at module level with deps_type
-agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=str)
+agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=Deps)
 
 @agent.system_prompt
 def add_user_name() -> str:
@@ -56,59 +63,51 @@ def cleanup_thread_db():
         thread_local.db.close()
         delattr(thread_local, "db")
 
+@asynccontextmanager
+async def get_db() -> AsyncGenerator[Deps, None]:
+    db = get_thread_db()
+    db_ops = DatabaseOperations(db)
+    try:
+        yield Deps(db=db_ops)
+    finally:
+        cleanup_thread_db()
+
 @agent.tool
-async def get_capability(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+async def get_capability(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
     """Get details about a specific capability by ID."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capability = db_ops.get_capability(capability_id)
-        if capability:
-            return {
-                "id": capability.id,
-                "name": capability.name,
-                "description": capability.description,
-                "parent_id": capability.parent_id,
-                "order_position": capability.order_position
-            }
-        return None
-    finally:
-        cleanup_thread_db()
+    capability = ctx.deps.db.get_capability(capability_id)
+    if capability:
+        return {
+            "id": capability.id,
+            "name": capability.name,
+            "description": capability.description,
+            "parent_id": capability.parent_id,
+            "order_position": capability.order_position
+        }
+    return None
 
 @agent.tool
-async def get_capabilities(ctx: RunContext, parent_id: Optional[int] = None) -> List[Dict]:
+async def get_capabilities(ctx: RunContext[Deps], parent_id: Optional[int] = None) -> List[Dict]:
     """Get all capabilities under a specific parent ID."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capabilities = db_ops.get_capabilities(parent_id)
-        return [{
-            "id": cap.id,
-            "name": cap.name,
-            "description": cap.description,
-            "parent_id": cap.parent_id,
-            "order_position": cap.order_position
-        } for cap in capabilities]
-    finally:
-        cleanup_thread_db()
+    capabilities = ctx.deps.db.get_capabilities(parent_id)
+    return [{
+        "id": cap.id,
+        "name": cap.name,
+        "description": cap.description,
+        "parent_id": cap.parent_id,
+        "order_position": cap.order_position
+    } for cap in capabilities]
 
 @agent.tool
-async def get_capability_with_children(ctx: RunContext, capability_id: int) -> Optional[Dict]:
+async def get_capability_with_children(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
     """Get a capability and its full hierarchy of children."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        return db_ops.get_capability_with_children(capability_id)
-    finally:
-        cleanup_thread_db()
+    return ctx.deps.db.get_capability_with_children(capability_id)
 
 @agent.tool
-async def search_capabilities(ctx: RunContext, query: str) -> List[Dict]:
+async def search_capabilities(ctx: RunContext[Deps], query: str) -> List[Dict]:
     """Search capabilities by name or description."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capabilities = db_ops.search_capabilities(query)
+    if ctx.deps and ctx.deps.db:
+        capabilities = ctx.deps.db.search_capabilities(query)
         return [{
             "id": cap.id,
             "name": cap.name,
@@ -116,37 +115,27 @@ async def search_capabilities(ctx: RunContext, query: str) -> List[Dict]:
             "parent_id": cap.parent_id,
             "order_position": cap.order_position
         } for cap in capabilities]
-    finally:
-        cleanup_thread_db()
+    else:
+        raise ValueError("Database dependency is not initialized")
 
 @agent.tool
-async def get_markdown_hierarchy(ctx: RunContext) -> str:
+async def get_markdown_hierarchy(ctx: RunContext[Deps]) -> str:
     """Get a markdown representation of the capability hierarchy."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        return db_ops.get_markdown_hierarchy()
-    finally:
-        cleanup_thread_db()
+    return ctx.deps.db.get_markdown_hierarchy()
 
 @agent.tool
-async def get_capability_by_name(ctx: RunContext, name: str) -> Optional[Dict]:
+async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[Dict]:
     """Get a capability by its name (case insensitive)."""
-    try:
-        db = get_thread_db()
-        db_ops = DatabaseOperations(db)
-        capability = db_ops.get_capability_by_name(name)
-        if capability:
-            return {
-                "id": capability.id,
-                "name": capability.name,
-                "description": capability.description,
-                "parent_id": capability.parent_id,
-                "order_position": capability.order_position
-            }
-        return None
-    finally:
-        cleanup_thread_db()
+    capability = ctx.deps.db.get_capability_by_name(name)
+    if capability:
+        return {
+            "id": capability.id,
+            "name": capability.name,
+            "description": capability.description,
+            "parent_id": capability.parent_id,
+            "order_position": capability.order_position
+        }
+    return None
 
 class Message:
     def __init__(self, content: str, is_user: bool, timestamp: datetime = None):
@@ -381,44 +370,41 @@ class ChatDialog(ttk.Toplevel):
             daemon=True
         ).start()
     
-    def _handle_ai_response(self, message: str):
-        """Handle getting AI response in background thread."""
-        asyncio.run(self._fetch_and_display_response(message))
-    
     async def _fetch_and_display_response(self, message: str):
         """Fetch and display the AI response with streaming."""
         try:
-            async with agent.run_stream(message, message_history=self.messages) as result:
-                response_text = ""
-                message_index = len(self.messages)
-                
-                # Create initial empty response
-                self.display_message("Assistant", "")
-                
-                # Stream response with batched updates
-                import time
-                last_update = time.time()
-                update_interval = 0.05  # 50ms in seconds
-                needs_update = False
-                
-                async for chunk in result.stream_text(delta=True):
-                    response_text += chunk
-                    needs_update = True
-                    current_time = time.time()
+            async with get_db() as deps:
+                async with agent.run_stream(message, message_history=self.messages, deps=deps) as result:
+                    response_text = ""
+                    message_index = len(self.messages)
                     
-                    # Only update if enough time has passed
-                    if current_time - last_update >= update_interval:
-                        # Update UI in main thread
+                    # Create initial empty response
+                    self.display_message("Assistant", "")
+                    
+                    # Stream response with batched updates
+                    import time
+                    last_update = time.time()
+                    update_interval = 0.05  # 50ms in seconds
+                    needs_update = False
+                    
+                    async for chunk in result.stream_text(delta=True):
+                        response_text += chunk
+                        needs_update = True
+                        current_time = time.time()
+                        
+                        # Only update if enough time has passed
+                        if current_time - last_update >= update_interval:
+                            # Update UI in main thread
+                            self.after(0, self._update_label, message_index, "Assistant", response_text)
+                            last_update = current_time
+                            needs_update = False
+                    
+                    # Ensure final state is displayed
+                    if needs_update:
                         self.after(0, self._update_label, message_index, "Assistant", response_text)
-                        last_update = current_time
-                        needs_update = False
-                
-                # Ensure final state is displayed
-                if needs_update:
-                    self.after(0, self._update_label, message_index, "Assistant", response_text)
-                
-                # Add to message history
-                self.messages.extend(result.new_messages())
+                    
+                    # Add to message history
+                    self.messages.extend(result.new_messages())
                 
         except Exception as e:
             self.after(0, self.display_message, "Assistant", f"Error: {str(e)}")
@@ -431,7 +417,18 @@ class ChatDialog(ttk.Toplevel):
                 self.send_button.configure(state="normal"),
                 self.entry.focus_set()
             ])
-    
+            # Ensure the async generator is properly closed
+            if hasattr(result, 'aclose'):
+                await result.aclose()
+
+    def _handle_ai_response(self, message: str):
+        """Handle getting AI response in background thread."""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._fetch_and_display_response(message))
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
+
     def _on_closing(self):
         """Handle window closing."""
         self.destroy()
