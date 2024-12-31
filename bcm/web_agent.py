@@ -304,7 +304,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                     })
                 
                 # Convert chat history to pydantic-ai Message objects
-                from pydantic_ai.schema import Message as AIMessage
+                from pydantic_ai.messages import Message as AIMessage
                 history = []
                 for msg in chat_history:
                     role = "user" if msg.is_user else "assistant"
