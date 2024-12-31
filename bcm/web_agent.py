@@ -16,6 +16,19 @@ from .models import SessionLocal
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
 
+class Message:
+    def __init__(self, content: str, is_user: bool):
+        self.content = content
+        self.is_user = is_user
+        self.timestamp = datetime.now()
+    
+    def to_dict(self):
+        return {
+            "content": self.content,
+            "is_user": self.is_user,
+            "timestamp": self.timestamp.isoformat()
+        }
+
 # Create FastAPI app
 app = FastAPI()
 
@@ -350,19 +363,6 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
     finally:
         if websocket.client_state == WebSocketState.CONNECTED:
             await websocket.close()
-
-class Message:
-    def __init__(self, content: str, is_user: bool):
-        self.content = content
-        self.is_user = is_user
-        self.timestamp = datetime.now()
-    
-    def to_dict(self):
-        return {
-            "content": self.content,
-            "is_user": self.is_user,
-            "timestamp": self.timestamp.isoformat()
-        }
 
 def start_server():
     import uvicorn
