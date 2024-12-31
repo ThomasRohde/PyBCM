@@ -439,6 +439,14 @@ class ChatDialog(ttk.Toplevel):
         """Handle window closing."""
         self.destroy()
 
+    def _on_mouse_wheel(self, event):
+        """Handle mouse wheel scrolling."""
+        # Windows and MacOS handle scroll direction differently
+        # Normalize the delta to work consistently across platforms
+        delta = -1 * (event.delta // 120)  # Normalize delta
+        self.chat_canvas.yview_scroll(delta, "units")
+        return "break"  # Prevent event propagation
+
 def show_chat_dialog(parent, db_session: Session):
     """Show the chat dialog."""
     try:
