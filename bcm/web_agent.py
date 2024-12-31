@@ -337,11 +337,16 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 # Process with AI using the properly structured chat history
                 deps = Deps(db=db)
                 print("  preparing model and tools")
+                # Initialize an empty string to collect the full response
+                full_response = ""
+                
                 async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
                     print("  model request started")
                     async for text in result.stream(debounce_by=0.01):
                         if websocket.client_state != WebSocketState.CONNECTED:
                             break
+                        # Accumulate the full response
+                        full_response += text
                         # Create a ModelResponse with TextPart for each chunk
                         msg = ModelResponse(
                             parts=[TextPart(content=text)],
@@ -350,8 +355,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                         await websocket.send_json(to_chat_message(msg))
                     
                     if websocket.client_state == WebSocketState.CONNECTED:
-                        # Add the final complete response to history
-                        chat_history.append(result.response)
+                        # Create and add the final complete response to history
+                        final_response = ModelResponse(
+                            parts=[TextPart(content=full_response)],
+                            timestamp=result.timestamp()
+                        )
+                        chat_history.append(final_response)
                         
             except WebSocketDisconnect:
                 print("Client disconnected")
