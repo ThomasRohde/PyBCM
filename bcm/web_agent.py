@@ -324,15 +324,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 message = await websocket.receive_json()
                 user_content = message["content"]
                 
-                # Add user message to history is now handled by ModelRequest below
-                if websocket.client_state == WebSocketState.CONNECTED:
-                    await websocket.send_json({
-                        "role": "user",
-                        "content": user_content,
-                        "timestamp": datetime.now(tz=timezone.utc).isoformat()
-                    })
-                
-                # Send the user message immediately
+                # Send the user message immediately and add to history
                 user_msg = ModelRequest.from_text(
                     content=user_content,
                     timestamp=datetime.now(tz=timezone.utc)
@@ -340,7 +332,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 await websocket.send_json(to_chat_message(user_msg))
                 chat_history.append(user_msg)
 
-                # Process with AI using the full chat history
+                # Process with AI using the chat history
                 deps = Deps(db=db)
                 print("  preparing model and tools")
                 async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
