@@ -386,11 +386,7 @@ if __name__ == "__main__":
 bcm\web_agent.py
 ```python
 <<<<<<< SEARCH
-                        # Create a ModelResponse for each chunk
-                        msg = ModelResponse.from_text(
-                            content=text,
-                            timestamp=result.timestamp()
-                        )
+                # Process with AI using the properly structured chat history
                 deps = Deps(db=db)
                 print("  preparing model and tools")
                 async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
@@ -398,9 +394,9 @@ bcm\web_agent.py
                     async for text in result.stream(debounce_by=0.01):
                         if websocket.client_state != WebSocketState.CONNECTED:
                             break
-                        # Create a ModelResponse for each chunk
-                        msg = ModelResponse.from_text(
-                            content=text,
+                        # Create a ModelResponse with TextPart for each chunk
+                        msg = ModelResponse(
+                            parts=[TextPart(content=text)],
                             timestamp=result.timestamp()
                         )
                         await websocket.send_json(to_chat_message(msg))
