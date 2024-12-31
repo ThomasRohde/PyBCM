@@ -303,11 +303,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                         "is_user": True
                     })
                 
-                # Convert chat history to list of role-based messages
+                # Convert chat history to pydantic-ai Message objects
+                from pydantic_ai.schema import Message as AIMessage
                 history = []
                 for msg in chat_history:
                     role = "user" if msg.is_user else "assistant"
-                    history.append({"role": role, "content": msg.content})
+                    history.append(AIMessage(role=role, content=msg.content))
                 print(f"agent run stream prompt={user_content}")
                 print(f"  history={history}")
                 
