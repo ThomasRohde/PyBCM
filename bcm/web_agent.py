@@ -316,7 +316,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
         # Send chat history
         await websocket.send_json({
             "type": "history",
-            "messages": [msg.to_dict() for msg in chat_history]
+            "messages": [to_chat_message(msg) for msg in chat_history]
         })
         
         while True:
@@ -324,12 +324,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 message = await websocket.receive_json()
                 user_content = message["content"]
                 
-                # Add user message to history
-                chat_history.append(Message(user_content, True))
+                # Add user message to history is now handled by ModelRequest below
                 if websocket.client_state == WebSocketState.CONNECTED:
                     await websocket.send_json({
+                        "role": "user",
                         "content": user_content,
-                        "is_user": True
+                        "timestamp": datetime.now(tz=timezone.utc).isoformat()
                     })
                 
                 # Send the user message immediately
@@ -369,11 +369,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 print(f"Traceback:\n{traceback.format_exc()}")
                 if websocket.client_state == WebSocketState.CONNECTED:
                     error_msg = f"Error: {str(e)}"
-                    await websocket.send_json({
-                        "content": error_msg,
-                        "is_user": False
-                    })
-                    chat_history.append(Message(error_msg, False))
+                    error_response = ModelResponse.from_text(
+                        content=error_msg,
+                        timestamp=datetime.now(tz=timezone.utc)
+                    )
+                    await websocket.send_json(to_chat_message(error_response))
+                    chat_history.append(error_response)
     except Exception as e:
         print(f"WebSocket connection error: {e}")
     finally:
