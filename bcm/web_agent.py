@@ -15,6 +15,7 @@ from pathlib import Path
 from .models import SessionLocal
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ModelRequest, ModelResponse
 
 class Message:
     def __init__(self, content: str, is_user: bool):
@@ -317,11 +318,12 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                     })
                 
                 # Convert chat history to pydantic-ai message objects
-                from pydantic_ai.messages import Message
                 history = []
                 for msg in chat_history:
-                    role = "user" if msg.is_user else "assistant"
-                    history.append(Message(role=role, content=msg.content))
+                    if msg.is_user:
+                        history.append(ModelRequest(text=msg.content))  # Corrected parameter
+                    else:
+                        history.append(ModelResponse(text=msg.content))  # Corrected parameter
                 print(f"agent run stream prompt={user_content}")
                 print(f"  history={history}")
                 
