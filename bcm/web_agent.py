@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from .models import SessionLocal
+from .models import SessionLocal, get_db_session
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (
