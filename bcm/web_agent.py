@@ -324,15 +324,28 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 message = await websocket.receive_json()
                 user_content = message["content"]
                 
-                # Send the user message immediately and add to history
-                user_msg = ModelRequest.from_text(
-                    content=user_content,
-                    timestamp=datetime.now(tz=timezone.utc)
+                # Create and send user message with proper parts
+                user_msg = ModelRequest(
+                    parts=[UserPromptPart(
+                        content=user_content,
+                        timestamp=datetime.now(tz=timezone.utc)
+                    )]
                 )
                 await websocket.send_json(to_chat_message(user_msg))
                 chat_history.append(user_msg)
 
-                # Process with AI using the chat history
+                # Process with AI using the properly structured chat history
+=======>>>>>>> REPLACE
+```
+
+bcm\web_agent.py
+```python
+<<<<<<< SEARCH
+                        # Create a ModelResponse for each chunk
+                        msg = ModelResponse.from_text(
+                            content=text,
+                            timestamp=result.timestamp()
+                        )
                 deps = Deps(db=db)
                 print("  preparing model and tools")
                 async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
@@ -361,8 +374,8 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 print(f"Traceback:\n{traceback.format_exc()}")
                 if websocket.client_state == WebSocketState.CONNECTED:
                     error_msg = f"Error: {str(e)}"
-                    error_response = ModelResponse.from_text(
-                        content=error_msg,
+                    error_response = ModelResponse(
+                        parts=[TextPart(content=error_msg)],
                         timestamp=datetime.now(tz=timezone.utc)
                     )
                     await websocket.send_json(to_chat_message(error_response))
