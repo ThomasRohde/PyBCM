@@ -66,7 +66,7 @@ system_prompt_template = jinja_env.get_template('system_prompt.j2')
 system_prompt = system_prompt_template.render()
 
 # Initialize the agent
-agent = Agent('openai:gpt-4-mini', system_prompt=system_prompt, retries=3, deps_type=Deps)
+agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=Deps)
 
 @agent.system_prompt
 def add_user_name() -> str:
