@@ -250,13 +250,24 @@ CHAT_HTML = """
         function connectWebSocket() {
             ws = new WebSocket(`ws://${window.location.host}/ws`);
             
+            let currentAssistantMessage = null;
+            
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'history') {
                     messagesDiv.innerHTML = '';
-                    data.messages.forEach(msg => addMessage(msg.content, msg.is_user));
+                    data.messages.forEach(msg => addMessage(msg.content, msg.role === 'user'));
+                    currentAssistantMessage = null;
                 } else {
-                    addMessage(data.content, data.is_user);
+                    if (data.role === 'user') {
+                        addMessage(data.content, true);
+                        currentAssistantMessage = null;
+                    } else {
+                        if (!currentAssistantMessage) {
+                            currentAssistantMessage = addMessage('', false);
+                        }
+                        currentAssistantMessage.innerHTML += data.content;
+                    }
                 }
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             };
@@ -275,6 +286,7 @@ CHAT_HTML = """
             messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
             messageDiv.innerHTML = content;
             messagesDiv.appendChild(messageDiv);
+            return messageDiv;
         }
 
         function sendMessage() {
