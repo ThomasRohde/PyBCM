@@ -11,14 +11,12 @@ from sqlalchemy.orm import Session
 from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
-from contextlib import asynccontextmanager
 
-from .models import SessionLocal, get_db_session
+from .models import get_db_session
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
-    ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     TextPart,
@@ -158,172 +156,12 @@ async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[D
 # Chat history storage
 chat_history = []
 
-# HTML template for the chat interface
-CHAT_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>AI Assistant Chat</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        #chat-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            height: 90vh;
-        }
-        #messages {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .message {
-            margin: 10px 0;
-            padding: 10px 15px;
-            border-radius: 15px;
-            max-width: 80%;
-        }
-        .user-message {
-            background-color: #0d6efd;
-            color: white;
-            margin-left: auto;
-        }
-        .assistant-message {
-            background-color: #f0f2f5;
-            color: #1c1e21;
-            margin-right: auto;
-        }
-        #input-container {
-            display: flex;
-            padding: 20px;
-            border-top: 1px solid #dee2e6;
-        }
-        #message-input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 20px;
-            margin-right: 10px;
-        }
-        #send-button {
-            padding: 10px 20px;
-            background-color: #0d6efd;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-        #send-button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        pre {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-        }
-        code {
-            font-family: 'Consolas', monospace;
-        }
-    </style>
-</head>
-<body>
-    <div id="chat-container">
-        <div id="messages"></div>
-        <div id="input-container">
-            <input type="text" id="message-input" placeholder="Type your message...">
-            <button id="send-button">Send</button>
-        </div>
-    </div>
-    <script>
-        let ws = null;
-        const messagesDiv = document.getElementById('messages');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-
-        function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}/ws`);
-            
-            let currentAssistantMessage = null;
-            
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'history') {
-                    messagesDiv.innerHTML = '';
-                    data.messages.forEach(msg => addMessage(msg.content, msg.role === 'user'));
-                    currentAssistantMessage = null;
-                } else {
-                    if (data.role === 'user') {
-                        addMessage(data.content, true);
-                        currentAssistantMessage = null;
-                    } else {
-                        if (!currentAssistantMessage) {
-                            currentAssistantMessage = addMessage('', false);
-                        }
-                        // Replace placeholder characters for HTML entities
-                        currentAssistantMessage.innerHTML = data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    }
-                }
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            };
-
-            ws.onclose = function() {
-                setTimeout(connectWebSocket, 1000);
-            };
-
-            ws.onerror = function(err) {
-                console.error('WebSocket error:', err);
-            };
-        }
-
-        function addMessage(content, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-            messageDiv.innerHTML = content;
-            messagesDiv.appendChild(messageDiv);
-            return messageDiv;
-        }
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message && ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ content: message }));
-                messageInput.value = '';
-                sendButton.disabled = true;
-            }
-        }
-
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        sendButton.addEventListener('click', sendMessage);
-
-        messageInput.addEventListener('input', function() {
-            sendButton.disabled = !this.value.trim();
-        });
-
-        connectWebSocket();
-    </script>
-</body>
-</html>
-"""
+# Load chat template
+chat_template = jinja_env.get_template('chat.html')
 
 @app.get("/", response_class=HTMLResponse)
 async def get():
-    return CHAT_HTML
+    return chat_template.render()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
