@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Depends
+from fastapi import FastAPI, WebSocket, Depends, WebSocketDisconnect
 from fastapi.websockets import WebSocketState
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -330,9 +330,10 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                     if websocket.client_state == WebSocketState.CONNECTED:
                         chat_history.append(Message(response_text, False))
                     
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
             except Exception as e:
-                if isinstance(e, RuntimeError) and "disconnect" in str(e):
-                    break
                 print(f"WebSocket error: {e}")
                 print(f"Error type: {type(e)}")
                 import traceback
