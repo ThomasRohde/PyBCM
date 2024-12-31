@@ -22,9 +22,17 @@ class App:
         
         self.root = ttk.Window(
             title="Business Capability Modeler",
-            themename=self.settings.get("theme"),
-            size=(1600, 1000)
+            themename=self.settings.get("theme")
         )
+        
+        # Get screen dimensions and calculate 50% size
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        window_width = int(screen_width * 0.5)
+        window_height = int(screen_height * 0.5)
+        
+        # Set window size
+        self.root.geometry(f"{window_width}x{window_height}")
         
         self.root.withdraw()  # Hide window temporarily
         self.root.iconbitmap("./bcm/business_capability_model.ico")
