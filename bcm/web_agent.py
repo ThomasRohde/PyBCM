@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Depends
+from fastapi import FastAPI, WebSocket, Depends, WebSocketState
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import asyncio
@@ -288,8 +288,8 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
         "messages": [msg.to_dict() for msg in chat_history]
     })
     
-    try:
-        while True:
+    while True:
+        try:
             message = await websocket.receive_json()
             user_content = message["content"]
             
@@ -304,28 +304,24 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
             deps = Deps(db=db)
             async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
                 response_text = ""
-                try:
-                    async for chunk in result.stream_text(delta=True):
-                        response_text += chunk
-                        await websocket.send_json({
-                            "content": response_text,
-                            "is_user": False
-                        })
-                except Exception as e:
-                    error_msg = f"Error: {str(e)}"
+                async for chunk in result.stream_text(delta=True):
+                    response_text += chunk
                     await websocket.send_json({
-                        "content": error_msg,
+                        "content": response_text,
                         "is_user": False
                     })
-                    chat_history.append(Message(error_msg, False))
-                    continue
                 
                 chat_history.append(Message(response_text, False))
                 
-    except Exception as e:
-        print(f"WebSocket error: {e}")
-    finally:
-        await websocket.close()
+        except Exception as e:
+            print(f"WebSocket error: {e}")
+            if not websocket.client_state == WebSocketState.DISCONNECTED:
+                error_msg = f"Error: {str(e)}"
+                await websocket.send_json({
+                    "content": error_msg,
+                    "is_user": False
+                })
+                chat_history.append(Message(error_msg, False))
 
 class Message:
     def __init__(self, content: str, is_user: bool):
