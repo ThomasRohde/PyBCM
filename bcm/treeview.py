@@ -22,6 +22,16 @@ class CapabilityTreeview(ttk.Treeview):
             return int(font_size) + 16  # Add padding to font size
         return 20  # default height
 
+    def _collect_open_items(self, parent='') -> set:
+        """Recursively collect IDs of all open items."""
+        open_items = set()
+        for item in self.get_children(parent):
+            if self.item(item, 'open'):
+                open_items.add(item)
+                # Recursively add open children
+                open_items.update(self._collect_open_items(item))
+        return open_items
+
     def __init__(self, master, db_ops: DatabaseOperations, **kwargs):
         # Configure item height based on font size if style provided
         if 'style' in kwargs:
@@ -47,7 +57,7 @@ class CapabilityTreeview(ttk.Treeview):
         self.context_menu.add_command(label="Delete", command=self.delete_capability)
 
         # Bind events
-        self.bind("<Button-1>", self.on_click)
+        self.bind("<ButtonPress-1>", self.on_click)
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<ButtonRelease-1>", self.on_drop)
         self.bind("<Button-3>", self.show_context_menu)
@@ -77,43 +87,54 @@ class CapabilityTreeview(ttk.Treeview):
         
         loop = asyncio.get_event_loop()
         return loop.create_task(wrapped())
-        
-        # Configure treeview with single column
-        self["columns"] = ()  # Remove description column
-        self.heading("#0", text="Capability")
-        self.column("#0", width=300)
-
-        # Create context menu
-        self.context_menu = ttk.Menu(self, tearoff=0)
-        self.context_menu.add_command(label="New Child", command=self.new_child)
-        self.context_menu.add_command(label="Edit", command=self.edit_capability)
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="Delete", command=self.delete_capability)
-
-        # Bind events
-        self.bind("<Button-1>", self.on_click)
-        self.bind("<B1-Motion>", self.on_drag)
-        self.bind("<ButtonRelease-1>", self.on_drop)
-        self.bind("<Button-3>", self.show_context_menu)
-        
-        self.refresh_tree()
-
-        # Configure drop target style
-        self.tag_configure('drop_target', background='lightblue')
 
     def _is_valid_drop_target(self, source: str, target: str) -> bool:
         """Check if target is a valid drop location for source."""
-        if not source or not target or source == target:
+        # Basic validation
+        if not source or not target:
+            print(f"Basic validation failed - missing source or target: source={source}, target={target}")
             return False
             
-        # Check if target is a descendant of source
-        current = target
-        while current:
-            if current == source:
-                return False
-            current = self.parent(current)
+        try:
+            # Convert IDs to integers for comparison
+            source_id = int(source)
+            target_id = int(target)
+            print(f"Validating drop - source_id={source_id}, target_id={target_id}")
             
-        return True
+            # Get all descendants of source
+            def get_descendants(item_id: str) -> set:
+                result = set()
+                for child in self.get_children(item_id):
+                    result.add(child)
+                    result.update(get_descendants(child))
+                return result
+                
+            # Get all ancestors of target
+            def get_ancestors(item_id: str) -> set:
+                result = set()
+                parent = self.parent(item_id)
+                while parent:
+                    result.add(parent)
+                    parent = self.parent(parent)
+                return result
+                
+            # Invalid if target is a descendant of source or an ancestor
+            descendants = get_descendants(source)
+            ancestors = get_ancestors(source)
+            
+            if target in descendants:
+                print(f"Invalid - target {target} is descendant of source {source}")
+                return False
+                
+            if target in ancestors:
+                print(f"Invalid - target {target} is ancestor of source {source}")
+                return False
+                
+            return True
+                
+        except (ValueError, TypeError) as e:
+            print(f"Error validating drop target: {e}")
+            return False
 
     def _clear_drop_mark(self):
         """Clear any existing drop mark."""
@@ -192,8 +213,8 @@ class CapabilityTreeview(ttk.Treeview):
 
     async def refresh_tree_async(self):
         """Async version of refresh tree."""
-        # Store currently open items before clearing
-        opened_items = [item for item in self.get_children('') if self.item(item, 'open')]
+        # Store currently open items recursively before clearing
+        opened_items = self._collect_open_items()
         
         # Clear selection and items
         self.selection_remove(self.selection())
@@ -205,7 +226,7 @@ class CapabilityTreeview(ttk.Treeview):
             
             # Restore previously opened state
             for item in opened_items:
-                if item in self.get_children(''):
+                if item in self.get_children('', recursive=True):
                     self.item(item, open=True)
         except Exception as e:
             print(f"Error refreshing tree: {e}")
@@ -219,11 +240,12 @@ class CapabilityTreeview(ttk.Treeview):
         try:
             capabilities = await self.db_ops.get_capabilities(parent_id)
             for cap in capabilities:
-                item_id = str(cap.id)
+                item_id = str(cap.id)  # Explicitly convert DB ID to string
+                print(f"Loading capability: id={cap.id}, item_id={item_id}, name={cap.name}")  # Debug
                 self.insert(
                     parent,
                     END,
-                    iid=item_id,
+                    iid=item_id,  # Using string ID from database
                     text=cap.name,
                     open=False  # Start closed, we'll restore state after
                 )
@@ -235,18 +257,46 @@ class CapabilityTreeview(ttk.Treeview):
     def on_click(self, event):
         """Handle mouse click event."""
         self._clear_drop_mark()  # Clear any existing drop mark
-        self.drag_source = self.identify_row(event.y)
+        
+        # Only set drag source if clicking on an actual item
+        item = self.identify_row(event.y)
+        if item:  # Guard check
+            self.drag_source = item
+            print(f"Click - drag source ID: {self.drag_source}")  # Debug
+        else:
+            self.drag_source = None
 
     def on_drag(self, event):
         """Handle drag event."""
-        if self.drag_source:
-            target = self.identify_row(event.y)
-            if target and self._is_valid_drop_target(self.drag_source, target):
-                self.configure(cursor="arrow")
-                self._set_drop_target(target)
-            else:
-                self.configure(cursor="no")
-                self._clear_drop_mark()
+        if not self.drag_source:
+            return
+            
+        target = self.identify_row(event.y)
+        print(f"Drag - source={self.drag_source}, target={target}")  # Keep debug
+        
+        # If no target (dragging between items), clear drop mark
+        if not target:
+            self.configure(cursor="no")
+            self._clear_drop_mark()
+            return
+            
+        # Get drop zone before validation
+        drop_zone = self._get_drop_zone(event, target)
+        print(f"Drop zone: {drop_zone}")  # Debug
+        
+        # Don't allow dropping onto self, but allow dropping above/below
+        if target == self.drag_source and drop_zone == "onto":
+            self.configure(cursor="no")
+            self._clear_drop_mark()
+            return
+            
+        # Now check if it's a valid target
+        if self._is_valid_drop_target(self.drag_source, target):
+            self.configure(cursor="arrow")
+            self._set_drop_target(target)
+        else:
+            self.configure(cursor="no")
+            self._clear_drop_mark()
 
     def _get_drop_zone(self, event, target):
         """Determine drop zone based on mouse position relative to target item."""
@@ -263,94 +313,91 @@ class CapabilityTreeview(ttk.Treeview):
 
     async def _update_capability_position(self, source_id: int, target: str, drop_zone: str):
         """Update capability position based on drop zone."""
-        target_id = int(target)
-        
-        if drop_zone == "onto":
-            # Make it a child of target
-            new_parent_id = target_id
-            target_index = len(self.get_children(target))
-        else:
-            # Make it a sibling
-            new_parent_id = self.parent(target)
-            new_parent_id = int(new_parent_id) if new_parent_id else None
-            base_index = self.index(target)
-            target_index = base_index if drop_zone == "above" else base_index + 1
-        
-        await self.db_ops.update_capability_order(source_id, new_parent_id, target_index)
-        return new_parent_id
-
-    async def _on_drop_async(self, source_id: int, new_parent_id: Optional[int], target_index: int):
-        """Async handler for drop operation."""
         try:
+            target_id = int(target)
+            
+            if drop_zone == "onto":
+                # Make it a child of target
+                new_parent_id = target_id
+                target_index = len(self.get_children(target))
+            else:
+                # Make it a sibling
+                new_parent_id = self.parent(target)
+                new_parent_id = int(new_parent_id) if new_parent_id else None
+                base_index = self.index(target)
+                target_index = base_index if drop_zone == "above" else base_index + 1
+            
+            # Update database
             await self.db_ops.update_capability_order(source_id, new_parent_id, target_index)
-            # Immediately refresh the tree after successful update
-            await self.refresh_tree_async()
-            return True
+            return new_parent_id
+            
         except Exception as e:
-            print(f"Error in drop operation: {e}")
-            return False
+            print(f"Error updating capability position: {e}")
+            raise
+
 
     def on_drop(self, event):
         """Handle drop event."""
-        self._clear_drop_mark()
-        if not self.drag_source:
-            return
-
-        self.configure(cursor="")
-        target = self.identify_row(event.y)
-        
-        if not target or not self._is_valid_drop_target(self.drag_source, target):
-            self.drag_source = None
-            return
-
         try:
-            # Store current state
-            source_id = int(self.drag_source)
-            open_items = {item: self.item(item, 'open') 
-                         for item in self.get_children('')}
-            scroll_pos = self.yview()
-            
-            # Determine drop zone
-            drop_zone = self._get_drop_zone(event, target)
-            
-            async def update_tree():
-                # Update database
-                new_parent_id = await self._update_capability_position(source_id, target, drop_zone)
-                # Refresh tree
-                await self.refresh_tree_async()
-                return source_id, new_parent_id, open_items, scroll_pos
+            self._clear_drop_mark()
+            if not self.drag_source:
+                return
 
-            def after_update(result):
-                if not result:
-                    return
-                    
-                source_id, new_parent_id, open_items, scroll_pos = result
-                
-                # Restore open states
-                for item, was_open in open_items.items():
-                    if item in self.get_children('') or any(item in self.get_children(p) for p in self.get_children('')):
-                        self.item(item, open=was_open)
-                
-                # Ensure parent is expanded
-                if new_parent_id:
-                    parent_item = str(new_parent_id)
-                    if parent_item in self.get_children(''):
-                        self.item(parent_item, open=True)
-                
-                # Select and show the dropped item
-                self.selection_set(str(source_id))
-                self.see(str(source_id))
-                
-                # Restore scroll position
-                self.yview_moveto(scroll_pos[0])
-                
-                # Force update
-                self.update_idletasks()
+            # Reset cursor
+            self.configure(cursor="")
+            
+            target = self.identify_row(event.y)
+            if not target:
+                self.drag_source = None
+                return
+
+            if not self._is_valid_drop_target(self.drag_source, target):
+                self.drag_source = None
+                return
+
+            source_id = int(self.drag_source)
+            drop_zone = self._get_drop_zone(event, target)
+
+            async def update_tree():
+                try:
+                    # Update database
+                    await self._update_capability_position(source_id, target, drop_zone)
+                    # Refresh tree
+                    await self.refresh_tree_async()
+                    # Ensure dropped item is visible and selected
+                    self.selection_set(str(source_id))
+                    self.see(str(source_id))
+                    self.update_idletasks()
+                except Exception as e:
+                    print(f"Error during tree update: {e}")
+                    await self.refresh_tree_async()
 
             # Schedule the async operation
-            self.schedule_async(update_tree(), after_update)
+            self.schedule_async(update_tree())
         except Exception as e:
             print(f"Error in drag and drop: {e}")
             self.refresh_tree()
         finally:
             self.drag_source = None
+            self.configure(cursor="")  # Ensure cursor is reset
+    def _update_visual_state(self, item_id: str, parent: str, index: int, expand_parent: bool = False):
+        """Handle visual updates for tree operations."""
+        try:
+            # Perform the move
+            self.move(item_id, parent, index)
+            
+            # Expand parent if requested
+            if expand_parent and parent:
+                self.item(parent, open=True)
+            
+            # Ensure item is visible and selected
+            self.selection_set(item_id)
+            self.see(item_id)
+            
+            # Force immediate update
+            self.update_idletasks()
+            
+        except Exception as e:
+            print(f"Error updating visual state: {e}")
+            # If visual update fails, fall back to full refresh
+            self.refresh_tree()

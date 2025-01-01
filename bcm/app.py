@@ -866,26 +866,32 @@ class App:
         CapabilityVisualizer(self.root, layout_model)
 
     async def _on_closing_async(self):
-        """Async version of closing handler."""
+        """Async cleanup operations."""
         try:
             if self.db:
                 await self.db.close()
         except Exception as e:
             print(f"Error closing database: {e}")
         finally:
-            self.root.destroy()
+            # Signal the event loop to stop
+            self.loop.call_soon_threadsafe(self.loop.stop)
 
     def _on_closing(self):
-        """Sync wrapper for async closing."""
+        """Handle application closing."""
         try:
-            asyncio.run_coroutine_threadsafe(
+            # Create a new task for closing and wait for it
+            future = asyncio.run_coroutine_threadsafe(
                 self._on_closing_async(),
                 self.loop
             )
+            # Wait for the closing task to complete with a timeout
+            future.result(timeout=5)  # 5 second timeout
         except Exception as e:
             print(f"Error during shutdown: {e}")
         finally:
+            # Ensure the root is destroyed and app quits
             self.root.quit()
+            self.root.destroy()
 
     def run(self):
         """Run the application with async support."""
@@ -906,18 +912,19 @@ class App:
             print(f"Error in main loop: {e}")
             self._on_closing()
         finally:
-            # Stop the loop first
+            # Ensure the loop is stopped and closed
             if not self.loop.is_closed():
-                self.loop.call_soon_threadsafe(self.loop.stop)
-                # Wait a moment for the loop to actually stop
-                import time
-                time.sleep(0.1)
-                # Now we can safely close it
                 try:
+                    # Stop the loop if it's still running
+                    if self.loop.is_running():
+                        self.loop.call_soon_threadsafe(self.loop.stop)
+                    # Wait a moment for the loop to actually stop
+                    import time
+                    time.sleep(0.1)
+                    # Now we can safely close it
                     self.loop.close()
-                except RuntimeError:
-                    # Ignore "Cannot close a running event loop" error
-                    pass
+                except Exception as e:
+                    print(f"Error closing event loop: {e}")
 
 def main():
     # Set up asyncio policy for Windows if needed
