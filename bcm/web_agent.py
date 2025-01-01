@@ -1,4 +1,6 @@
 from fastapi import FastAPI, WebSocket, Depends, WebSocketDisconnect
+from sqlalchemy.ext.asyncio import AsyncSession
+from .models import get_db as get_model_db
 from fastapi.websockets import WebSocketState
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -12,7 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
 
-from .models import get_db_session
+from .models import get_db
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (
@@ -53,7 +55,7 @@ app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 @dataclass
 class Deps:
-    db: Session
+    db_factory: AsyncSession  # This will actually hold the session factory
 
 # Set up Jinja environment
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -79,22 +81,12 @@ def add_current_time() -> str:
     return f"The current time and date is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
 
 # Database dependency
-def get_db():
-    db = get_db_session()
-    try:
-        yield db
-    finally:
-        try:
-            db.close()
-        except Exception:
-            # Safely ignore any closing errors
-            pass
 
 # Agent tools
 @agent.tool
 async def get_capability(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    capability = db_ops.get_capability(capability_id)
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    capability = await db_ops.get_capability(capability_id)
     if capability:
         return {
             "id": capability.id,
@@ -107,8 +99,8 @@ async def get_capability(ctx: RunContext[Deps], capability_id: int) -> Optional[
 
 @agent.tool
 async def get_capabilities(ctx: RunContext[Deps], parent_id: Optional[int] = None) -> List[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    capabilities = db_ops.get_capabilities(parent_id)
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    capabilities = await db_ops.get_capabilities(parent_id)
     return [{
         "id": cap.id,
         "name": cap.name,
@@ -119,13 +111,13 @@ async def get_capabilities(ctx: RunContext[Deps], parent_id: Optional[int] = Non
 
 @agent.tool
 async def get_capability_with_children(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    return db_ops.get_capability_with_children(capability_id)
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    return await db_ops.get_capability_with_children(capability_id)
 
 @agent.tool
 async def search_capabilities(ctx: RunContext[Deps], query: str) -> List[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    capabilities = db_ops.search_capabilities(query)
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    capabilities = await db_ops.search_capabilities(query)
     return [{
         "id": cap.id,
         "name": cap.name,
@@ -136,13 +128,13 @@ async def search_capabilities(ctx: RunContext[Deps], query: str) -> List[Dict]:
 
 @agent.tool
 async def get_markdown_hierarchy(ctx: RunContext[Deps]) -> str:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    return db_ops.get_markdown_hierarchy()
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    return await db_ops.get_markdown_hierarchy()
 
 @agent.tool
 async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db)
-    capability = db_ops.get_capability_by_name(name)
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    capability = await db_ops.get_capability_by_name(name)
     if capability:
         return {
             "id": capability.id,
@@ -164,7 +156,7 @@ async def get():
     return chat_template.render()
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
+async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
         
@@ -190,7 +182,8 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
                 chat_history.append(user_msg)
 
                 # Process with AI using the properly structured chat history
-                deps = Deps(db=db)
+                from .models import AsyncSessionLocal
+                deps = Deps(db_factory=AsyncSessionLocal)
                 print("  preparing model and tools")
                 # Initialize an empty string to collect the full response
                 full_response = ""

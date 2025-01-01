@@ -59,29 +59,9 @@ async def expand_capability_ai(context: str, capability_name: str, max_capabilit
     result = await agent.run(prompt)
     return {cap.name: cap.description for cap in result.data.subcapabilities}
 
-def build_capability_tree(db_ops, root_caps, current_cap_id: int, level: int = 0, prefix: str = "") -> List[str]:
-    """Build a tree representation of capabilities with the current capability marked."""
-    tree_lines = []
-    last_index = len(root_caps) - 1
-
-    for i, cap in enumerate(root_caps):
-        is_last = i == last_index
-        current_prefix = prefix + ("└── " if is_last else "├── ")
-        marker = " *" if cap.id == current_cap_id else ""
-        tree_lines.append(f"{prefix}{current_prefix}{cap.name}{marker}")
-        
-        # Get children
-        children = db_ops.get_capabilities(cap.id)
-        if children:
-            next_prefix = prefix + ("    " if is_last else "│   ")
-            tree_lines.extend(build_capability_tree(db_ops, children, current_cap_id, level + 1, next_prefix))
-    
-    return tree_lines
-
-def get_capability_context(db_ops, capability_id: int) -> str:
-    """Get context information for AI expansion, including full parent hierarchy.
-    """
-    capability = db_ops.get_capability(capability_id)
+async def get_capability_context(db_ops, capability_id: int) -> str:
+    """Get context information for AI expansion, including full parent hierarchy."""
+    capability = await db_ops.get_capability(capability_id)
     if not capability:
         return ""
 
@@ -89,7 +69,7 @@ def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 1: First-level capabilities
     context_parts.append("<first_level_capabilities>")
-    first_level_caps = db_ops.get_capabilities(parent_id=None)
+    first_level_caps = await db_ops.get_capabilities(parent_id=None)
     if first_level_caps:
         for cap in first_level_caps:
             context_parts.append(f"- {cap.name}")
@@ -99,29 +79,48 @@ def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 2: Capability Tree
     context_parts.append("<capability_tree>")
-    tree_lines = build_capability_tree(db_ops, first_level_caps, capability_id)
+    async def build_capability_tree(root_caps, current_cap_id: int, level: int = 0, prefix: str = "") -> List[str]:
+        tree_lines = []
+        last_index = len(root_caps) - 1
+
+        for i, cap in enumerate(root_caps):
+            is_last = i == last_index
+            current_prefix = prefix + ("└── " if is_last else "├── ")
+            marker = " *" if cap.id == current_cap_id else ""
+            tree_lines.append(f"{prefix}{current_prefix}{cap.name}{marker}")
+            
+            # Get children
+            children = await db_ops.get_capabilities(cap.id)
+            if children:
+                next_prefix = prefix + ("    " if is_last else "│   ")
+                child_lines = await build_capability_tree(children, current_cap_id, level + 1, next_prefix)
+                tree_lines.extend(child_lines)
+        
+        return tree_lines
+
+    tree_lines = await build_capability_tree(first_level_caps, capability_id)
     context_parts.extend(tree_lines)
     context_parts.append("</capability_tree>")
 
     # Section 3: Parent Hierarchy
     context_parts.append("<parent_hierarchy>")
-    def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
-        parent = db_ops.get_capability(cap_id)
+    async def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
+        parent = await db_ops.get_capability(cap_id)
         if parent:
             if parent.parent_id:
-                add_parent_hierarchy(parent.parent_id, level + 1)
+                await add_parent_hierarchy(parent.parent_id, level + 1)
             context_parts.append(f"Level {level+1}: {parent.name}")
             if parent.description:
                 # truncate long descriptions
                 context_parts.append(f"Description: {parent.description[:200]}")
 
     if capability.parent_id:
-        add_parent_hierarchy(capability.parent_id)
+        await add_parent_hierarchy(capability.parent_id)
     context_parts.append("</parent_hierarchy>")
 
     # Section 4: Sibling Context
     context_parts.append("<sibling_context>")
-    siblings = db_ops.get_capabilities(capability.parent_id)
+    siblings = await db_ops.get_capabilities(capability.parent_id)
     if siblings:
         for sibling in siblings:
             if sibling.id != capability_id:
@@ -139,7 +138,7 @@ def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 6: Sub-Capabilities
     context_parts.append("<sub_capabilities>")
-    sub_capabilities = db_ops.get_capabilities(capability_id)
+    sub_capabilities = await db_ops.get_capabilities(capability_id)
     if sub_capabilities:
         for sub_cap in sub_capabilities:
             context_parts.append(f"- {sub_cap.name}")

@@ -3,12 +3,14 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, create_engine
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy.pool import NullPool
-import sqlite3
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 class Capability(Base):
     """SQLAlchemy model for capabilities in the database."""
@@ -120,47 +122,37 @@ def get_db_path():
     os.makedirs(app_dir, exist_ok=True)
     return os.path.join(app_dir, "bcm.db")
 
-DATABASE_URL = f"sqlite:///{get_db_path()}"
+DATABASE_URL = f"sqlite+aiosqlite:///{get_db_path()}"
+
 def create_engine_instance():
-    return create_engine(
+    return create_async_engine(
         DATABASE_URL,
-        # Remove check_same_thread=False as we'll handle connections properly
-        connect_args={},
-        # Enable SQLite foreign key support
-        creator=lambda: sqlite3.connect(
-            get_db_path(),
-            detect_types=sqlite3.PARSE_DECLTYPES,
-            check_same_thread=True
-        ),
-        # Keep NullPool to ensure fresh connections
-        poolclass=NullPool
+        echo=False,
     )
 
 engine = create_engine_instance()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-def get_db_session():
-    """Create a new database session for the current thread."""
-    engine = create_engine_instance()
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return SessionLocal()
-
-def init_db():
+async def init_db():
     """Initialize the database by creating all tables."""
     db_path = get_db_path()
     
     # Only create tables if database doesn't exist
     if not os.path.exists(db_path):
-        Base.metadata.create_all(bind=engine)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
         
         # Enable foreign keys for new database
-        with sqlite3.connect(db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON")
+        async with AsyncSessionLocal() as session:
+            await session.execute("PRAGMA foreign_keys = ON")
+            await session.commit()
 
-def get_db():
-    """Get a database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    """Get an async database session."""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

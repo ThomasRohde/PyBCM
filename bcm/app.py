@@ -1,15 +1,23 @@
+import asyncio
+import threading
+from typing import Dict, Optional
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
-import os
-from typing import Dict
-from tkinter import filedialog
-import json
 
-from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
+from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate, AsyncSessionLocal
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
 from .settings import Settings, SettingsDialog
+async def anext(iterator):
+    """Helper function for async iteration compatibility."""
+    return await iterator.__anext__()
+
 import logfire
 
 logfire.configure()
@@ -17,6 +25,10 @@ logfire.instrument_openai()
 class App:
 
     def __init__(self):
+        # Add async event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
         # Load settings
         self.settings = Settings()
         
@@ -39,10 +51,10 @@ class App:
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
-        # Initialize database
-        init_db()
-        self.db = next(get_db())
-        self.db_ops = DatabaseOperations(self.db)
+        # Initialize database asynchronously
+        self.loop.run_until_complete(init_db())
+        self.db = self.loop.run_until_complete(anext(get_db()))
+        self.db_ops = DatabaseOperations(AsyncSessionLocal)
 
         self.current_description = ""  # Add this to track changes
 
@@ -269,11 +281,20 @@ class App:
                 "Confirm Import",
                 "This will replace all existing capabilities. Continue?"
             ):
-                # Clear existing capabilities and import new ones
-                self.db_ops.clear_all_capabilities()
-                self.db_ops.import_capabilities(data)
+                # Create coroutine for import operation
+                async def import_async():
+                    await self.db_ops.clear_all_capabilities()
+                    await self.db_ops.import_capabilities(data)
+            
+                # Run the coroutine in the event loop
+                future = asyncio.run_coroutine_threadsafe(
+                    import_async(),
+                    self.loop
+                )
+                future.result()  # Wait for completion
+            
                 self.tree.refresh_tree()
-                
+            
                 create_dialog(
                     self.root,
                     "Success",
@@ -320,15 +341,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -377,15 +417,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -433,15 +492,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -496,12 +574,21 @@ class App:
             return
 
         try:
-            data = self.db_ops.export_capabilities()
-            with open(filename, 'w') as f:
-                json.dump(data, f, indent=2)
+            # Create coroutine for export operation
+            async def export_async():
+                data = await self.db_ops.export_capabilities()
+                with open(filename, 'w') as f:
+                    json.dump(data, f, indent=2)
+            
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                export_async(),
+                self.loop
+            )
+            future.result()  # Wait for completion
             
             create_dialog(
-                self,
+                self.root,
                 "Success",
                 "Capabilities exported successfully",
                 ok_only=True
@@ -509,7 +596,7 @@ class App:
             
         except Exception as e:
             create_dialog(
-                self,
+                self.root,
                 "Error",
                 f"Failed to export capabilities: {str(e)}",
                 ok_only=True
@@ -641,13 +728,22 @@ class App:
             return
 
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
-        if capability:
-            self.current_description = capability.description or ""
-            self.desc_text.delete('1.0', 'end')
-            self.desc_text.insert('1.0', self.current_description)
-            self.desc_text.edit_modified(False)
-            self.save_desc_btn.configure(state="disabled")
+        
+        # Create coroutine for getting capability
+        async def get_capability_async():
+            capability = await self.db_ops.get_capability(capability_id)
+            if capability:
+                self.current_description = capability.description or ""
+                self.desc_text.delete('1.0', 'end')
+                self.desc_text.insert('1.0', self.current_description)
+                self.desc_text.edit_modified(False)
+                self.save_desc_btn.configure(state="disabled")
+        
+        # Run the coroutine in the event loop
+        asyncio.run_coroutine_threadsafe(
+            get_capability_async(),
+            self.loop
+        )
 
     def _save_description(self):
         """Save the current description to the database."""
@@ -658,18 +754,45 @@ class App:
         capability_id = int(selected[0])
         description = self.desc_text.get('1.0', 'end-1c')
         
-        update_data = CapabilityUpdate(
-            name=self.db_ops.get_capability(capability_id).name,
-            description=description
+        # Create async function to get and update capability
+        async def update_description():
+            # Get current capability
+            capability = await self.db_ops.get_capability(capability_id)
+            if not capability:
+                return False
+                
+            # Create update data
+            update_data = CapabilityUpdate(
+                name=capability.name,
+                description=description
+            )
+            
+            # Update capability
+            await self.db_ops.update_capability(capability_id, update_data)
+            return True
+        
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            update_description(),
+            self.loop
         )
         
-        self.db_ops.update_capability(capability_id, update_data)
-        create_dialog(
-            self,
-            "Success",
-            "Description saved successfully",
-            ok_only=True
-        )
+        success = future.result()  # Wait for completion
+        
+        if success:
+            create_dialog(
+                self.root,
+                "Success",
+                "Description saved successfully",
+                ok_only=True
+            )
+        else:
+            create_dialog(
+                self.root,
+                "Error", 
+                "Failed to save description - capability not found",
+                ok_only=True
+            )
 
     def _show_settings(self):
         """Show the settings dialog."""
@@ -709,7 +832,7 @@ class App:
         from .utils import expand_capability_ai, generate_first_level_capabilities
         selected = self.tree.selection()
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
+        capability = await self.db_ops.get_capability(capability_id)
 
         # Check if this is a root capability (no parent) AND has no children
         if not capability.parent_id and not self.tree.get_children(capability_id):
@@ -724,7 +847,6 @@ class App:
 
     def _expand_capability(self):
         """Expand the selected capability using AI."""
-        import asyncio
         from .pb import ProgressWindow
         
         selected = self.tree.selection()
@@ -738,37 +860,44 @@ class App:
             return
 
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
-        if not capability:
-            return
-
-        progress = ProgressWindow(self.root)
+        
+        progress = None
         try:
-            # Get context
-            from .utils import get_capability_context
-            context = get_capability_context(self.db_ops, capability_id)
+            progress = ProgressWindow(self.root)
             
-            # Run async expansion with progress
+            # Get context and expand capability
             async def expand():
+                from .utils import get_capability_context
+                capability = await self.db_ops.get_capability(capability_id)
+                if not capability:
+                    return None
+                    
+                context = await get_capability_context(self.db_ops, capability_id)
                 return await self._expand_capability_async(context, capability.name)
 
-            subcapabilities = asyncio.run(progress.run_with_progress(expand()))
-
-            # Show confirmation dialog with checkboxes
-            dialog = CapabilityConfirmDialog(self.root, subcapabilities)
-            self.root.wait_window(dialog)
+            # Run expansion with progress
+            subcapabilities = progress.run_with_progress(expand())
             
-            # If user clicked OK and selected some capabilities
-            if dialog.result:
-                # Create selected sub-capabilities with descriptions
-                for name, description in dialog.result.items():
-                    self.db_ops.create_capability(CapabilityCreate(
-                        name=name,
-                        description=description,
-                        parent_id=capability_id
-                    ))
-                self.tree.refresh_tree()
+            if subcapabilities:
+                # Show confirmation dialog with checkboxes
+                dialog = CapabilityConfirmDialog(self.root, subcapabilities)
+                self.root.wait_window(dialog)
                 
+                # If user clicked OK and selected some capabilities
+                if dialog.result:
+                    # Create selected sub-capabilities with descriptions
+                    async def create_subcapabilities():
+                        for name, description in dialog.result.items():
+                            await self.db_ops.create_capability(CapabilityCreate(
+                                name=name,
+                                description=description,
+                                parent_id=capability_id
+                            ))
+                    
+                    # Run creation with progress
+                    progress.run_with_progress(create_subcapabilities())
+                    self.tree.refresh_tree()
+            
         except Exception as e:
             create_dialog(
                 self.root,
@@ -776,6 +905,9 @@ class App:
                 f"Failed to expand capability: {str(e)}",
                 ok_only=True
             )
+        finally:
+            if progress:
+                progress.close()
 
     def _show_chat(self):
         """Show the AI chat dialog."""
@@ -810,15 +942,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -826,26 +977,72 @@ class App:
         # Create and show visualizer window
         CapabilityVisualizer(self.root, layout_model)
 
-    def _on_closing(self):
-        """Handle application shutdown."""
+    async def _on_closing_async(self):
+        """Async cleanup operations."""
         try:
             if self.db:
-                self.db.close()
+                await self.db.close()
         except Exception as e:
             print(f"Error closing database: {e}")
         finally:
+            # Signal the event loop to stop
+            self.loop.call_soon_threadsafe(self.loop.stop)
+
+    def _on_closing(self):
+        """Handle application closing."""
+        try:
+            # Create a new task for closing and wait for it
+            future = asyncio.run_coroutine_threadsafe(
+                self._on_closing_async(),
+                self.loop
+            )
+            # Wait for the closing task to complete with a timeout
+            future.result(timeout=5)  # 5 second timeout
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+        finally:
+            # Ensure the root is destroyed and app quits
+            self.root.quit()
             self.root.destroy()
 
     def run(self):
+        """Run the application with async support."""
         try:
+            # Start the async event loop in a separate thread
+            def run_async_loop():
+                asyncio.set_event_loop(self.loop)
+                self.loop.run_forever()
+
+            thread = threading.Thread(target=run_async_loop, daemon=True)
+            thread.start()
+
+            # Run the Tkinter main loop
             self.root.mainloop()
         except KeyboardInterrupt:
             self._on_closing()
         except Exception as e:
             print(f"Error in main loop: {e}")
             self._on_closing()
+        finally:
+            # Ensure the loop is stopped and closed
+            if not self.loop.is_closed():
+                try:
+                    # Stop the loop if it's still running
+                    if self.loop.is_running():
+                        self.loop.call_soon_threadsafe(self.loop.stop)
+                    # Wait a moment for the loop to actually stop
+                    import time
+                    time.sleep(0.1)
+                    # Now we can safely close it
+                    self.loop.close()
+                except Exception as e:
+                    print(f"Error closing event loop: {e}")
 
 def main():
+    # Set up asyncio policy for Windows if needed
+    if os.name == 'nt':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
     app = App()
     app.run()
 

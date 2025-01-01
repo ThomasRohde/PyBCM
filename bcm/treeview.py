@@ -82,7 +82,8 @@ class CapabilityTreeview(ttk.Treeview):
         dialog = CapabilityDialog(self, self.db_ops, parent_id=parent_id)
         dialog.wait_window()
         if dialog.result:
-            self.db_ops.create_capability(dialog.result)
+            # Use _wrap_async to properly await the async operation
+            self._wrap_async(self.db_ops.create_capability(dialog.result))
             self.refresh_tree()
 
     def new_child(self):
@@ -118,7 +119,8 @@ class CapabilityTreeview(ttk.Treeview):
             "Are you sure you want to delete this capability\nand all its children?"
         ):
             try:
-                self.db_ops.delete_capability(capability_id)
+                # Use _wrap_async to properly await the async operation
+                self._wrap_async(self.db_ops.delete_capability(capability_id))
                 self.refresh_tree()
             except Exception as e:
                 print(f"Error deleting capability: {e}")
@@ -129,36 +131,81 @@ class CapabilityTreeview(ttk.Treeview):
                     ok_only=True
                 )
 
+    def _wrap_async(self, coro):
+        """Wrapper to run async code synchronously in a new event loop."""
+        import asyncio
+        import threading
+        
+        result = None
+        error = None
+        event = threading.Event()
+        
+        def run_async():
+            nonlocal result, error
+            try:
+                # Create a new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(coro)
+                loop.close()
+            except Exception as e:
+                error = e
+            finally:
+                event.set()
+        
+        # Run in a separate thread
+        thread = threading.Thread(target=run_async)
+        thread.start()
+        event.wait()  # Wait for completion
+        
+        if error:
+            raise error
+        return result
+
     def refresh_tree(self):
         """Refresh the treeview with current data."""
+        # Store currently open items
+        opened_items = set()
+        for item in self.get_children():
+            if self.item(item, 'open'):
+                opened_items.add(item)
+        
         # Clear selection and items
         self.selection_remove(self.selection())
         self.delete(*self.get_children())
         
         # Reload data
         try:
-            self._load_capabilities()
+            capabilities = self._wrap_async(self.db_ops.get_capabilities(None))
+            for cap in capabilities:
+                item_id = str(cap.id)
+                self.insert(
+                    "",
+                    END,
+                    iid=item_id,
+                    text=cap.name,
+                    open=item_id in opened_items
+                )
+                self._load_capabilities(item_id, cap.id)
         except Exception as e:
-            print(f"Error refreshing tree: {e}")
+            print(f"Error refreshing tree: {str(e)}")
 
     def _load_capabilities(self, parent: str = "", parent_id: Optional[int] = None):
         """Recursively load capabilities into the treeview."""
         try:
-            capabilities = self.db_ops.get_capabilities(parent_id)
+            capabilities = self._wrap_async(self.db_ops.get_capabilities(parent_id))
             for cap in capabilities:
                 item_id = str(cap.id)
-                # Check if item already exists
-                if item_id not in self.get_children(parent):
-                    self.insert(
-                        parent,
-                        END,
-                        iid=item_id,
-                        text=cap.name,
-                        open=True
-                    )
-                    self._load_capabilities(item_id, cap.id)
+                self.insert(
+                    parent,
+                    END,
+                    iid=item_id,
+                    text=cap.name,
+                    open=True
+                )
+                self._load_capabilities(item_id, cap.id)
         except Exception as e:
-            print(f"Error loading capabilities for parent {parent_id}: {e}")
+            print(f"Error loading capabilities for parent {parent_id}: {str(e)}")
 
     def on_click(self, event):
         """Handle mouse click event."""
@@ -178,7 +225,7 @@ class CapabilityTreeview(ttk.Treeview):
 
     def on_drop(self, event):
         """Handle drop event."""
-        self._clear_drop_mark()  # Clear drop mark
+        self._clear_drop_mark()
         if not self.drag_source:
             return
 
@@ -188,27 +235,31 @@ class CapabilityTreeview(ttk.Treeview):
             self.drag_source = None
             return
 
-        # Get drop position relative to target
-        target_y = self.bbox(target)[1]
-        is_above_middle = event.y < target_y + self.bbox(target)[3] // 2
-
         # Convert IDs
         source_id = int(self.drag_source)
         target_id = int(target)
 
-        if is_above_middle:
-            # Drop above target - make siblings
-            new_parent_id = self.parent(target)
-            new_parent_id = int(new_parent_id) if new_parent_id else None
-            target_index = self.index(target)
-        else:
-            # Drop below middle - make child
-            new_parent_id = target_id
-            target_index = len(self.get_children(target))
+        # Always make target the new parent
+        new_parent_id = target_id
+        # Add as last child
+        target_index = len(self.get_children(target))
 
-        # Update in database
-        self.db_ops.update_capability_order(source_id, new_parent_id, target_index)
-        
-        # Refresh the tree to show the new order
-        self.refresh_tree()
-        self.drag_source = None
+        try:
+            # Update in database using sync wrapper
+            self._wrap_async(self.db_ops.update_capability_order(
+                source_id, 
+                new_parent_id, 
+                target_index
+            ))
+            
+            # Refresh the tree to show the new order
+            self.refresh_tree()
+            
+            # Ensure the dropped item is visible and selected
+            self.selection_set(str(source_id))
+            self.see(str(source_id))
+        except Exception as e:
+            print(f"Error in drag and drop: {str(e)}")
+            self.refresh_tree()
+        finally:
+            self.drag_source = None
