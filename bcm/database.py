@@ -261,50 +261,55 @@ class DatabaseOperations:
             print("No data received for import")
             return
         
-        try:
-            # Clear existing capabilities first
-            await self.clear_all_capabilities()
-            
-            # Create mapping of external IDs to new database IDs
-            id_mapping = {}
-            
-            # First pass: Create all capabilities without parents
-            for item in data:
-                try:
-                    cap = CapabilityCreate(
-                        name=item["name"],
-                        description=item.get("description", ""),
-                        parent_id=None
-                    )
-                    db_capability = await self.create_capability(cap)
-                    id_mapping[item["id"]] = db_capability.id
-                except Exception as e:
-                    print(f"Error creating capability {item.get('name')}: {e}")
-                    raise
-            
-            # Second pass: Update parent relationships
-            for item in data:
-                try:
-                    if item.get("parent"):
-                        capability_id = id_mapping.get(item["id"])
-                        parent_id = id_mapping.get(item["parent"])
-                        
-                        if capability_id and parent_id:
-                            capability = await self.get_capability(capability_id)
-                            if capability:
-                                capability.parent_id = parent_id
-                                self.session.add(capability)
-                except Exception as e:
-                    print(f"Error updating parent for {item.get('name')}: {e}")
-                    raise
-            
-            # Commit all parent relationship updates
-            await self.session.commit()
+        async with await self._get_session() as session:
+            try:
+                # Clear existing capabilities first
+                await self.clear_all_capabilities()
                 
-        except Exception as e:
-            print(f"Error during import: {str(e)}")
-            await self.session.rollback()
-            raise
+                # Create mapping of external IDs to new database IDs
+                id_mapping = {}
+                
+                # First pass: Create all capabilities without parents
+                for item in data:
+                    try:
+                        cap = CapabilityCreate(
+                            name=item["name"],
+                            description=item.get("description", ""),
+                            parent_id=None
+                        )
+                        db_capability = await self.create_capability(cap)
+                        id_mapping[item["id"]] = db_capability.id
+                    except Exception as e:
+                        print(f"Error creating capability {item.get('name')}: {e}")
+                        raise
+                
+                # Second pass: Update parent relationships
+                for item in data:
+                    try:
+                        if item.get("parent"):
+                            capability_id = id_mapping.get(item["id"])
+                            parent_id = id_mapping.get(item["parent"])
+                            
+                            if capability_id and parent_id:
+                                # Get capability and update its parent
+                                stmt = select(Capability).where(Capability.id == capability_id)
+                                result = await session.execute(stmt)
+                                capability = result.scalar_one_or_none()
+                                
+                                if capability:
+                                    capability.parent_id = parent_id
+                                    session.add(capability)
+                    except Exception as e:
+                        print(f"Error updating parent for {item.get('name')}: {e}")
+                        raise
+                
+                # Commit all parent relationship updates
+                await session.commit()
+                    
+            except Exception as e:
+                print(f"Error during import: {str(e)}")
+                await session.rollback()
+                raise
 
     def get_markdown_hierarchy(self) -> str:
         """Generate a markdown representation of the capability hierarchy."""
