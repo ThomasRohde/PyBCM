@@ -82,7 +82,8 @@ class CapabilityTreeview(ttk.Treeview):
         dialog = CapabilityDialog(self, self.db_ops, parent_id=parent_id)
         dialog.wait_window()
         if dialog.result:
-            self.db_ops.create_capability(dialog.result)
+            # Use _wrap_async to properly await the async operation
+            self._wrap_async(self.db_ops.create_capability(dialog.result))
             self.refresh_tree()
 
     def new_child(self):
@@ -118,7 +119,8 @@ class CapabilityTreeview(ttk.Treeview):
             "Are you sure you want to delete this capability\nand all its children?"
         ):
             try:
-                self.db_ops.delete_capability(capability_id)
+                # Use _wrap_async to properly await the async operation
+                self._wrap_async(self.db_ops.delete_capability(capability_id))
                 self.refresh_tree()
             except Exception as e:
                 print(f"Error deleting capability: {e}")
