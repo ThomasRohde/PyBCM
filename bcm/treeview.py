@@ -1,3 +1,4 @@
+import asyncio
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import END
 from typing import Optional
@@ -129,22 +130,29 @@ class CapabilityTreeview(ttk.Treeview):
                     ok_only=True
                 )
 
-    def refresh_tree(self):
-        """Refresh the treeview with current data."""
+    async def refresh_tree_async(self):
+        """Async version of refresh tree."""
         # Clear selection and items
         self.selection_remove(self.selection())
         self.delete(*self.get_children())
         
         # Reload data
         try:
-            self._load_capabilities()
+            await self._load_capabilities_async()
         except Exception as e:
             print(f"Error refreshing tree: {e}")
 
-    def _load_capabilities(self, parent: str = "", parent_id: Optional[int] = None):
-        """Recursively load capabilities into the treeview."""
+    def refresh_tree(self):
+        """Sync wrapper for async refresh."""
+        asyncio.run_coroutine_threadsafe(
+            self.refresh_tree_async(),
+            asyncio.get_event_loop()
+        )
+
+    async def _load_capabilities_async(self, parent: str = "", parent_id: Optional[int] = None):
+        """Async version of load capabilities."""
         try:
-            capabilities = self.db_ops.get_capabilities(parent_id)
+            capabilities = await self.db_ops.get_capabilities(parent_id)
             for cap in capabilities:
                 item_id = str(cap.id)
                 # Check if item already exists
@@ -156,7 +164,7 @@ class CapabilityTreeview(ttk.Treeview):
                         text=cap.name,
                         open=True
                     )
-                    self._load_capabilities(item_id, cap.id)
+                    await self._load_capabilities_async(item_id, cap.id)
         except Exception as e:
             print(f"Error loading capabilities for parent {parent_id}: {e}")
 

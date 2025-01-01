@@ -1,20 +1,22 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text, or_
+from sqlalchemy.orm import selectinload
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
 from uuid import uuid4
 
 class DatabaseOperations:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
-    def create_capability(self, capability: CapabilityCreate) -> Capability:
+    async def create_capability(self, capability: CapabilityCreate) -> Capability:
         """Create a new capability."""
         # Get max order for the parent
-        stmt = select(func.max(Capability.order_position)).where(
-            Capability.parent_id == capability.parent_id
+        result = await self.session.execute(
+            select(func.max(Capability.order_position))
+            .where(Capability.parent_id == capability.parent_id)
         )
-        max_order = self.session.execute(stmt).scalar() or -1
+        max_order = result.scalar() or -1
         
         # Create new capability with next order
         db_capability = Capability(
@@ -24,36 +26,37 @@ class DatabaseOperations:
             order_position=max_order + 1
         )
         self.session.add(db_capability)
-        self.session.commit()
-        self.session.refresh(db_capability)
+        await self.session.commit()
+        await self.session.refresh(db_capability)
         return db_capability
 
-    def get_capability(self, capability_id: int) -> Optional[Capability]:
+    async def get_capability(self, capability_id: int) -> Optional[Capability]:
         """Get a capability by ID."""
         stmt = select(Capability).where(Capability.id == capability_id)
-        result = self.session.execute(stmt)
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    def get_capability_by_name(self, name: str) -> Optional[Capability]:
+    async def get_capability_by_name(self, name: str) -> Optional[Capability]:
         """Get a capability by name (case insensitive)."""
         stmt = select(Capability).where(func.lower(Capability.name) == func.lower(name)).limit(1)
-        result = self.session.execute(stmt)
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    def get_capabilities(self, parent_id: Optional[int] = None) -> List[Capability]:
+    async def get_capabilities(self, parent_id: Optional[int] = None) -> List[Capability]:
         """Get all capabilities, optionally filtered by parent_id."""
         try:
-            query = self.session.query(Capability).filter(
+            stmt = select(Capability).where(
                 Capability.parent_id == parent_id
             ).order_by(Capability.order_position)
-            return query.all()
+            result = await self.session.execute(stmt)
+            return result.scalars().all()
         except Exception as e:
             raise e
 
-    def get_all_capabilities(self) -> List[dict]:
+    async def get_all_capabilities(self) -> List[dict]:
         """Get all capabilities in a hierarchical structure."""
-        def build_hierarchy(parent_id: Optional[int] = None) -> List[dict]:
-            capabilities = self.get_capabilities(parent_id)
+        async def build_hierarchy(parent_id: Optional[int] = None) -> List[dict]:
+            capabilities = await self.get_capabilities(parent_id)
             result = []
             for cap in capabilities:
                 cap_dict = {
@@ -61,17 +64,17 @@ class DatabaseOperations:
                     "name": cap.name,
                     "description": cap.description,
                     "order_position": cap.order_position,
-                    "children": build_hierarchy(cap.id)
+                    "children": await build_hierarchy(cap.id)
                 }
                 result.append(cap_dict)
             return result
         
-        return build_hierarchy()
+        return await build_hierarchy()
 
-    def get_capability_with_children(self, capability_id: int) -> Optional[dict]:
+    async def get_capability_with_children(self, capability_id: int) -> Optional[dict]:
         """Get a capability and its children in a hierarchical structure."""
-        def build_hierarchy(parent_id: int) -> List[dict]:
-            capabilities = self.get_capabilities(parent_id)
+        async def build_hierarchy(parent_id: int) -> List[dict]:
+            capabilities = await self.get_capabilities(parent_id)
             result = []
             for cap in capabilities:
                 cap_dict = {
@@ -79,28 +82,26 @@ class DatabaseOperations:
                     "name": cap.name,
                     "description": cap.description,
                     "order_position": cap.order_position,
-                    "children": build_hierarchy(cap.id)
+                    "children": await build_hierarchy(cap.id)
                 }
                 result.append(cap_dict)
             return result
 
-        # Get the starting capability
-        capability = self.get_capability(capability_id)
+        capability = await self.get_capability(capability_id)
         if not capability:
             return None
 
-        # Return the capability with its children
         return {
             "id": capability.id,
             "name": capability.name,
             "description": capability.description,
             "order_position": capability.order_position,
-            "children": build_hierarchy(capability.id)
+            "children": await build_hierarchy(capability.id)
         }
 
-    def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
+    async def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
         """Update a capability."""
-        db_capability = self.get_capability(capability_id)
+        db_capability = await self.get_capability(capability_id)
         if not db_capability:
             return None
 
@@ -108,28 +109,26 @@ class DatabaseOperations:
         for key, value in update_data.items():
             setattr(db_capability, key, value)
 
-        self.session.commit()
-        self.session.refresh(db_capability)
+        await self.session.commit()
+        await self.session.refresh(db_capability)
         return db_capability
 
-    def delete_capability(self, capability_id: int) -> bool:
+    async def delete_capability(self, capability_id: int) -> bool:
         """Delete a capability and its children."""
         try:
-            self.session.execute(text("PRAGMA foreign_keys = ON"))
-            self.session.commit()
+            await self.session.execute(text("PRAGMA foreign_keys = ON"))
+            await self.session.commit()
             
-            capability = self.get_capability(capability_id)
-            
+            capability = await self.get_capability(capability_id)
             if not capability:
                 return False
                 
-            self.session.delete(capability)
-            self.session.commit()
+            await self.session.delete(capability)
+            await self.session.commit()
             return True
-
         except Exception as e:
             print(f"Error in delete_capability: {str(e)}")
-            self.session.rollback()
+            await self.session.rollback()
             raise
 
     def update_capability_order(self, capability_id: int, new_parent_id: Optional[int], new_order: int) -> Optional[Capability]:

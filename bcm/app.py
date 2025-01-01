@@ -1,15 +1,23 @@
+import asyncio
+import threading
+from typing import Dict, Optional
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
-import os
-from typing import Dict
-from tkinter import filedialog
-import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
 from .settings import Settings, SettingsDialog
+async def anext(iterator):
+    """Helper function for async iteration compatibility."""
+    return await iterator.__anext__()
+
 import logfire
 
 logfire.configure()
@@ -17,6 +25,10 @@ logfire.instrument_openai()
 class App:
 
     def __init__(self):
+        # Add async event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
         # Load settings
         self.settings = Settings()
         
@@ -39,9 +51,9 @@ class App:
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
-        # Initialize database
-        init_db()
-        self.db = next(get_db())
+        # Initialize database asynchronously
+        self.loop.run_until_complete(init_db())
+        self.db = self.loop.run_until_complete(anext(get_db()))
         self.db_ops = DatabaseOperations(self.db)
 
         self.current_description = ""  # Add this to track changes
@@ -641,13 +653,22 @@ class App:
             return
 
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
-        if capability:
-            self.current_description = capability.description or ""
-            self.desc_text.delete('1.0', 'end')
-            self.desc_text.insert('1.0', self.current_description)
-            self.desc_text.edit_modified(False)
-            self.save_desc_btn.configure(state="disabled")
+        
+        # Create coroutine for getting capability
+        async def get_capability_async():
+            capability = await self.db_ops.get_capability(capability_id)
+            if capability:
+                self.current_description = capability.description or ""
+                self.desc_text.delete('1.0', 'end')
+                self.desc_text.insert('1.0', self.current_description)
+                self.desc_text.edit_modified(False)
+                self.save_desc_btn.configure(state="disabled")
+        
+        # Run the coroutine in the event loop
+        asyncio.run_coroutine_threadsafe(
+            get_capability_async(),
+            self.loop
+        )
 
     def _save_description(self):
         """Save the current description to the database."""
@@ -826,26 +847,65 @@ class App:
         # Create and show visualizer window
         CapabilityVisualizer(self.root, layout_model)
 
-    def _on_closing(self):
-        """Handle application shutdown."""
+    async def _on_closing_async(self):
+        """Async version of closing handler."""
         try:
             if self.db:
-                self.db.close()
+                await self.db.close()
         except Exception as e:
             print(f"Error closing database: {e}")
         finally:
             self.root.destroy()
 
-    def run(self):
+    def _on_closing(self):
+        """Sync wrapper for async closing."""
         try:
+            asyncio.run_coroutine_threadsafe(
+                self._on_closing_async(),
+                self.loop
+            )
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+        finally:
+            self.root.quit()
+
+    def run(self):
+        """Run the application with async support."""
+        try:
+            # Start the async event loop in a separate thread
+            def run_async_loop():
+                asyncio.set_event_loop(self.loop)
+                self.loop.run_forever()
+
+            thread = threading.Thread(target=run_async_loop, daemon=True)
+            thread.start()
+
+            # Run the Tkinter main loop
             self.root.mainloop()
         except KeyboardInterrupt:
             self._on_closing()
         except Exception as e:
             print(f"Error in main loop: {e}")
             self._on_closing()
+        finally:
+            # Stop the loop first
+            if not self.loop.is_closed():
+                self.loop.call_soon_threadsafe(self.loop.stop)
+                # Wait a moment for the loop to actually stop
+                import time
+                time.sleep(0.1)
+                # Now we can safely close it
+                try:
+                    self.loop.close()
+                except RuntimeError:
+                    # Ignore "Cannot close a running event loop" error
+                    pass
 
 def main():
+    # Set up asyncio policy for Windows if needed
+    if os.name == 'nt':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
     app = App()
     app.run()
 

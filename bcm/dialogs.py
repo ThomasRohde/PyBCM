@@ -330,7 +330,8 @@ class CapabilityDialog(ttk.Toplevel):
         self.cancel_btn.pack(side="right", padx=(5, 0))
         self.ok_btn.pack(side="right")
 
-    def _on_ok(self):
+    async def _on_ok_async(self):
+        """Async version of ok handler."""
         name = self.name_var.get().strip()
         if not name:
             return
@@ -347,3 +348,10 @@ class CapabilityDialog(ttk.Toplevel):
                 parent_id=self.parent_id
             )
         self.destroy()
+
+    def _on_ok(self):
+        """Sync wrapper for async ok handler."""
+        asyncio.run_coroutine_threadsafe(
+            self._on_ok_async(),
+            asyncio.get_event_loop()
+        )
