@@ -1,3 +1,4 @@
+import asyncio
 import ttkbootstrap as ttk
 from typing import Dict
 from .models import CapabilityCreate, CapabilityUpdate

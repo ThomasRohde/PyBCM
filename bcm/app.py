@@ -9,7 +9,7 @@ from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
-from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
+from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate, AsyncSessionLocal
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
@@ -54,7 +54,7 @@ class App:
         # Initialize database asynchronously
         self.loop.run_until_complete(init_db())
         self.db = self.loop.run_until_complete(anext(get_db()))
-        self.db_ops = DatabaseOperations(self.db)
+        self.db_ops = DatabaseOperations(AsyncSessionLocal)
 
         self.current_description = ""  # Add this to track changes
 
@@ -281,11 +281,20 @@ class App:
                 "Confirm Import",
                 "This will replace all existing capabilities. Continue?"
             ):
-                # Clear existing capabilities and import new ones
-                self.db_ops.clear_all_capabilities()
-                self.db_ops.import_capabilities(data)
+                # Create coroutine for import operation
+                async def import_async():
+                    await self.db_ops.clear_all_capabilities()
+                    await self.db_ops.import_capabilities(data)
+            
+                # Run the coroutine in the event loop
+                future = asyncio.run_coroutine_threadsafe(
+                    import_async(),
+                    self.loop
+                )
+                future.result()  # Wait for completion
+            
                 self.tree.refresh_tree()
-                
+            
                 create_dialog(
                     self.root,
                     "Success",
@@ -508,12 +517,21 @@ class App:
             return
 
         try:
-            data = self.db_ops.export_capabilities()
-            with open(filename, 'w') as f:
-                json.dump(data, f, indent=2)
+            # Create coroutine for export operation
+            async def export_async():
+                data = await self.db_ops.export_capabilities()
+                with open(filename, 'w') as f:
+                    json.dump(data, f, indent=2)
+            
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                export_async(),
+                self.loop
+            )
+            future.result()  # Wait for completion
             
             create_dialog(
-                self,
+                self.root,
                 "Success",
                 "Capabilities exported successfully",
                 ok_only=True
@@ -521,7 +539,7 @@ class App:
             
         except Exception as e:
             create_dialog(
-                self,
+                self.root,
                 "Error",
                 f"Failed to export capabilities: {str(e)}",
                 ok_only=True
