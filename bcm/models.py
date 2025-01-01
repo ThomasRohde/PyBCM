@@ -115,8 +115,10 @@ def capability_to_layout(capability: Capability, settings=None, current_level: i
 # Database setup
 def get_db_path():
     """Get absolute path to database file."""
-    base_dir = Path(__file__).resolve().parent.parent
-    return os.path.join(base_dir, "bcm.db")
+    user_dir = os.path.expanduser('~')
+    app_dir = os.path.join(user_dir, '.pybcm')
+    os.makedirs(app_dir, exist_ok=True)
+    return os.path.join(app_dir, "bcm.db")
 
 DATABASE_URL = f"sqlite:///{get_db_path()}"
 def create_engine_instance():

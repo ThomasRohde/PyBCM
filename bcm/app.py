@@ -1,5 +1,6 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
+import os
 from typing import Dict
 from tkinter import filedialog
 import json
@@ -248,8 +249,12 @@ class App:
 
     def _import_capabilities(self):
         """Import capabilities from JSON file."""
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.askopenfilename(
             title="Import Capabilities",
+            initialdir=app_dir,
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
         if not filename:
@@ -330,8 +335,12 @@ class App:
         layout_model = self._convert_to_layout_format(node_data)
         
         # Get save location from user
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.asksaveasfilename(
             title="Export to Archimate",
+            initialdir=app_dir,
             defaultextension=".xml",
             filetypes=[("XML files", "*.xml"), ("All files", "*.*")]
         )
@@ -383,8 +392,12 @@ class App:
         layout_model = self._convert_to_layout_format(node_data)
         
         # Get save location from user
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.asksaveasfilename(
             title="Export to PowerPoint",
+            initialdir=app_dir,
             defaultextension=".pptx",
             filetypes=[("PowerPoint files", "*.pptx"), ("All files", "*.*")]
         )
@@ -435,8 +448,12 @@ class App:
         layout_model = self._convert_to_layout_format(node_data)
         
         # Get save location from user
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.asksaveasfilename(
             title="Export to SVG",
+            initialdir=app_dir,
             defaultextension=".svg",
             filetypes=[("SVG files", "*.svg"), ("All files", "*.*")]
         )
@@ -467,8 +484,12 @@ class App:
     
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.asksaveasfilename(
             title="Export Capabilities",
+            initialdir=app_dir,
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
