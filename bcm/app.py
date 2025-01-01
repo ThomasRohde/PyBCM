@@ -847,7 +847,6 @@ class App:
 
     def _expand_capability(self):
         """Expand the selected capability using AI."""
-        import asyncio
         from .pb import ProgressWindow
         
         selected = self.tree.selection()
@@ -862,8 +861,10 @@ class App:
 
         capability_id = int(selected[0])
         
-        progress = ProgressWindow(self.root)
+        progress = None
         try:
+            progress = ProgressWindow(self.root)
+            
             # Get context and expand capability
             async def expand():
                 from .utils import get_capability_context
@@ -874,10 +875,10 @@ class App:
                 context = await get_capability_context(self.db_ops, capability_id)
                 return await self._expand_capability_async(context, capability.name)
 
-            subcapabilities = asyncio.run(progress.run_with_progress(expand()))
+            # Run expansion with progress
+            subcapabilities = progress.run_with_progress(expand())
             
             if subcapabilities:
-
                 # Show confirmation dialog with checkboxes
                 dialog = CapabilityConfirmDialog(self.root, subcapabilities)
                 self.root.wait_window(dialog)
@@ -893,14 +894,10 @@ class App:
                                 parent_id=capability_id
                             ))
                     
-                    # Run creation in event loop
-                    future = asyncio.run_coroutine_threadsafe(
-                        create_subcapabilities(),
-                        self.loop
-                    )
-                    future.result()  # Wait for completion
+                    # Run creation with progress
+                    progress.run_with_progress(create_subcapabilities())
                     self.tree.refresh_tree()
-                
+            
         except Exception as e:
             create_dialog(
                 self.root,
@@ -908,6 +905,9 @@ class App:
                 f"Failed to expand capability: {str(e)}",
                 ok_only=True
             )
+        finally:
+            if progress:
+                progress.close()
 
     def _show_chat(self):
         """Show the AI chat dialog."""
