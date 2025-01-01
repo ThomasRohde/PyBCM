@@ -6,7 +6,6 @@ from tkinter import filedialog
 import json
 
 from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate
-from .agent import show_chat_dialog
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
