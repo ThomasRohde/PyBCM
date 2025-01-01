@@ -341,15 +341,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -398,15 +417,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -454,15 +492,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
@@ -849,15 +906,34 @@ class App:
         if selected:
             start_node_id = int(selected[0])
         else:
-            # Find root node
-            capabilities = self.db_ops.get_all_capabilities()
-            root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-            if not root_nodes:
+            # Find root node - using async method properly
+            async def get_root_node():
+                capabilities = await self.db_ops.get_all_capabilities()
+                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                if not root_nodes:
+                    return None
+                return root_nodes[0]["id"]
+                
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                get_root_node(),
+                self.loop
+            )
+            start_node_id = future.result()  # Wait for completion
+            
+            if not start_node_id:
                 return
-            start_node_id = root_nodes[0]["id"]
-        
+
         # Get hierarchical data starting from selected node
-        node_data = self.db_ops.get_capability_with_children(start_node_id)
+        async def get_node_data():
+            return await self.db_ops.get_capability_with_children(start_node_id)
+            
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            get_node_data(),
+            self.loop
+        )
+        node_data = future.result()  # Wait for completion
         
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
