@@ -754,18 +754,45 @@ class App:
         capability_id = int(selected[0])
         description = self.desc_text.get('1.0', 'end-1c')
         
-        update_data = CapabilityUpdate(
-            name=self.db_ops.get_capability(capability_id).name,
-            description=description
+        # Create async function to get and update capability
+        async def update_description():
+            # Get current capability
+            capability = await self.db_ops.get_capability(capability_id)
+            if not capability:
+                return False
+                
+            # Create update data
+            update_data = CapabilityUpdate(
+                name=capability.name,
+                description=description
+            )
+            
+            # Update capability
+            await self.db_ops.update_capability(capability_id, update_data)
+            return True
+        
+        # Run the coroutine in the event loop
+        future = asyncio.run_coroutine_threadsafe(
+            update_description(),
+            self.loop
         )
         
-        self.db_ops.update_capability(capability_id, update_data)
-        create_dialog(
-            self,
-            "Success",
-            "Description saved successfully",
-            ok_only=True
-        )
+        success = future.result()  # Wait for completion
+        
+        if success:
+            create_dialog(
+                self.root,
+                "Success",
+                "Description saved successfully",
+                ok_only=True
+            )
+        else:
+            create_dialog(
+                self.root,
+                "Error", 
+                "Failed to save description - capability not found",
+                ok_only=True
+            )
 
     def _show_settings(self):
         """Show the settings dialog."""
@@ -805,7 +832,7 @@ class App:
         from .utils import expand_capability_ai, generate_first_level_capabilities
         selected = self.tree.selection()
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
+        capability = await self.db_ops.get_capability(capability_id)
 
         # Check if this is a root capability (no parent) AND has no children
         if not capability.parent_id and not self.tree.get_children(capability_id):
@@ -834,36 +861,45 @@ class App:
             return
 
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
-        if not capability:
-            return
-
+        
         progress = ProgressWindow(self.root)
         try:
-            # Get context
-            from .utils import get_capability_context
-            context = get_capability_context(self.db_ops, capability_id)
-            
-            # Run async expansion with progress
+            # Get context and expand capability
             async def expand():
+                from .utils import get_capability_context
+                capability = await self.db_ops.get_capability(capability_id)
+                if not capability:
+                    return None
+                    
+                context = await get_capability_context(self.db_ops, capability_id)
                 return await self._expand_capability_async(context, capability.name)
 
             subcapabilities = asyncio.run(progress.run_with_progress(expand()))
-
-            # Show confirmation dialog with checkboxes
-            dialog = CapabilityConfirmDialog(self.root, subcapabilities)
-            self.root.wait_window(dialog)
             
-            # If user clicked OK and selected some capabilities
-            if dialog.result:
-                # Create selected sub-capabilities with descriptions
-                for name, description in dialog.result.items():
-                    self.db_ops.create_capability(CapabilityCreate(
-                        name=name,
-                        description=description,
-                        parent_id=capability_id
-                    ))
-                self.tree.refresh_tree()
+            if subcapabilities:
+
+                # Show confirmation dialog with checkboxes
+                dialog = CapabilityConfirmDialog(self.root, subcapabilities)
+                self.root.wait_window(dialog)
+                
+                # If user clicked OK and selected some capabilities
+                if dialog.result:
+                    # Create selected sub-capabilities with descriptions
+                    async def create_subcapabilities():
+                        for name, description in dialog.result.items():
+                            await self.db_ops.create_capability(CapabilityCreate(
+                                name=name,
+                                description=description,
+                                parent_id=capability_id
+                            ))
+                    
+                    # Run creation in event loop
+                    future = asyncio.run_coroutine_threadsafe(
+                        create_subcapabilities(),
+                        self.loop
+                    )
+                    future.result()  # Wait for completion
+                    self.tree.refresh_tree()
                 
         except Exception as e:
             create_dialog(
