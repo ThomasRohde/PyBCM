@@ -266,13 +266,36 @@ class AuditLogViewer(ttk.Toplevel):
             )
             
             if file_path:
-                # Export to Excel with some formatting
+                # Export to Excel with enhanced formatting
                 with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                    df.to_excel(writer, index=False, sheet_name='Audit Log')
+                    df.to_excel(writer, index=False, sheet_name='Audit Log', startrow=1)
                     
                     # Get workbook and worksheet
                     workbook = writer.book
                     worksheet = writer.sheets['Audit Log']
+                    
+                    # Define table style
+                    table_style = openpyxl.worksheet.table.TableStyleInfo(
+                        name="TableStyleMedium2",
+                        showFirstColumn=False,
+                        showLastColumn=False,
+                        showRowStripes=True,
+                        showColumnStripes=False
+                    )
+                    
+                    # Create table
+                    tab = openpyxl.worksheet.table.Table(
+                        displayName="AuditLogTable",
+                        ref=f"A2:D{len(df) + 2}",
+                        tableStyleInfo=table_style
+                    )
+                    worksheet.add_table(tab)
+                    
+                    # Add title
+                    worksheet['A1'] = 'Business Capability Model - Audit Log'
+                    title_cell = worksheet['A1']
+                    title_cell.font = openpyxl.styles.Font(size=14, bold=True)
+                    worksheet.merge_cells('A1:D1')
                     
                     # Adjust column widths
                     worksheet.column_dimensions['A'].width = 20  # Timestamp
@@ -280,9 +303,32 @@ class AuditLogViewer(ttk.Toplevel):
                     worksheet.column_dimensions['C'].width = 30  # Capability
                     worksheet.column_dimensions['D'].width = 50  # Changes
                     
-                    # Enable text wrapping for the Changes column
-                    for cell in worksheet['D']:
-                        cell.alignment = openpyxl.styles.Alignment(wrap_text=True)
+                    # Apply styles to all cells
+                    for row in worksheet.iter_rows(min_row=2):
+                        for cell in row:
+                            cell.alignment = openpyxl.styles.Alignment(
+                                vertical='center',
+                                wrap_text=True
+                            )
+                    
+                    # Auto-fit row heights based on content
+                    for row in range(1, worksheet.max_row + 1):
+                        max_height = 0
+                        for cell in worksheet[row]:
+                            if cell.value:
+                                # Calculate required height based on text content and column width
+                                text_lines = str(cell.value).count('\n') + 1
+                                # Estimate characters per line based on column width
+                                chars_per_line = worksheet.column_dimensions[cell.column_letter].width
+                                wrapped_lines = len(str(cell.value)) / chars_per_line
+                                total_lines = max(text_lines, wrapped_lines)
+                                # Approximate height needed (15 points per line)
+                                needed_height = max(15, total_lines * 15)
+                                max_height = max(max_height, needed_height)
+                        worksheet.row_dimensions[row].height = max_height
+                    
+                    # Freeze the header row
+                    worksheet.freeze_panes = 'A3'
                 
                 # Show success dialog
                 create_dialog(
