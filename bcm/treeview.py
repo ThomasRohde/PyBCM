@@ -54,15 +54,71 @@ class CapabilityTreeview(ttk.Treeview):
         
         self.refresh_tree()
 
-        # Configure drop target style
+        # Configure drop target styles
         self.tag_configure('drop_target', background='lightblue')
+        self.tag_configure('illegal_drop_target', background='#ffcccc')  # Light red for illegal targets
 
     def _clear_drop_mark(self):
         """Clear any existing drop mark."""
         if self.drop_target:
-            # Reset the item style
+            # Reset the item style by removing all relevant tags
             self.item(self.drop_target, tags=())
             self.drop_target = None
+
+    async def _is_valid_drop_target(self, source_id: int, target_id: int) -> bool:
+        """Check if target is a valid drop location for source."""
+        try:
+            print(f"Validating drop: source={source_id}, target={target_id}")
+            
+            # Can't drop on itself
+            if source_id == target_id:
+                print("Invalid: Can't drop on itself")
+                return False
+                
+            # Get source capability
+            source = await self.db_ops.get_capability(source_id)
+            if not source:
+                print("Invalid: Source not found")
+                return False
+
+            # Get target capability
+            target = await self.db_ops.get_capability(target_id)
+            if not target:
+                print("Invalid: Target not found")
+                return False
+                
+            print(f"Source parent_id: {source.parent_id}, Target id: {target_id}")
+            
+            # If target is current parent, it's always valid
+            if target_id == source.parent_id:
+                print("Valid: Target is current parent")
+                return True
+                
+            # Check if target is a descendant of source
+            async def get_all_descendants(cap_id: int) -> set:
+                result = set()
+                children = await self.db_ops.get_capabilities(cap_id)
+                for child in children:
+                    result.add(child.id)
+                    child_descendants = await get_all_descendants(child.id)
+                    result.update(child_descendants)
+                return result
+            
+            # Get all descendants of source
+            descendants = await get_all_descendants(source_id)
+            print(f"Source descendants: {descendants}")
+            
+            # If target is in descendants, it's invalid
+            if target_id in descendants:
+                print("Invalid: Target is descendant of source")
+                return False
+                
+            print("Valid: No circular reference found")
+            return True
+            
+        except Exception as e:
+            print(f"Error checking drop target validity: {e}")
+            return False
 
     def _set_drop_target(self, target: str):
         """Set the current drop target with visual feedback."""
@@ -238,10 +294,23 @@ class CapabilityTreeview(ttk.Treeview):
             self.configure(cursor="fleur")
             # Update drop target visual feedback
             target = self.identify_row(event.y)
+            
+            # Clear previous drop mark
+            self._clear_drop_mark()
+            
             if target and target != self.drag_source:
-                self._set_drop_target(target)
-            else:
-                self._clear_drop_mark()
+                # Check if this would be a valid drop target
+                is_valid = self._wrap_async(
+                    self._is_valid_drop_target(int(self.drag_source), int(target))
+                )
+                
+                self.drop_target = target
+                
+                # Apply appropriate tag based on validity
+                if is_valid:
+                    self.item(target, tags=('drop_target',))
+                else:
+                    self.item(target, tags=('illegal_drop_target',))
 
     def on_drop(self, event):
         """Handle drop event."""
@@ -251,24 +320,45 @@ class CapabilityTreeview(ttk.Treeview):
 
         self.configure(cursor="")
         target = self.identify_row(event.y)
-        if not target or target == self.drag_source:
-            self.drag_source = None
-            return
-
+        
         try:
-            # Convert IDs
             source_id = int(self.drag_source)
-            target_id = int(target)
+            
+            if not target:
+                # Dropping outside - make it a root node
+                result = self._wrap_async(self.db_ops.update_capability_order(
+                    source_id, 
+                    None,  # No parent = root node
+                    0  # Order position for new root
+                ))
+            else:
+                if target == self.drag_source:
+                    self.drag_source = None
+                    return
+                    
+                target_id = int(target)
+                print(f"Attempting drop: source={source_id}, target={target_id}")
+                
+                # Check if this is a valid drop target
+                is_valid = self._wrap_async(self._is_valid_drop_target(source_id, target_id))
+                print(f"Drop validation result: {is_valid}")
+                
+                if not is_valid:
+                    raise ValueError("Invalid drop target")
 
-            # Get target's current children count for index
-            target_index = len(self.get_children(target))
+                # Get target's current children count for index
+                target_index = len(self.get_children(target))
 
-            # Update in database using sync wrapper
-            result = self._wrap_async(self.db_ops.update_capability_order(
-                source_id, 
-                target_id,  # Use target_id as new parent
-                target_index
-            ))
+                try:
+                    # Update in database
+                    result = self._wrap_async(self.db_ops.update_capability_order(
+                        source_id, 
+                        target_id,
+                        target_index
+                    ))
+                except Exception as e:
+                    # Convert database errors to ValueError for consistent handling
+                    raise ValueError(str(e))
 
             if result:
                 # Only refresh if update was successful
@@ -279,9 +369,25 @@ class CapabilityTreeview(ttk.Treeview):
             else:
                 print("Error in drag and drop: Update returned None")
                 self.refresh_tree()
-                
+            
+        except ValueError as ve:
+            # Handle specific validation errors
+            print(f"Validation error in drag and drop: {str(ve)}")
+            create_dialog(
+                self,
+                "Error",
+                str(ve),
+                ok_only=True
+            )
+            self.refresh_tree()
         except Exception as e:
             print(f"Error in drag and drop: {str(e)}")
+            create_dialog(
+                self,
+                "Error",
+                str(e),
+                ok_only=True
+            )
             self.refresh_tree()
         finally:
             self.drag_source = None

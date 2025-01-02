@@ -1,12 +1,27 @@
 from typing import List, Optional
+import json
+from datetime import datetime
 from sqlalchemy import select, func, text, or_
-from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
+from .models import Capability, CapabilityCreate, CapabilityUpdate, AuditLog  # Changed from CapabilityDB
 from uuid import uuid4
 
 class DatabaseOperations:
     def __init__(self, session_factory):
         """Initialize with session factory instead of session."""
         self.session_factory = session_factory
+
+    async def log_audit(self, session, operation: str, capability_id: Optional[int] = None,
+                       capability_name: Optional[str] = None, old_values: Optional[dict] = None,
+                       new_values: Optional[dict] = None):
+        """Add an audit log entry."""
+        audit = AuditLog(
+            operation=operation,
+            capability_id=capability_id,
+            capability_name=capability_name,
+            old_values=json.dumps(old_values) if old_values else None,
+            new_values=json.dumps(new_values) if new_values else None
+        )
+        session.add(audit)
 
     async def _get_session(self):
         """Get a fresh session for operations."""
@@ -30,8 +45,33 @@ class DatabaseOperations:
                 order_position=max_order + 1
             )
             session.add(db_capability)
+            
+            # Add audit log
+            await self.log_audit(
+                session,
+                "CREATE",
+                capability_name=capability.name,
+                new_values={
+                    "name": capability.name,
+                    "description": capability.description,
+                    "parent_id": capability.parent_id,
+                    "order_position": max_order + 1
+                }
+            )
+            
             await session.commit()
             await session.refresh(db_capability)
+            
+            # Update audit log with actual ID
+            await self.log_audit(
+                session,
+                "ID_ASSIGN",
+                capability_id=db_capability.id,
+                capability_name=capability.name,
+                new_values={"id": db_capability.id}
+            )
+            await session.commit()
+            
             return db_capability
 
     async def get_capability(self, capability_id: int) -> Optional[Capability]:
@@ -118,6 +158,13 @@ class DatabaseOperations:
                 if not db_capability:
                     return None
 
+                # Store old values for audit
+                old_values = {
+                    "name": db_capability.name,
+                    "description": db_capability.description,
+                    "parent_id": db_capability.parent_id
+                }
+
                 update_data = capability.model_dump(exclude_unset=True)
                 
                 # If updating parent_id, validate it exists
@@ -153,6 +200,16 @@ class DatabaseOperations:
                 for key, value in update_data.items():
                     setattr(db_capability, key, value)
 
+                # Add audit log
+                await self.log_audit(
+                    session,
+                    "UPDATE",
+                    capability_id=capability_id,
+                    capability_name=db_capability.name,
+                    old_values=old_values,
+                    new_values=update_data
+                )
+
                 await session.commit()
                 await session.refresh(db_capability)
                 return db_capability
@@ -172,6 +229,21 @@ class DatabaseOperations:
                 capability = await self.get_capability(capability_id)
                 if not capability:
                     return False
+
+                # Log deletion with old values
+                old_values = {
+                    "name": capability.name,
+                    "description": capability.description,
+                    "parent_id": capability.parent_id,
+                    "order_position": capability.order_position
+                }
+                await self.log_audit(
+                    session,
+                    "DELETE",
+                    capability_id=capability_id,
+                    capability_name=capability.name,
+                    old_values=old_values
+                )
 
                 # Get all descendants to ensure they're properly deleted
                 async def get_descendants(cap_id: int) -> List[int]:
@@ -217,37 +289,16 @@ class DatabaseOperations:
                 db_capability = result.scalar_one_or_none()
                 if not db_capability:
                     return None
-                
-                # If changing parent, validate it exists and check for circular references
-                if new_parent_id is not None and new_parent_id != db_capability.parent_id:
-                    # Check if parent exists
-                    stmt = select(Capability).where(Capability.id == new_parent_id)
-                    result = await session.execute(stmt)
-                    parent = result.scalar_one_or_none()
-                    if not parent:
-                        raise ValueError(f"Parent capability with ID {new_parent_id} does not exist")
-                    
-                    # Check for circular reference
-                    if new_parent_id == capability_id:
-                        raise ValueError("Cannot set capability as its own parent")
-                    
-                    # Check if new parent would create a circular reference through children
-                    async def is_descendant(parent_id: int, child_id: int) -> bool:
-                        if parent_id == child_id:
-                            return True
-                        stmt = select(Capability).where(Capability.parent_id == child_id)
-                        result = await session.execute(stmt)
-                        children = result.scalars().all()
-                        for child in children:
-                            if await is_descendant(parent_id, child.id):
-                                return True
-                        return False
-                    
-                    if await is_descendant(capability_id, new_parent_id):
-                        raise ValueError("Cannot create circular reference in capability hierarchy")
+
+                # Store old values for audit
+                old_values = {
+                    "parent_id": db_capability.parent_id,
+                    "order_position": db_capability.order_position
+                }
 
                 # Update order of other capabilities
                 if db_capability.parent_id == new_parent_id:
+                    # Moving within same parent
                     if new_order > db_capability.order_position:
                         stmt = select(Capability).where(
                             Capability.parent_id == new_parent_id,
@@ -292,10 +343,27 @@ class DatabaseOperations:
                     for cap in capabilities:
                         cap.order_position += 1
 
+                # Update the capability itself
                 db_capability.parent_id = new_parent_id
                 db_capability.order_position = new_order
+
+                # Add audit log
+                await self.log_audit(
+                    session,
+                    "MOVE",
+                    capability_id=capability_id,
+                    capability_name=db_capability.name,
+                    old_values=old_values,
+                    new_values={
+                        "parent_id": new_parent_id,
+                        "order_position": new_order
+                    }
+                )
+
                 await session.commit()
+                await session.refresh(db_capability)
                 return db_capability
+                
             except Exception as e:
                 await session.rollback()
                 raise e
@@ -384,6 +452,9 @@ class DatabaseOperations:
                 # Enable foreign key constraints
                 await session.execute(text("PRAGMA foreign_keys = ON"))
                 
+                # Clear existing audit logs
+                await session.execute(text("DELETE FROM audit_log"))
+                
                 # Clear existing capabilities within the same transaction
                 stmt = select(Capability).where(Capability.parent_id.is_(None))
                 result = await session.execute(stmt)
@@ -433,6 +504,14 @@ class DatabaseOperations:
                         raise ValueError(f"Invalid parent reference for capability {capability.name}")
                     capability.parent_id = parent_id
                 
+                # Add a single audit log entry for the import
+                await self.log_audit(
+                    session,
+                    "IMPORT",
+                    capability_name="SYSTEM",
+                    new_values={"message": f"Imported {len(data)} capabilities"}
+                )
+                
                 # Commit all changes in one transaction
                 await session.commit()
                     
@@ -455,3 +534,42 @@ class DatabaseOperations:
             return "\n".join(result)
         
         return await build_hierarchy()
+
+    async def export_audit_logs(self, start_date: Optional[datetime] = None) -> List[dict]:
+        """Export audit logs in a readable format."""
+        async with await self._get_session() as session:
+            query = select(AuditLog).order_by(AuditLog.timestamp)
+            if start_date:
+                query = query.where(AuditLog.timestamp >= start_date)
+                
+            result = await session.execute(query)
+            logs = result.scalars().all()
+            
+            export_data = []
+            for log in logs:
+                entry = {
+                    "timestamp": log.timestamp.isoformat(),
+                    "operation": log.operation,
+                    "capability_id": log.capability_id,
+                    "capability_name": log.capability_name,
+                    "old_values": json.loads(log.old_values) if log.old_values else None,
+                    "new_values": json.loads(log.new_values) if log.new_values else None
+                }
+                export_data.append(entry)
+                
+            return export_data
+
+    async def import_audit_logs(self, logs: List[dict]) -> None:
+        """Import audit logs from exported format."""
+        async with await self._get_session() as session:
+            for log_entry in logs:
+                audit = AuditLog(
+                    operation=log_entry["operation"],
+                    capability_id=log_entry["capability_id"],
+                    capability_name=log_entry["capability_name"],
+                    old_values=json.dumps(log_entry["old_values"]) if log_entry["old_values"] else None,
+                    new_values=json.dumps(log_entry["new_values"]) if log_entry["new_values"] else None,
+                    timestamp=datetime.fromisoformat(log_entry["timestamp"])
+                )
+                session.add(audit)
+            await session.commit()

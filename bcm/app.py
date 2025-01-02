@@ -87,6 +87,8 @@ class App:
         self.file_menu.add_command(label="Export to PowerPoint...", command=self._export_to_pptx)
         self.file_menu.add_command(label="Export to Archimate...", command=self._export_to_archimate)
         self.file_menu.add_separator()
+        self.file_menu.add_command(label="Export Audit Logs...", command=self._export_audit_logs)
+        self.file_menu.add_separator()
         self.file_menu.add_command(label="Settings", command=self._show_settings)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self._on_closing)
@@ -1006,6 +1008,49 @@ class App:
         finally:
             if progress:
                 progress.close()
+
+    def _export_audit_logs(self):
+        """Export audit logs to JSON file."""
+        user_dir = os.path.expanduser('~')
+        app_dir = os.path.join(user_dir, '.pybcm')
+        os.makedirs(app_dir, exist_ok=True)
+        filename = filedialog.asksaveasfilename(
+            title="Export Audit Logs",
+            initialdir=app_dir,
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not filename:
+            return
+
+        try:
+            # Create coroutine for export operation
+            async def export_async():
+                logs = await self.db_ops.export_audit_logs()
+                with open(filename, 'w') as f:
+                    json.dump(logs, f, indent=2)
+            
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(
+                export_async(),
+                self.loop
+            )
+            future.result()  # Wait for completion
+            
+            create_dialog(
+                self.root,
+                "Success",
+                "Audit logs exported successfully",
+                ok_only=True
+            )
+            
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error",
+                f"Failed to export audit logs: {str(e)}",
+                ok_only=True
+            )
 
     def _show_chat(self):
         """Show the AI chat dialog."""

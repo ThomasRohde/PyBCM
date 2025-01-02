@@ -11,6 +11,18 @@ from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     pass
 
+class AuditLog(Base):
+    """SQLAlchemy model for audit logging."""
+    __tablename__ = "audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    operation = Column(String(50), nullable=False)  # CREATE, UPDATE, DELETE, MOVE
+    capability_id = Column(Integer, nullable=True)  # Can be null for imports/clear operations
+    capability_name = Column(String(255), nullable=True)
+    old_values = Column(Text, nullable=True)  # JSON string of old values
+    new_values = Column(Text, nullable=True)  # JSON string of new values
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
 class Capability(Base):
     """SQLAlchemy model for capabilities in the database."""
     __tablename__ = "capabilities"
