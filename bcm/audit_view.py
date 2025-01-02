@@ -114,47 +114,30 @@ class AuditLogViewer(ttk.Toplevel):
         import asyncio
         
         async def load_async():
-            try:
-                logs = await self.get_logs()
-                
-                # Clear existing text
-                self.text.delete('1.0', 'end')
-                
-                # Add formatted logs in chronological order (oldest first)
-                for log in logs:  # Remove reversed() to show oldest first
-                    formatted = self.format_log_entry(log)
-                    self.text.insert('end', formatted)
-                
-                # Make text read-only
-                self.text.configure(state="disabled")
-            except Exception as e:
-                self.text.delete('1.0', 'end')
-                self.text.insert('end', f"Error loading logs: {str(e)}\n")
-                print(f"Error loading logs: {str(e)}")
+            logs = await self.get_logs()
+            
+            # Clear existing text
+            self.text.delete('1.0', 'end')
+            
+            # Add formatted logs in chronological order (oldest first)
+            for log in logs:
+                formatted = self.format_log_entry(log)
+                self.text.insert('end', formatted)
+            
+            # Make text read-only
+            self.text.configure(state="disabled")
 
-        # Get the event loop from the parent window
+        # Get the event loop
         if hasattr(self, '_loop'):
             loop = self._loop
         else:
-            # Get the loop from the parent window if possible
-            parent_app = self.master
-            if hasattr(parent_app, 'loop'):
-                loop = parent_app.loop
-                self._loop = loop
-            else:
-                # Fallback to getting the current loop
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                self._loop = loop
+            loop = asyncio.get_event_loop()
+            self._loop = loop
 
-        # Run the async operation and wait for it to complete
-        future = asyncio.run_coroutine_threadsafe(load_async(), loop)
+        # Run the async operation
         try:
-            future.result(timeout=5)  # Wait up to 5 seconds for the result
+            asyncio.run_coroutine_threadsafe(load_async(), loop)
         except Exception as e:
+            print(f"Error loading logs: {str(e)}")
             self.text.delete('1.0', 'end')
             self.text.insert('end', f"Error loading logs: {str(e)}\n")
-            print(f"Error loading logs: {str(e)}")
