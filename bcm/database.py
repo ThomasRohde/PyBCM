@@ -170,6 +170,14 @@ class DatabaseOperations:
                     "description": db_capability.description,
                     "parent_id": db_capability.parent_id
                 }
+                
+                # Add old parent name if it exists
+                if db_capability.parent_id:
+                    parent_stmt = select(Capability).where(Capability.id == db_capability.parent_id)
+                    parent_result = await session.execute(parent_stmt)
+                    old_parent = parent_result.scalar_one_or_none()
+                    if old_parent:
+                        old_values["parent_name"] = old_parent.name
 
                 # Convert capability model to dict for updates
                 update_data = capability.model_dump(exclude_unset=True)
@@ -190,6 +198,8 @@ class DatabaseOperations:
                         parent = result.scalar_one_or_none()
                         if not parent:
                             raise ValueError(f"Parent capability with ID {new_parent_id} does not exist")
+                        # Store new parent name in update data
+                        update_data["parent_name"] = parent.name
                         
                         # Check for circular reference
                         if new_parent_id == capability_id:
@@ -310,6 +320,26 @@ class DatabaseOperations:
                     "parent_id": db_capability.parent_id,
                     "order_position": db_capability.order_position
                 }
+                
+                # Add old parent name if it exists
+                if db_capability.parent_id:
+                    parent_stmt = select(Capability).where(Capability.id == db_capability.parent_id)
+                    parent_result = await session.execute(parent_stmt)
+                    old_parent = parent_result.scalar_one_or_none()
+                    if old_parent:
+                        old_values["parent_name"] = old_parent.name
+                        
+                # Get new parent name if applicable
+                new_values = {
+                    "parent_id": new_parent_id,
+                    "order_position": new_order
+                }
+                if new_parent_id:
+                    parent_stmt = select(Capability).where(Capability.id == new_parent_id)
+                    parent_result = await session.execute(parent_stmt)
+                    new_parent = parent_result.scalar_one_or_none()
+                    if new_parent:
+                        new_values["parent_name"] = new_parent.name
 
                 # Update order of other capabilities
                 if db_capability.parent_id == new_parent_id:
@@ -369,10 +399,7 @@ class DatabaseOperations:
                     capability_id=capability_id,
                     capability_name=db_capability.name,
                     old_values=old_values,
-                    new_values={
-                        "parent_id": new_parent_id,
-                        "order_position": new_order
-                    }
+                    new_values=new_values
                 )
 
                 await session.commit()

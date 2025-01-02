@@ -99,9 +99,15 @@ class AuditLogViewer(ttk.Toplevel):
                 new_val = new_values.get(key)
                 if old_val != new_val:
                     if key == 'parent_id':
-                        old_name = self.capability_names.get(old_val, f"Unknown (ID: {old_val})") if old_val else "None"
-                        new_name = self.capability_names.get(new_val, f"Unknown (ID: {new_val})") if new_val else "None"
-                        changes.append(f"Parent: {old_name} → {new_name}")
+                        old_name = old_values.get('parent_name', self.capability_names.get(old_val, f"Unknown (ID: {old_val})")) if old_val else "None"
+                        new_name = new_values.get('parent_name', self.capability_names.get(new_val, f"Unknown (ID: {new_val})")) if new_val else "None"
+                        changes.append(f"Moved from '{old_name}' to '{new_name}'")
+                    elif key == 'name':
+                        changes.append(f"Name changed from '{old_val}' to '{new_val}'")
+                    elif key == 'description':
+                        old_desc = old_val if old_val else "(empty)"
+                        new_desc = new_val if new_val else "(empty)"
+                        changes.append(f"Description changed from '{old_desc}' to '{new_desc}'")
                     else:
                         changes.append(f"{key}: {old_val} → {new_val}")
         elif new_values:
