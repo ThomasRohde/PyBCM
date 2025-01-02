@@ -7,7 +7,7 @@ from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 from sqlalchemy import select
-import logfire
+# import logfire
 
 from .models import (
     init_db,
@@ -25,8 +25,8 @@ async def anext(iterator):
     """Helper function for async iteration compatibility."""
     return await iterator.__anext__()
 
-logfire.configure()
-logfire.instrument_openai()
+# logfire.configure()
+# logfire.instrument_openai()
 class App:
 
     def __init__(self):
