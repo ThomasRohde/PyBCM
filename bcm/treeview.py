@@ -135,28 +135,48 @@ class CapabilityTreeview(ttk.Treeview):
         """Wrapper to run async code synchronously in a new event loop."""
         import asyncio
         import threading
+        import inspect
+        from functools import partial
         
         result = None
         error = None
         event = threading.Event()
         
+        async def run_coro():
+            try:
+                if inspect.isasyncgen(coro):
+                    # Consume the entire generator and return the last value
+                    last_value = None
+                    async for item in coro:
+                        last_value = item
+                    return last_value
+                else:
+                    return await coro
+            except Exception as e:
+                raise e
+        
         def run_async():
             nonlocal result, error
             try:
-                # Create a new event loop for this thread
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                result = loop.run_until_complete(coro)
-                loop.close()
+                try:
+                    result = loop.run_until_complete(run_coro())
+                finally:
+                    loop.close()
             except Exception as e:
                 error = e
             finally:
                 event.set()
         
         # Run in a separate thread
-        thread = threading.Thread(target=run_async)
+        thread = threading.Thread(target=run_async, daemon=True)
         thread.start()
-        event.wait()  # Wait for completion
+        
+        # Wait with timeout to prevent hanging
+        if not event.wait(timeout=10.0):  # Increased timeout for complex operations
+            error = TimeoutError("Async operation timed out")
+            return None
         
         if error:
             raise error
@@ -235,29 +255,31 @@ class CapabilityTreeview(ttk.Treeview):
             self.drag_source = None
             return
 
-        # Convert IDs
-        source_id = int(self.drag_source)
-        target_id = int(target)
-
-        # Always make target the new parent
-        new_parent_id = target_id
-        # Add as last child
-        target_index = len(self.get_children(target))
-
         try:
+            # Convert IDs
+            source_id = int(self.drag_source)
+            target_id = int(target)
+
+            # Get target's current children count for index
+            target_index = len(self.get_children(target))
+
             # Update in database using sync wrapper
-            self._wrap_async(self.db_ops.update_capability_order(
+            result = self._wrap_async(self.db_ops.update_capability_order(
                 source_id, 
-                new_parent_id, 
+                target_id,  # Use target_id as new parent
                 target_index
             ))
-            
-            # Refresh the tree to show the new order
-            self.refresh_tree()
-            
-            # Ensure the dropped item is visible and selected
-            self.selection_set(str(source_id))
-            self.see(str(source_id))
+
+            if result:
+                # Only refresh if update was successful
+                self.refresh_tree()
+                # Ensure the dropped item is visible and selected
+                self.selection_set(str(source_id))
+                self.see(str(source_id))
+            else:
+                print("Error in drag and drop: Update returned None")
+                self.refresh_tree()
+                
         except Exception as e:
             print(f"Error in drag and drop: {str(e)}")
             self.refresh_tree()

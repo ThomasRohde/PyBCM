@@ -142,7 +142,10 @@ class DatabaseOperations:
                             stmt = select(Capability).where(Capability.parent_id == child_id)
                             result = await session.execute(stmt)
                             children = result.scalars().all()
-                            return any(await is_descendant(parent_id, child.id) for child in children)
+                            for child in children:
+                                if await is_descendant(parent_id, child.id):
+                                    return True
+                            return False
                         
                         if await is_descendant(capability_id, new_parent_id):
                             raise ValueError("Cannot create circular reference in capability hierarchy")
@@ -235,7 +238,10 @@ class DatabaseOperations:
                         stmt = select(Capability).where(Capability.parent_id == child_id)
                         result = await session.execute(stmt)
                         children = result.scalars().all()
-                        return any(await is_descendant(parent_id, child.id) for child in children)
+                        for child in children:
+                            if await is_descendant(parent_id, child.id):
+                                return True
+                        return False
                     
                     if await is_descendant(capability_id, new_parent_id):
                         raise ValueError("Cannot create circular reference in capability hierarchy")

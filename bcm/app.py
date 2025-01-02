@@ -7,6 +7,7 @@ from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 from sqlalchemy import select
+import logfire
 
 from .models import (
     init_db,
@@ -19,11 +20,10 @@ from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
 from .settings import Settings, SettingsDialog
+
 async def anext(iterator):
     """Helper function for async iteration compatibility."""
     return await iterator.__anext__()
-
-import logfire
 
 logfire.configure()
 logfire.instrument_openai()
@@ -62,6 +62,7 @@ class App:
         self.db_ops = DatabaseOperations(AsyncSessionLocal)
 
         self.current_description = ""  # Add this to track changes
+        self.loading_complete = threading.Event()  # Add this line after self.db_ops initialization
 
         self._create_menu()
         self._create_toolbar()  # Add this line
@@ -169,13 +170,13 @@ class App:
 
         # Add search entry to toolbar
         self.search_var = ttk.StringVar()
-        self.search_var.trace_add("write", self._on_search)
         self.search_entry = ttk.Entry(
             self.toolbar,
             textvariable=self.search_var,
             width=30
         )
-        ToolTip(self.search_entry, text="Search capabilities")
+        self.search_entry.bind('<Return>', self._on_search)  # Changed: bind to Return key
+        ToolTip(self.search_entry, text="Search capabilities (press Enter)")
 
         # Add clear search button
         self.clear_search_btn = ttk.Button(
@@ -213,12 +214,88 @@ class App:
 
     def _clear_search(self):
         """Clear the search entry and restore the full tree."""
+        selected_id = None
+        selected = self.tree.selection()
+        if selected:
+            selected_id = selected[0]
+
         self.search_var.set("")
         self.clear_search_btn.configure(state="disabled")
-        self.tree.refresh_tree()
+
+        # Show loading indicator
+        self.tree.configure(cursor="watch")
+        self.search_entry.configure(state="disabled")
+        
+        # Start background loading
+        async def load_tree_async():
+            try:
+                # Get all capabilities in chunks
+                opened_items = {item for item in self.tree.get_children() 
+                              if self.tree.item(item, 'open')}
+                
+                # Clear current tree
+                for item in self.tree.get_children():
+                    self.tree.delete(item)
+                    
+                # Load root nodes first
+                roots = await self.db_ops.get_capabilities(None)
+                for root in roots:
+                    item_id = str(root.id)
+                    self.tree.insert(
+                        "",
+                        "end",
+                        iid=item_id,
+                        text=root.name,
+                        open=item_id in opened_items
+                    )
+                
+                # Load children in chunks
+                async def load_children(parent_id, parent_item):
+                    children = await self.db_ops.get_capabilities(parent_id)
+                    for child in children:
+                        child_id = str(child.id)
+                        self.tree.insert(
+                            parent_item,
+                            "end",
+                            iid=child_id,
+                            text=child.name,
+                            open=child_id in opened_items
+                        )
+                        # Recursively load grandchildren
+                        await load_children(child.id, child_id)
+                
+                # Load children for each root
+                for root in roots:
+                    await load_children(root.id, str(root.id))
+                
+                # Restore selection if possible
+                if selected_id:
+                    try:
+                        self.tree.selection_set(selected_id)
+                        self.tree.see(selected_id)
+                        self._on_tree_select(None)
+                    except:
+                        pass
+                
+            finally:
+                # Reset UI state
+                self.root.after(0, lambda: [
+                    self.tree.configure(cursor=""),
+                    self.search_entry.configure(state="normal"),
+                    self.loading_complete.set()
+                ])
+
+        # Reset loading complete event
+        self.loading_complete.clear()
+        
+        # Run tree loading in background
+        asyncio.run_coroutine_threadsafe(
+            load_tree_async(),
+            self.loop
+        )
 
     def _on_search(self, *args):
-        """Handle search input changes."""
+        """Handle search when Enter is pressed."""
         search_text = self.search_var.get().strip()
         self.clear_search_btn.configure(state="normal" if search_text else "disabled")
         
@@ -228,6 +305,11 @@ class App:
             
         # Search capabilities
         async def search_async():
+            selected_id = None
+            selected = self.tree.selection()
+            if selected:
+                selected_id = selected[0]  # Store currently selected ID
+                
             results = await self.db_ops.search_capabilities(search_text)
             
             # Clear current tree
@@ -243,6 +325,12 @@ class App:
                     text=cap.name,
                     open=True
                 )
+            
+            # If we had a selection and it's in the results, reselect it
+            if selected_id and any(str(cap.id) == selected_id for cap in results):
+                self.tree.selection_set(selected_id)
+                self.tree.see(selected_id)
+                self._on_tree_select(None)  # Update description
         
         # Run the coroutine in the event loop
         asyncio.run_coroutine_threadsafe(
@@ -1000,6 +1088,8 @@ class App:
 
     def _on_closing(self):
         """Handle application closing."""
+        # Wait for any ongoing tree loading to complete
+        self.loading_complete.wait(timeout=5)  # Add reasonable timeout
         try:
             # Create a new task for closing and wait for it
             future = asyncio.run_coroutine_threadsafe(
