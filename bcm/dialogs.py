@@ -244,6 +244,7 @@ def create_dialog(
 class CapabilityDialog(ttk.Toplevel):
     def __init__(self, parent, db_ops: DatabaseOperations, capability=None, parent_id=None):
         super().__init__(parent)
+        self.iconbitmap("./bcm/business_capability_model.ico")
         self.db_ops = db_ops
         self.capability = capability
         self.parent_id = parent_id
