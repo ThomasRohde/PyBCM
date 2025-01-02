@@ -3,6 +3,10 @@ from datetime import datetime
 from sqlalchemy import select
 from ttkbootstrap.tableview import Tableview
 from .models import Capability
+import pandas as pd
+import openpyxl.styles
+from tkinter import filedialog
+from .dialogs import create_dialog
 
 class AuditLogViewer(ttk.Toplevel):
     def __init__(self, parent, db_ops):
@@ -15,9 +19,23 @@ class AuditLogViewer(ttk.Toplevel):
             self._loop = parent.loop
         
         # Configure window
+        self.withdraw()  # Hide window initially
         self.title("Audit Log Viewer")
         self.geometry("1000x600")  # Made wider to accommodate table
         self.iconbitmap("./bcm/business_capability_model.ico")
+        
+        # Create toolbar frame
+        self.toolbar = ttk.Frame(self)
+        self.toolbar.pack(fill="x", padx=10, pady=(10,0))
+        
+        # Add export button
+        self.export_btn = ttk.Button(
+            self.toolbar,
+            text="Export to Excel",
+            command=self.export_to_excel,
+            bootstyle="success"
+        )
+        self.export_btn.pack(side="right")
         
         # Create main frame with table
         self.main_frame = ttk.Frame(self)
@@ -33,17 +51,20 @@ class AuditLogViewer(ttk.Toplevel):
         
         # Configure style for taller rows
         style = ttk.Style()
-        style.configure('Treeview', rowheight=60)  # Set row height through style
+        style.configure('Treeview', rowheight=60)  # Set row height only
         
         # Create table with scrollbars and additional configuration
         self.table = Tableview(
             self.main_frame,
             coldata=columns,
             searchable=True,
-            autofit=False,
+            autofit=False,  # Disable autofit for better column control
             height=20,
-            bootstyle="primary"  # Add bootstyle for better rendering
+            bootstyle="primary"
         )
+        
+        # Configure the Changes column (index 3) with fixed width
+        self.table.view.column(3, stretch=True, width=400, anchor="w")
         
         # Pack the table
         self.table.pack(fill="both", expand=True)
@@ -65,6 +86,7 @@ class AuditLogViewer(ttk.Toplevel):
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f'{width}x{height}+{x}+{y}')
+        self.deiconify()  # Show window after positioning
 
     def format_changes(self, old_values: dict, new_values: dict) -> str:
         """Format the changes in a readable way."""
@@ -99,7 +121,8 @@ class AuditLogViewer(ttk.Toplevel):
                 else:
                     changes.append(f"{key}: {value}")
                     
-        return "\n".join(changes)
+        # Join changes with spaces instead of newlines for better table display
+        return " | ".join(changes)
 
     async def get_logs(self):
         """Retrieve logs from database."""
@@ -164,6 +187,9 @@ class AuditLogViewer(ttk.Toplevel):
     def _populate_table(self, logs):
         """Populate the table with logs (runs in main thread)."""
         try:
+            # Sort logs by timestamp (oldest first)
+            logs.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]).timestamp(), reverse=False)
+            
             # Create list of rows for batch insertion
             rows = []
             for log in logs:
@@ -175,8 +201,9 @@ class AuditLogViewer(ttk.Toplevel):
                     
                 changes = self.format_changes(log["old_values"], log["new_values"])
                 
-                # Add row to list
-                rows.append([timestamp, operation, capability, changes])
+                # Add row to list with wrapped tag for proper text display
+                row = [timestamp, operation, capability, changes]
+                rows.append(row)
 
             # Clear the loading message and existing data
             self.table.delete_rows()  # This removes all rows including the loading message
@@ -199,3 +226,77 @@ class AuditLogViewer(ttk.Toplevel):
         """Show error in table (runs in main thread)."""
         self.table.delete_rows()
         self.table.insert_row("end", ["Error", "", "", error_message])
+        
+    def export_to_excel(self):
+        """Export the current table view to Excel."""
+        try:
+            # Get data from tableview and convert to list of dicts
+            data = []
+            for item in self.table.view.get_children():
+                try:
+                    values = self.table.view.item(item)['values']
+                    if len(values) == 4:  # Ensure we have all columns
+                        data.append({
+                            "Timestamp": str(values[0]),
+                            "Operation": str(values[1]),
+                            "Capability": str(values[2]),
+                            "Changes": str(values[3])
+                        })
+                except (IndexError, TypeError, AttributeError) as e:
+                    print(f"Error processing row: {e}")
+                    continue
+            
+            if not data:
+                create_dialog(
+                    self,
+                    "Export Failed",
+                    "No data to export",
+                    ok_only=True
+                )
+                return
+                
+            # Create DataFrame
+            df = pd.DataFrame(data)
+            
+            # Ask user for save location
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                title="Save Audit Log Export"
+            )
+            
+            if file_path:
+                # Export to Excel with some formatting
+                with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Audit Log')
+                    
+                    # Get workbook and worksheet
+                    workbook = writer.book
+                    worksheet = writer.sheets['Audit Log']
+                    
+                    # Adjust column widths
+                    worksheet.column_dimensions['A'].width = 20  # Timestamp
+                    worksheet.column_dimensions['B'].width = 15  # Operation
+                    worksheet.column_dimensions['C'].width = 30  # Capability
+                    worksheet.column_dimensions['D'].width = 50  # Changes
+                    
+                    # Enable text wrapping for the Changes column
+                    for cell in worksheet['D']:
+                        cell.alignment = openpyxl.styles.Alignment(wrap_text=True)
+                
+                # Show success dialog
+                create_dialog(
+                    self,
+                    "Export Complete",
+                    f"Audit log exported successfully to:\n{file_path}",
+                    ok_only=True
+                )
+                
+        except Exception as e:
+            # Show error dialog
+            create_dialog(
+                self,
+                "Export Failed", 
+                f"Failed to export audit log:\n{str(e)}",
+                ok_only=True
+            )
