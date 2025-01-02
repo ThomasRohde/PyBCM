@@ -195,21 +195,29 @@ class AuditLogViewer(ttk.Toplevel):
         try:
             # Sort logs by timestamp (oldest first)
             logs.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]).timestamp(), reverse=False)
-            
-            # Create list of rows for batch insertion
+        
+            # Create list of rows for batch insertion, tracking seen entries
             rows = []
+            seen_entries = set()  # Track unique entries
+        
             for log in logs:
                 timestamp = datetime.fromisoformat(log["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
                 operation = log["operation"]
                 capability = f"{log['capability_name']}"
                 if log["capability_id"]:
                     capability += f" (ID: {log['capability_id']})"
-                    
-                changes = self.format_changes(log["old_values"], log["new_values"])
                 
-                # Add row to list with wrapped tag for proper text display
-                row = [timestamp, operation, capability, changes]
-                rows.append(row)
+                changes = self.format_changes(log["old_values"], log["new_values"])
+            
+                # Create a unique key for this entry
+                entry_key = (timestamp, operation, capability, changes)
+            
+                # Only add if we haven't seen this exact entry before
+                if entry_key not in seen_entries:
+                    seen_entries.add(entry_key)
+                    # Add row to list with wrapped tag for proper text display
+                    row = [timestamp, operation, capability, changes]
+                    rows.append(row)
 
             # Clear the loading message and existing data
             self.table.delete_rows()  # This removes all rows including the loading message
