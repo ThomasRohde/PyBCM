@@ -377,58 +377,57 @@ class DatabaseOperations:
             try:
                 # Enable foreign key constraints
                 await session.execute(text("PRAGMA foreign_keys = ON"))
-                await session.commit()
                 
-                # Clear existing capabilities first
-                await self.clear_all_capabilities()
+                # Clear existing capabilities within the same transaction
+                stmt = select(Capability).where(Capability.parent_id.is_(None))
+                result = await session.execute(stmt)
+                root_capabilities = result.scalars().all()
+                for root in root_capabilities:
+                    await session.delete(root)
+                await session.flush()
                 
                 # Create mapping of external IDs to new database IDs
                 id_mapping = {}
+                parent_updates = []
                 
-                # First pass: Create all capabilities without parents
+                # First pass: Create all capabilities and store parent updates
                 for item in data:
                     try:
                         cap = CapabilityCreate(
                             name=item["name"],
                             description=item.get("description", ""),
-                            parent_id=None
+                            parent_id=None  # Initially create without parent
                         )
-                        db_capability = await self.create_capability(cap)
+                        db_capability = Capability(
+                            name=cap.name,
+                            description=cap.description,
+                            parent_id=None,
+                            order_position=0  # Reset order position
+                        )
+                        session.add(db_capability)
+                        await session.flush()  # Flush to get the ID
+                        
+                        # Store in mapping
                         id_mapping[item["id"]] = db_capability.id
+                        
+                        # Store parent update if needed
+                        if item.get("parent"):
+                            parent_updates.append((db_capability, item["parent"]))
+                            
                     except Exception as e:
                         print(f"Error creating capability {item.get('name')}: {e}")
+                        await session.rollback()
                         raise
                 
                 # Second pass: Update parent relationships
-                for item in data:
-                    try:
-                        if item.get("parent"):
-                            capability_id = id_mapping.get(item["id"])
-                            parent_id = id_mapping.get(item["parent"])
-                            
-                            if capability_id and parent_id:
-                                # Get capability and update its parent
-                                stmt = select(Capability).where(Capability.id == capability_id)
-                                result = await session.execute(stmt)
-                                capability = result.scalar_one_or_none()
-                                
-                                if capability:
-                                    capability.parent_id = parent_id
-                                    session.add(capability)
-                    except Exception as e:
-                        print(f"Error updating parent for {item.get('name')}: {e}")
-                        raise
+                for capability, parent_ext_id in parent_updates:
+                    parent_id = id_mapping.get(parent_ext_id)
+                    if parent_id is None:
+                        await session.rollback()
+                        raise ValueError(f"Invalid parent reference for capability {capability.name}")
+                    capability.parent_id = parent_id
                 
-                # Validate all parent relationships before committing
-                stmt = select(Capability)
-                result = await session.execute(stmt)
-                capabilities = result.scalars().all()
-                
-                for cap in capabilities:
-                    if cap.parent_id and not any(p.id == cap.parent_id for p in capabilities):
-                        raise ValueError(f"Invalid parent reference for capability {cap.name}")
-                
-                # Commit all parent relationship updates
+                # Commit all changes in one transaction
                 await session.commit()
                     
             except Exception as e:

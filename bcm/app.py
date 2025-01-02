@@ -295,7 +295,6 @@ class App:
             ):
                 # Create coroutine for import operation
                 async def import_async():
-                    await self.db_ops.clear_all_capabilities()
                     await self.db_ops.import_capabilities(data)
             
                 # Run the coroutine in the event loop
