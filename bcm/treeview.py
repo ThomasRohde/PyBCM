@@ -68,30 +68,22 @@ class CapabilityTreeview(ttk.Treeview):
     async def _is_valid_drop_target(self, source_id: int, target_id: int) -> bool:
         """Check if target is a valid drop location for source."""
         try:
-            print(f"Validating drop: source={source_id}, target={target_id}")
-            
             # Can't drop on itself
             if source_id == target_id:
-                print("Invalid: Can't drop on itself")
                 return False
                 
             # Get source capability
             source = await self.db_ops.get_capability(source_id)
             if not source:
-                print("Invalid: Source not found")
                 return False
 
             # Get target capability
             target = await self.db_ops.get_capability(target_id)
             if not target:
-                print("Invalid: Target not found")
                 return False
-                
-            print(f"Source parent_id: {source.parent_id}, Target id: {target_id}")
             
             # If target is current parent, it's always valid
             if target_id == source.parent_id:
-                print("Valid: Target is current parent")
                 return True
                 
             # Check if target is a descendant of source
@@ -106,18 +98,14 @@ class CapabilityTreeview(ttk.Treeview):
             
             # Get all descendants of source
             descendants = await get_all_descendants(source_id)
-            print(f"Source descendants: {descendants}")
             
             # If target is in descendants, it's invalid
             if target_id in descendants:
-                print("Invalid: Target is descendant of source")
                 return False
                 
-            print("Valid: No circular reference found")
             return True
             
-        except Exception as e:
-            print(f"Error checking drop target validity: {e}")
+        except Exception:
             return False
 
     def _set_drop_target(self, target: str):
@@ -264,7 +252,12 @@ class CapabilityTreeview(ttk.Treeview):
                 )
                 self._load_capabilities(item_id, cap.id)
         except Exception as e:
-            print(f"Error refreshing tree: {str(e)}")
+            create_dialog(
+                self,
+                "Error",
+                f"Failed to refresh tree: {str(e)}",
+                ok_only=True
+            )
 
     def _load_capabilities(self, parent: str = "", parent_id: Optional[int] = None):
         """Recursively load capabilities into the treeview."""
@@ -281,7 +274,12 @@ class CapabilityTreeview(ttk.Treeview):
                 )
                 self._load_capabilities(item_id, cap.id)
         except Exception as e:
-            print(f"Error loading capabilities for parent {parent_id}: {str(e)}")
+            create_dialog(
+                self,
+                "Error", 
+                f"Failed to load capabilities: {str(e)}",
+                ok_only=True
+            )
 
     def on_click(self, event):
         """Handle mouse click event."""
@@ -337,11 +335,8 @@ class CapabilityTreeview(ttk.Treeview):
                     return
                     
                 target_id = int(target)
-                print(f"Attempting drop: source={source_id}, target={target_id}")
-                
                 # Check if this is a valid drop target
                 is_valid = self._wrap_async(self._is_valid_drop_target(source_id, target_id))
-                print(f"Drop validation result: {is_valid}")
                 
                 if not is_valid:
                     raise ValueError("Invalid drop target")
@@ -367,12 +362,10 @@ class CapabilityTreeview(ttk.Treeview):
                 self.selection_set(str(source_id))
                 self.see(str(source_id))
             else:
-                print("Error in drag and drop: Update returned None")
                 self.refresh_tree()
             
         except ValueError as ve:
             # Handle specific validation errors
-            print(f"Validation error in drag and drop: {str(ve)}")
             create_dialog(
                 self,
                 "Error",
@@ -381,7 +374,6 @@ class CapabilityTreeview(ttk.Treeview):
             )
             self.refresh_tree()
         except Exception as e:
-            print(f"Error in drag and drop: {str(e)}")
             create_dialog(
                 self,
                 "Error",
