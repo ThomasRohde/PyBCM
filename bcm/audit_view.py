@@ -1,6 +1,8 @@
 import ttkbootstrap as ttk
 from datetime import datetime
 import json
+from sqlalchemy import select
+from .models import Capability
 
 class AuditLogViewer(ttk.Toplevel):
     def __init__(self, parent, db_ops):
@@ -71,22 +73,40 @@ class AuditLogViewer(ttk.Toplevel):
             if log["capability_id"]:
                 text += f" (ID: {log['capability_id']})"
             text += "\n"
-            
+        
         # Format changes - values are already parsed from JSON
         if log["old_values"]:
             text += "Old values:\n"
             for key, value in log["old_values"].items():
-                text += f"  {key}: {value}\n"
+                if key == 'parent_id' and value is not None:
+                    # Get parent capability name if possible
+                    parent_name = self.capability_names.get(value, f"Unknown (ID: {value})")
+                    text += f"  {key}: {value} - {parent_name}\n"
+                else:
+                    text += f"  {key}: {value}\n"
                 
         if log["new_values"]:
             text += "New values:\n"
             for key, value in log["new_values"].items():
-                text += f"  {key}: {value}\n"
+                if key == 'parent_id' and value is not None:
+                    # Get parent capability name if possible
+                    parent_name = self.capability_names.get(value, f"Unknown (ID: {value})")
+                    text += f"  {key}: {value} - {parent_name}\n"
+                else:
+                    text += f"  {key}: {value}\n"
                 
         return text + "\n"
         
     async def get_logs(self):
         """Retrieve logs from database."""
+        # First get all capabilities to build name mapping
+        self.capability_names = {}
+        async with await self.db_ops._get_session() as session:
+            stmt = select(Capability.id, Capability.name)
+            result = await session.execute(stmt)
+            for id, name in result:
+                self.capability_names[id] = name
+        
         return await self.db_ops.export_audit_logs()
         
     def load_logs(self):
@@ -100,8 +120,8 @@ class AuditLogViewer(ttk.Toplevel):
                 # Clear existing text
                 self.text.delete('1.0', 'end')
                 
-                # Add formatted logs
-                for log in reversed(logs):  # Show newest first
+                # Add formatted logs in chronological order (oldest first)
+                for log in logs:  # Remove reversed() to show oldest first
                     formatted = self.format_log_entry(log)
                     self.text.insert('end', formatted)
                 

@@ -547,13 +547,23 @@ class DatabaseOperations:
             
             export_data = []
             for log in logs:
+                # Parse JSON values once
+                old_values = json.loads(log.old_values) if log.old_values else None
+                new_values = json.loads(log.new_values) if log.new_values else None
+                
+                # Remove order_position from values if present
+                if old_values and 'order_position' in old_values:
+                    del old_values['order_position']
+                if new_values and 'order_position' in new_values:
+                    del new_values['order_position']
+                
                 entry = {
                     "timestamp": log.timestamp.isoformat(),
                     "operation": log.operation,
                     "capability_id": log.capability_id,
                     "capability_name": log.capability_name,
-                    "old_values": json.loads(log.old_values) if log.old_values else None,
-                    "new_values": json.loads(log.new_values) if log.new_values else None
+                    "old_values": old_values,
+                    "new_values": new_values
                 }
                 export_data.append(entry)
                 
