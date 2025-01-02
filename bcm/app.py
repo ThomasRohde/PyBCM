@@ -1078,41 +1078,84 @@ class App:
     async def _on_closing_async(self):
         """Async cleanup operations."""
         try:
+            # Cancel all running tasks except this one
+            current_task = asyncio.current_task()
+            for task in asyncio.all_tasks(self.loop):
+                if task is not current_task:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        print(f"Error cancelling task: {e}")
+
+            # Close database connection
             if self.db:
                 await self.db.close()
+                
         except Exception as e:
-            print(f"Error closing database: {e}")
+            print(f"Error during async cleanup: {e}")
         finally:
             # Signal the event loop to stop
             self.loop.call_soon_threadsafe(self.loop.stop)
 
     def _on_closing(self):
         """Handle application closing."""
-        # Wait for any ongoing tree loading to complete
-        self.loading_complete.wait(timeout=5)  # Add reasonable timeout
         try:
+            # Disable all UI elements to prevent new operations
+            for widget in self.root.winfo_children():
+                try:
+                    widget.configure(state='disabled')
+                except:
+                    pass
+
+            # Wait for any ongoing tree loading with a shorter timeout
+            if not self.loading_complete.wait(timeout=2):
+                print("Warning: Tree loading did not complete before shutdown")
+
             # Create a new task for closing and wait for it
             future = asyncio.run_coroutine_threadsafe(
                 self._on_closing_async(),
                 self.loop
             )
-            # Wait for the closing task to complete with a timeout
-            future.result(timeout=5)  # 5 second timeout
+            # Wait for the closing task to complete with a shorter timeout
+            future.result(timeout=2)
+
         except Exception as e:
             print(f"Error during shutdown: {e}")
         finally:
-            # Ensure the root is destroyed and app quits
-            self.root.quit()
-            self.root.destroy()
+            try:
+                # Ensure the root is destroyed and app quits
+                self.root.quit()
+                self.root.destroy()
+            except Exception as e:
+                print(f"Error destroying root window: {e}")
 
     def run(self):
         """Run the application with async support."""
-        try:
-            # Start the async event loop in a separate thread
-            def run_async_loop():
+        def run_async_loop():
+            """Run the async event loop in a separate thread."""
+            try:
                 asyncio.set_event_loop(self.loop)
                 self.loop.run_forever()
+            except Exception as e:
+                print(f"Error in async loop: {e}")
+            finally:
+                try:
+                    # Clean up any remaining tasks
+                    pending = asyncio.all_tasks(self.loop)
+                    for task in pending:
+                        task.cancel()
+                    # Give tasks a chance to respond to cancellation
+                    if pending:
+                        self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    self.loop.close()
+                except Exception as e:
+                    print(f"Error cleaning up async loop: {e}")
 
+        try:
+            # Start the async event loop in a separate thread
             thread = threading.Thread(target=run_async_loop, daemon=True)
             thread.start()
 
@@ -1123,20 +1166,6 @@ class App:
         except Exception as e:
             print(f"Error in main loop: {e}")
             self._on_closing()
-        finally:
-            # Ensure the loop is stopped and closed
-            if not self.loop.is_closed():
-                try:
-                    # Stop the loop if it's still running
-                    if self.loop.is_running():
-                        self.loop.call_soon_threadsafe(self.loop.stop)
-                    # Wait a moment for the loop to actually stop
-                    import time
-                    time.sleep(0.1)
-                    # Now we can safely close it
-                    self.loop.close()
-                except Exception as e:
-                    print(f"Error closing event loop: {e}")
 
 def main():
     # Set up asyncio policy for Windows if needed
