@@ -1,20 +1,15 @@
-from fastapi import FastAPI, WebSocket, Depends, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
-from .models import get_db as get_model_db
 from fastapi.websockets import WebSocketState
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-import asyncio
-import json
-from typing import List, Optional, Dict, AsyncIterator
+from typing import List, Optional, Dict
 from datetime import datetime, timezone
 from dataclasses import dataclass
-from sqlalchemy.orm import Session
 from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
 
-from .models import get_db
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (

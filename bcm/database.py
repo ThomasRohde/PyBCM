@@ -1,7 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text, or_
-from sqlalchemy.orm import selectinload
 from .models import Capability, CapabilityCreate, CapabilityUpdate  # Changed from CapabilityDB
 from uuid import uuid4
 
@@ -311,15 +309,17 @@ class DatabaseOperations:
                 await session.rollback()
                 raise
 
-    def get_markdown_hierarchy(self) -> str:
+    async def get_markdown_hierarchy(self) -> str:
         """Generate a markdown representation of the capability hierarchy."""
-        def build_hierarchy(parent_id: Optional[int] = None, level: int = 0) -> str:
-            capabilities = self.get_capabilities(parent_id)
+        async def build_hierarchy(parent_id: Optional[int] = None, level: int = 0) -> str:
+            capabilities = await self.get_capabilities(parent_id)
             result = []
             for cap in capabilities:
                 indent = "  " * level
                 result.append(f"{indent}- {cap.name}")
-                result.append(build_hierarchy(cap.id, level + 1))
+                child_hierarchy = await build_hierarchy(cap.id, level + 1)
+                if child_hierarchy:
+                    result.append(child_hierarchy)
             return "\n".join(result)
         
-        return build_hierarchy()
+        return await build_hierarchy()
