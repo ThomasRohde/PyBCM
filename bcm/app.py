@@ -8,8 +8,16 @@ from pathlib import Path
 from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
+from sqlalchemy import select
 
-from .models import init_db, get_db, CapabilityCreate, CapabilityUpdate, AsyncSessionLocal
+from .models import (
+    init_db,
+    get_db,
+    CapabilityCreate,
+    CapabilityUpdate,
+    AsyncSessionLocal,
+    Capability
+)
 from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .treeview import CapabilityTreeview
@@ -222,21 +230,28 @@ class App:
             return
             
         # Search capabilities
-        results = self.db_ops.search_capabilities(search_text)
-        
-        # Clear current tree
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        async def search_async():
+            results = await self.db_ops.search_capabilities(search_text)
             
-        # Add search results
-        for cap in results:
-            self.tree.insert(
-                parent="",
-                index="end",
-                iid=str(cap.id),
-                text=cap.name,
-                open=True
-            )
+            # Clear current tree
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+                
+            # Add search results
+            for cap in results:
+                self.tree.insert(
+                    parent="",
+                    index="end",
+                    iid=str(cap.id),
+                    text=cap.name,
+                    open=True
+                )
+        
+        # Run the coroutine in the event loop
+        asyncio.run_coroutine_threadsafe(
+            search_async(),
+            self.loop
+        )
 
     def _expand_all(self):
         """Expand all items in the tree."""
@@ -754,22 +769,21 @@ class App:
         capability_id = int(selected[0])
         description = self.desc_text.get('1.0', 'end-1c')
         
-        # Create async function to get and update capability
+        # Create async function to update description
         async def update_description():
-            # Get current capability
-            capability = await self.db_ops.get_capability(capability_id)
-            if not capability:
-                return False
+            async with await self.db_ops._get_session() as session:
+                # Get current capability within this session
+                stmt = select(Capability).where(Capability.id == capability_id)
+                result = await session.execute(stmt)
+                capability = result.scalar_one_or_none()
                 
-            # Create update data
-            update_data = CapabilityUpdate(
-                name=capability.name,
-                description=description
-            )
-            
-            # Update capability
-            await self.db_ops.update_capability(capability_id, update_data)
-            return True
+                if not capability:
+                    return False
+                    
+                # Update description directly
+                capability.description = description
+                await session.commit()
+                return True
         
         # Run the coroutine in the event loop
         future = asyncio.run_coroutine_threadsafe(

@@ -97,12 +97,12 @@ class CapabilityTreeview(ttk.Treeview):
             return
 
         capability_id = int(selected[0])
-        capability = self.db_ops.get_capability(capability_id)
+        capability = self._wrap_async(self.db_ops.get_capability(capability_id))
         if capability:
             dialog = CapabilityDialog(self, self.db_ops, capability)
             dialog.wait_window()
             if dialog.result:
-                self.db_ops.update_capability(capability_id, dialog.result)
+                self._wrap_async(self.db_ops.update_capability(capability_id, dialog.result))
                 self.refresh_tree()
 
     def delete_capability(self):

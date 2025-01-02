@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import relationship
@@ -146,7 +146,7 @@ async def init_db():
         
         # Enable foreign keys for new database
         async with AsyncSessionLocal() as session:
-            await session.execute("PRAGMA foreign_keys = ON")
+            await session.execute(text("PRAGMA foreign_keys = ON"))
             await session.commit()
 
 async def get_db():

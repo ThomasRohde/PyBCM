@@ -109,29 +109,89 @@ class DatabaseOperations:
     async def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
         """Update a capability."""
         async with await self._get_session() as session:
-            db_capability = await self.get_capability(capability_id)
-            if not db_capability:
-                return None
+            try:
+                # Enable foreign key constraints
+                await session.execute(text("PRAGMA foreign_keys = ON"))
+                await session.commit()
+                
+                db_capability = await self.get_capability(capability_id)
+                if not db_capability:
+                    return None
 
-            update_data = capability.model_dump(exclude_unset=True)
-            for key, value in update_data.items():
-                setattr(db_capability, key, value)
+                update_data = capability.model_dump(exclude_unset=True)
+                
+                # If updating parent_id, validate it exists
+                if 'parent_id' in update_data:
+                    new_parent_id = update_data['parent_id']
+                    if new_parent_id is not None:
+                        # Check if parent exists
+                        stmt = select(Capability).where(Capability.id == new_parent_id)
+                        result = await session.execute(stmt)
+                        parent = result.scalar_one_or_none()
+                        if not parent:
+                            raise ValueError(f"Parent capability with ID {new_parent_id} does not exist")
+                        
+                        # Check for circular reference
+                        if new_parent_id == capability_id:
+                            raise ValueError("Cannot set capability as its own parent")
+                        
+                        # Check if new parent would create a circular reference through children
+                        async def is_descendant(parent_id: int, child_id: int) -> bool:
+                            if parent_id == child_id:
+                                return True
+                            stmt = select(Capability).where(Capability.parent_id == child_id)
+                            result = await session.execute(stmt)
+                            children = result.scalars().all()
+                            return any(await is_descendant(parent_id, child.id) for child in children)
+                        
+                        if await is_descendant(capability_id, new_parent_id):
+                            raise ValueError("Cannot create circular reference in capability hierarchy")
 
-            await session.commit()
-            await session.refresh(db_capability)
-            return db_capability
+                for key, value in update_data.items():
+                    setattr(db_capability, key, value)
+
+                await session.commit()
+                await session.refresh(db_capability)
+                return db_capability
+            except Exception as e:
+                await session.rollback()
+                raise
 
     async def delete_capability(self, capability_id: int) -> bool:
         """Delete a capability and its children."""
         async with await self._get_session() as session:
             try:
+                # Enable foreign key constraints for this session
                 await session.execute(text("PRAGMA foreign_keys = ON"))
                 await session.commit()
                 
+                # Get the capability and all its descendants
                 capability = await self.get_capability(capability_id)
                 if not capability:
                     return False
-                    
+
+                # Get all descendants to ensure they're properly deleted
+                async def get_descendants(cap_id: int) -> List[int]:
+                    stmt = select(Capability).where(Capability.parent_id == cap_id)
+                    result = await session.execute(stmt)
+                    children = result.scalars().all()
+                    ids = [cap.id for cap in children]
+                    for child_id in ids.copy():  # Use copy to avoid modifying list during iteration
+                        ids.extend(await get_descendants(child_id))
+                    return ids
+
+                # Get all descendant IDs
+                descendant_ids = await get_descendants(capability_id)
+                
+                # Delete all descendants first (bottom-up deletion)
+                for desc_id in reversed(descendant_ids):
+                    stmt = select(Capability).where(Capability.id == desc_id)
+                    result = await session.execute(stmt)
+                    desc = result.scalar_one_or_none()
+                    if desc:
+                        await session.delete(desc)
+                
+                # Finally delete the capability itself
                 await session.delete(capability)
                 await session.commit()
                 return True
@@ -144,12 +204,41 @@ class DatabaseOperations:
         """Update a capability's parent and order."""
         async with await self._get_session() as session:
             try:
+                # Enable foreign key constraints
+                await session.execute(text("PRAGMA foreign_keys = ON"))
+                await session.commit()
+                
                 # Get capability
                 stmt = select(Capability).where(Capability.id == capability_id)
                 result = await session.execute(stmt)
                 db_capability = result.scalar_one_or_none()
                 if not db_capability:
                     return None
+                
+                # If changing parent, validate it exists and check for circular references
+                if new_parent_id is not None and new_parent_id != db_capability.parent_id:
+                    # Check if parent exists
+                    stmt = select(Capability).where(Capability.id == new_parent_id)
+                    result = await session.execute(stmt)
+                    parent = result.scalar_one_or_none()
+                    if not parent:
+                        raise ValueError(f"Parent capability with ID {new_parent_id} does not exist")
+                    
+                    # Check for circular reference
+                    if new_parent_id == capability_id:
+                        raise ValueError("Cannot set capability as its own parent")
+                    
+                    # Check if new parent would create a circular reference through children
+                    async def is_descendant(parent_id: int, child_id: int) -> bool:
+                        if parent_id == child_id:
+                            return True
+                        stmt = select(Capability).where(Capability.parent_id == child_id)
+                        result = await session.execute(stmt)
+                        children = result.scalars().all()
+                        return any(await is_descendant(parent_id, child.id) for child in children)
+                    
+                    if await is_descendant(capability_id, new_parent_id):
+                        raise ValueError("Cannot create circular reference in capability hierarchy")
 
                 # Update order of other capabilities
                 if db_capability.parent_id == new_parent_id:
@@ -208,24 +297,37 @@ class DatabaseOperations:
     async def export_capabilities(self) -> List[dict]:
         """Export all capabilities in the external format."""
         async with await self._get_session() as session:
-            # Get all capabilities without hierarchy
+            # Enable foreign key constraints
+            await session.execute(text("PRAGMA foreign_keys = ON"))
+            await session.commit()
+            
+            # Get all capabilities and verify their parent relationships
             stmt = select(Capability).order_by(Capability.order_position)
             result = await session.execute(stmt)
             capabilities = result.scalars().all()
+            
+            # Create mapping of valid DB IDs to new UUIDs
+            id_mapping = {}
             export_data = []
             
-            # First create mapping of DB IDs to new UUIDs
-            id_mapping = {cap.id: str(uuid4()) for cap in capabilities}
-            
-            # Then create export data with correct parent references
+            # First pass: Map IDs and validate parent relationships
             for cap in capabilities:
-                export_data.append({
-                    "id": id_mapping[cap.id],  # Use mapped UUID
-                    "name": cap.name,
-                    "capability": 0,
-                    "description": cap.description or "",
-                    "parent": id_mapping.get(cap.parent_id) if cap.parent_id else None  # Map parent ID to UUID
-                })
+                # Only include capabilities that either:
+                # 1. Have no parent (root capabilities)
+                # 2. Have a parent that exists in our capabilities list
+                if cap.parent_id is None or any(p.id == cap.parent_id for p in capabilities):
+                    id_mapping[cap.id] = str(uuid4())
+            
+            # Second pass: Create export data with validated parent references
+            for cap in capabilities:
+                if cap.id in id_mapping:  # Only include validated capabilities
+                    export_data.append({
+                        "id": id_mapping[cap.id],
+                        "name": cap.name,
+                        "capability": 0,
+                        "description": cap.description or "",
+                        "parent": id_mapping.get(cap.parent_id) if cap.parent_id in id_mapping else None
+                    })
                 
             return export_data
 
@@ -246,7 +348,19 @@ class DatabaseOperations:
         """Clear all capabilities from the database."""
         async with await self._get_session() as session:
             try:
-                await session.execute(text("DELETE FROM capabilities"))
+                # Enable foreign key constraints
+                await session.execute(text("PRAGMA foreign_keys = ON"))
+                await session.commit()
+                
+                # Get all root capabilities
+                stmt = select(Capability).where(Capability.parent_id.is_(None))
+                result = await session.execute(stmt)
+                root_capabilities = result.scalars().all()
+                
+                # Delete each root capability (which will cascade to children)
+                for root in root_capabilities:
+                    await session.delete(root)
+                
                 await session.commit()
             except Exception as e:
                 print(f"Error clearing capabilities: {e}")
@@ -261,6 +375,10 @@ class DatabaseOperations:
         
         async with await self._get_session() as session:
             try:
+                # Enable foreign key constraints
+                await session.execute(text("PRAGMA foreign_keys = ON"))
+                await session.commit()
+                
                 # Clear existing capabilities first
                 await self.clear_all_capabilities()
                 
@@ -300,6 +418,15 @@ class DatabaseOperations:
                     except Exception as e:
                         print(f"Error updating parent for {item.get('name')}: {e}")
                         raise
+                
+                # Validate all parent relationships before committing
+                stmt = select(Capability)
+                result = await session.execute(stmt)
+                capabilities = result.scalars().all()
+                
+                for cap in capabilities:
+                    if cap.parent_id and not any(p.id == cap.parent_id for p in capabilities):
+                        raise ValueError(f"Invalid parent reference for capability {cap.name}")
                 
                 # Commit all parent relationship updates
                 await session.commit()
