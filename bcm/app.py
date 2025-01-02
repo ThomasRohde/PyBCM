@@ -867,8 +867,24 @@ class App:
                 if not capability:
                     return False
                     
-                # Update description directly
+                # Store old values for audit
+                old_values = {
+                    "description": capability.description
+                }
+                
+                # Update description
                 capability.description = description
+                
+                # Add audit log
+                await self.db_ops.log_audit(
+                    session,
+                    "UPDATE",
+                    capability_id=capability_id,
+                    capability_name=capability.name,
+                    old_values=old_values,
+                    new_values={"description": description}
+                )
+                
                 await session.commit()
                 return True
         

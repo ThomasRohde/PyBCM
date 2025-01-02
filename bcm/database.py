@@ -134,17 +134,20 @@ class DatabaseOperations:
                 result.append(cap_dict)
             return result
 
-        capability = await self.get_capability(capability_id)
-        if not capability:
-            return None
+        async with await self._get_session() as session:
+            stmt = select(Capability).where(Capability.id == capability_id)
+            result = await session.execute(stmt)
+            capability = result.scalar_one_or_none()
+            if not capability:
+                return None
 
-        return {
-            "id": capability.id,
-            "name": capability.name,
-            "description": capability.description,
-            "order_position": capability.order_position,
-            "children": await build_hierarchy(capability.id)
-        }
+            return {
+                "id": capability.id,
+                "name": capability.name,
+                "description": capability.description,
+                "order_position": capability.order_position,
+                "children": await build_hierarchy(capability.id)
+            }
 
     async def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
         """Update a capability."""
@@ -154,18 +157,28 @@ class DatabaseOperations:
                 await session.execute(text("PRAGMA foreign_keys = ON"))
                 await session.commit()
                 
-                db_capability = await self.get_capability(capability_id)
+                # Get capability within this session
+                stmt = select(Capability).where(Capability.id == capability_id)
+                result = await session.execute(stmt)
+                db_capability = result.scalar_one_or_none()
                 if not db_capability:
                     return None
 
-                # Store old values for audit
+                # Store old values for audit log
                 old_values = {
                     "name": db_capability.name,
                     "description": db_capability.description,
                     "parent_id": db_capability.parent_id
                 }
 
+                # Convert capability model to dict for updates
                 update_data = capability.model_dump(exclude_unset=True)
+
+                # Update fields if present in update data
+                if 'name' in update_data:
+                    db_capability.name = update_data['name']
+                if 'description' in update_data:
+                    db_capability.description = update_data['description']
                 
                 # If updating parent_id, validate it exists
                 if 'parent_id' in update_data:
@@ -200,7 +213,7 @@ class DatabaseOperations:
                 for key, value in update_data.items():
                     setattr(db_capability, key, value)
 
-                # Add audit log
+                # Add audit log for the update
                 await self.log_audit(
                     session,
                     "UPDATE",
@@ -225,8 +238,10 @@ class DatabaseOperations:
                 await session.execute(text("PRAGMA foreign_keys = ON"))
                 await session.commit()
                 
-                # Get the capability and all its descendants
-                capability = await self.get_capability(capability_id)
+                # Get the capability within this session
+                stmt = select(Capability).where(Capability.id == capability_id)
+                result = await session.execute(stmt)
+                capability = result.scalar_one_or_none()
                 if not capability:
                     return False
 
@@ -343,11 +358,11 @@ class DatabaseOperations:
                     for cap in capabilities:
                         cap.order_position += 1
 
-                # Update the capability itself
+                # Update the capability's parent and position
                 db_capability.parent_id = new_parent_id
                 db_capability.order_position = new_order
-
-                # Add audit log
+                
+                # Add audit log for the move operation
                 await self.log_audit(
                     session,
                     "MOVE",
