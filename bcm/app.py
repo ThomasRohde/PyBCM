@@ -87,6 +87,7 @@ class App:
         self.file_menu.add_command(label="Export to PowerPoint...", command=self._export_to_pptx)
         self.file_menu.add_command(label="Export to Archimate...", command=self._export_to_archimate)
         self.file_menu.add_separator()
+        self.file_menu.add_command(label="View Audit Logs", command=self._view_audit_logs)
         self.file_menu.add_command(label="Export Audit Logs...", command=self._export_audit_logs)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Settings", command=self._show_settings)
@@ -1008,6 +1009,11 @@ class App:
         finally:
             if progress:
                 progress.close()
+
+    def _view_audit_logs(self):
+        """Show the audit log viewer."""
+        from .audit_view import AuditLogViewer
+        AuditLogViewer(self.root, self.db_ops)
 
     def _export_audit_logs(self):
         """Export audit logs to JSON file."""
