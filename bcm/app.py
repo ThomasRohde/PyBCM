@@ -1,10 +1,8 @@
 import asyncio
 import threading
-from typing import Dict, Optional
-from datetime import datetime
+from typing import Dict
 import json
 import os
-from pathlib import Path
 from tkinter import filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
@@ -14,7 +12,6 @@ from .models import (
     init_db,
     get_db,
     CapabilityCreate,
-    CapabilityUpdate,
     AsyncSessionLocal,
     Capability
 )

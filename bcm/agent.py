@@ -313,7 +313,7 @@ class ChatDialog(ttk.Toplevel):
 <div class="{css_class}">
     {html_content}
 </div>"""
-        except Exception as e:
+        except Exception:
             # Fallback to plain text if markdown conversion fails
             return f"""{self.message_styles}
 <div class="{css_class}">

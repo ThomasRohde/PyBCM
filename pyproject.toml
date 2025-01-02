@@ -26,3 +26,8 @@ bcm = "bcm:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["bcm"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.4",
+]

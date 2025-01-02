@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel

@@ -153,7 +153,7 @@ class DatabaseOperations:
                 await session.commit()
                 await session.refresh(db_capability)
                 return db_capability
-            except Exception as e:
+            except Exception:
                 await session.rollback()
                 raise
 
