@@ -438,7 +438,7 @@ class App:
         time.sleep(1)
         
         # Launch web browser to chat interface with correct port
-        webbrowser.open(f'http://127.0.0.1:{port}')
+        webbrowser.open(f'http://127.0.0.1:{port}', 1)
 
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
