@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, RootModel
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, text
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, text, Index
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import relationship
@@ -46,6 +46,13 @@ class Capability(Base):
         back_populates="parent",
         cascade="all, delete",  # Changed from "all, delete-orphan"
         passive_deletes=True,
+    )
+
+    # Add indexes
+    __table_args__ = (
+        Index('ix_capabilities_name', 'name'),
+        Index('ix_capabilities_description', 'description'),
+        Index('ix_capabilities_parent_id', 'parent_id'),
     )
 
 class CapabilityCreate(BaseModel):

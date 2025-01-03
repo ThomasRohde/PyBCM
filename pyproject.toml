@@ -33,3 +33,6 @@ packages = ["bcm"]
 dev = [
     "ruff>=0.8.4",
 ]
+
+[tool.logfire]
+ignore_no_config = true
