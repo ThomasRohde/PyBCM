@@ -2,3 +2,4 @@
 
 - Cache visualisations for better performance
 - Reset audit log
++ Add database indexes
