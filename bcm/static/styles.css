@@ -1,3 +1,4 @@
+/* General Styles */
 body {
     font-family: sans-serif;
     background-color: #f4f7f6;
@@ -8,6 +9,7 @@ body {
     min-height: 100vh;
 }
 
+/* Chat Container */
 #chat-container {
     background-color: #fff;
     border-radius: 8px;
@@ -20,113 +22,130 @@ body {
     flex-direction: column;
 }
 
+/* Messages Area */
 #messages {
     flex-grow: 1;
-    padding: 20px;
+    padding: 15px; /* Slightly reduced padding */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    gap: 8px; /* Use gap for spacing between messages */
 }
 
+/* Individual Message */
 .message {
     display: flex;
-    margin-bottom: 10px;
-    align-items: flex-start; /* Align avatar to the top */
+    align-items: flex-start;
 }
 
+/* Avatar */
 .avatar {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 8px; /* Slightly reduced margin */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
+/* User Message Styling */
 .message.user-message {
     justify-content: flex-end;
-}
-
-.message.assistant-message {
-    justify-content: flex-start;
 }
 
 .user-message .message-content {
     background-color: #dcf8c6;
     border-radius: 10px 10px 0 10px;
-    padding: 10px 15px;
+    padding: 0px 12px; /* Slightly reduced horizontal padding */
     word-wrap: break-word;
     text-align: right;
+}
+
+/* Assistant Message Styling */
+.message.assistant-message {
+    justify-content: flex-start;
 }
 
 .assistant-message .message-content {
     background-color: #ececec;
     border-radius: 0 10px 10px 10px;
-    padding: 10px 15px;
+    padding: 10px 12px; /* Slightly reduced horizontal padding */
     word-wrap: break-word;
-    max-height: none;
 }
 
+/* Message Content (Shared) */
 .message-content {
     flex-grow: 1;
-    position: relative; /* For timestamp positioning */
+    position: relative;
     max-width: 80%;
-    min-width: 200px;
+    min-width: 100px; /* Adjusted min-width */
     white-space: pre-wrap;
     overflow-wrap: break-word;
-    line-height: 1.2;
+    line-height: 1.3; /* Slightly reduced line height */
 }
 
-/* Tighter spacing for all elements */
+/* Reduced spacing for elements within message content */
 .message-content > * {
-    margin: 0.2em 0;
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+}
+
+.message-content > *:first-child {
+    margin-top: 0;
+}
+
+.message-content > *:last-child {
+    margin-bottom: 0;
 }
 
 .message-content p {
     margin: 0;
-    padding: 0;
 }
 
 /* Adjust list spacing */
 .message-content ol,
 .message-content ul {
-    margin: 0.2em 0;
+    margin-top: -1.4em;
+    margin-bottom: 0.3em;
     padding-left: 1.2em;
 }
 
 .message-content li {
-    margin: 0;
-    padding: 0;
+    margin-bottom: -1.8em; /* Reduced spacing between list items */
     line-height: 1.2;
 }
 
-/* Ensure no extra spacing between list items */
-.message-content li p {
-    margin: 0;
+.message-content li:last-child {
+    margin-bottom: 0;
 }
 
 /* Style code blocks within messages */
 .message-content pre {
     background-color: #f8f9fa;
-    padding: 10px;
+    padding: 8px; /* Slightly reduced padding */
     border-radius: 4px;
     overflow-x: auto;
-    margin: 10px 0;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 .message-content code {
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.9em;
+    line-height: 1.4; /* Adjust line height for code */
 }
 
+/* Timestamp */
 .timestamp {
     position: absolute;
-    bottom: -18px;
+    bottom: -16px; /* Slightly adjusted position */
     right: 5px;
     font-size: 0.7em;
     color: #777;
 }
 
+/* Input Area */
 #input-container {
-    padding: 10px;
+    padding: 8px; /* Slightly reduced padding */
     display: flex;
     border-top: 1px solid #eee;
 }
@@ -135,14 +154,14 @@ body {
     flex-grow: 1;
     border: 1px solid #ccc;
     border-radius: 5px;
-    padding: 10px;
-    margin-right: 10px;
+    padding: 8px; /* Slightly reduced padding */
+    margin-right: 8px; /* Slightly reduced margin */
     font-size: 1em;
-    resize: none; /* Prevent manual resizing */
-    overflow: auto; /* Add scroll for multiline input */
-    height: auto; /* Adjust height automatically */
-    min-height: 40px;
-    max-height: 100px;
+    resize: none;
+    overflow: auto;
+    min-height: 30px; /* Slightly reduced min-height */
+    max-height: 80px; /* Slightly reduced max-height */
+    line-height: 1.3; /* Ensure consistent line height */
 }
 
 #send-button {
@@ -150,7 +169,7 @@ body {
     color: white;
     border: none;
     border-radius: 5px;
-    padding: 10px 15px;
+    padding: 8px 12px; /* Slightly reduced padding */
     cursor: pointer;
     font-size: 1em;
     transition: background-color 0.3s ease;
@@ -167,7 +186,7 @@ body {
 
 /* Custom Scrollbar */
 #messages::-webkit-scrollbar {
-    width: 8px;
+    width: 6px; /* Slightly thinner scrollbar */
 }
 
 #messages::-webkit-scrollbar-track {
@@ -184,14 +203,6 @@ body {
     background: #bbb;
 }
 
-/* Welcome Message Styling */
-.welcome-message {
-    text-align: center;
-    font-style: italic;
-    color: #777;
-    padding: 15px;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     #chat-container {
@@ -200,29 +211,32 @@ body {
     }
     #messages {
         padding: 10px;
+        gap: 6px; /* Reduced gap in responsive mode */
     }
     #input-container {
-        padding: 8px;
+        padding: 6px;
     }
     #message-input {
         font-size: 0.9em;
-        margin-right: 5px;
+        margin-right: 6px;
+        padding: 6px;
     }
     #send-button {
         font-size: 0.9em;
-        padding: 8px 12px;
+        padding: 6px 10px;
     }
     .avatar {
-        width: 25px;
-        height: 25px;
-        margin-right: 8px;
-    }
-    .message {
-        margin-bottom: 10px;
+        width: 24px;
+        height: 24px;
+        margin-right: 6px;
     }
     .timestamp {
-        bottom: -15px;
+        bottom: -14px;
         right: 3px;
         font-size: 0.6em;
+    }
+    .user-message .message-content,
+    .assistant-message .message-content {
+        padding: 8px 10px; /* Further reduce padding in responsive mode */
     }
 }
