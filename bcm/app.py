@@ -34,6 +34,9 @@ class App:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
+        # Add shutdown event
+        self.shutdown_event = asyncio.Event()
+        
         # Load settings
         self.settings = Settings()
         
@@ -1142,27 +1145,53 @@ class App:
         # Create and show visualizer window
         CapabilityVisualizer(self.root, layout_model)
 
+    async def periodic_shutdown_check(self):
+        """Periodically check if shutdown has been requested."""
+        while True:
+            try:
+                await asyncio.sleep(0.5)  # Check every half second
+                if self.shutdown_event.is_set():
+                    await self._on_closing_async()
+                    break
+            except Exception as e:
+                print(f"Error during shutdown check: {e}")
+
     async def _on_closing_async(self):
         """Async cleanup operations."""
         try:
-            # Cancel all running tasks except this one
+            # First cancel any ongoing tree loading operations
             current_task = asyncio.current_task()
-            for task in asyncio.all_tasks(self.loop):
-                if task is not current_task:
+            tree_tasks = [task for task in asyncio.all_tasks(self.loop) 
+                         if task is not current_task 
+                         and task.get_name() != 'periodic_shutdown_check'
+                         and 'load_tree' in str(task.get_coro())]
+            
+            if tree_tasks:
+                for task in tree_tasks:
                     task.cancel()
                     try:
-                        await task
-                    except asyncio.CancelledError:
+                        await asyncio.wait_for(task, timeout=0.5)
+                    except (asyncio.CancelledError, asyncio.TimeoutError):
                         pass
-                    except Exception as e:
-                        print(f"Error cancelling task: {e}")
-
-            # Close database connection
+            
+            # Then close the database pool to prevent new operations
             if self.db:
-                await self.db.close()
+                try:
+                    await self.db.close()
+                except Exception:
+                    pass
+
+            # Finally cancel remaining tasks
+            for task in asyncio.all_tasks(self.loop):
+                if (task is not current_task and 
+                    task.get_name() != 'periodic_shutdown_check' and
+                    not task.done()):
+                    task.cancel()
+                    try:
+                        await asyncio.wait_for(task, timeout=0.5)
+                    except (asyncio.CancelledError, asyncio.TimeoutError):
+                        pass
                 
-        except Exception as e:
-            print(f"Error during async cleanup: {e}")
         finally:
             # Signal the event loop to stop
             self.loop.call_soon_threadsafe(self.loop.stop)
@@ -1177,27 +1206,22 @@ class App:
                 except:
                     pass
 
-            # Wait for any ongoing tree loading with a shorter timeout
-            if not self.loading_complete.wait(timeout=2):
-                print("Warning: Tree loading did not complete before shutdown")
+            # Set shutdown event to trigger async cleanup
+            self.shutdown_event.set()
 
-            # Create a new task for closing and wait for it
-            future = asyncio.run_coroutine_threadsafe(
-                self._on_closing_async(),
-                self.loop
-            )
-            # Wait for the closing task to complete with a shorter timeout
-            future.result(timeout=2)
+            # Give async cleanup a chance to complete
+            import time
+            timeout = time.time() + 2  # 2 second timeout
+            while not self.loop.is_closed() and time.time() < timeout:
+                time.sleep(0.1)
 
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
         finally:
             try:
                 # Ensure the root is destroyed and app quits
                 self.root.quit()
                 self.root.destroy()
-            except Exception as e:
-                print(f"Error destroying root window: {e}")
+            except:
+                pass
 
     def run(self):
         """Run the application with async support."""
@@ -1205,6 +1229,11 @@ class App:
             """Run the async event loop in a separate thread."""
             try:
                 asyncio.set_event_loop(self.loop)
+                # Start periodic shutdown check
+                shutdown_check_task = self.loop.create_task(
+                    self.periodic_shutdown_check(),
+                    name='periodic_shutdown_check'
+                )
                 self.loop.run_forever()
             except Exception as e:
                 print(f"Error in async loop: {e}")
