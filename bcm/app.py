@@ -850,6 +850,36 @@ class App:
             self.loop
         )
 
+    async def _save_description_async(self, capability_id: int, description: str, session) -> bool:
+        """Helper to save description and create audit log within a single session."""
+        # Get current capability within this session
+        stmt = select(Capability).where(Capability.id == capability_id)
+        result = await session.execute(stmt)
+        capability = result.scalar_one_or_none()
+        
+        if not capability:
+            return False
+            
+        # Store old values for audit
+        old_values = {
+            "description": capability.description
+        }
+        
+        # Update description
+        capability.description = description
+        
+        # Add audit log
+        await self.db_ops.log_audit(
+            session,
+            "UPDATE",
+            capability_id=capability_id,
+            capability_name=capability.name,
+            old_values=old_values,
+            new_values={"description": description}
+        )
+        
+        return True
+
     def _save_description(self):
         """Save the current description to the database."""
         selected = self.tree.selection()
@@ -862,34 +892,15 @@ class App:
         # Create async function to update description
         async def update_description():
             async with await self.db_ops._get_session() as session:
-                # Get current capability within this session
-                stmt = select(Capability).where(Capability.id == capability_id)
-                result = await session.execute(stmt)
-                capability = result.scalar_one_or_none()
-                
-                if not capability:
+                try:
+                    success = await self._save_description_async(capability_id, description, session)
+                    if success:
+                        await session.commit()
+                        return True
                     return False
-                    
-                # Store old values for audit
-                old_values = {
-                    "description": capability.description
-                }
-                
-                # Update description
-                capability.description = description
-                
-                # Add audit log
-                await self.db_ops.log_audit(
-                    session,
-                    "UPDATE",
-                    capability_id=capability_id,
-                    capability_name=capability.name,
-                    old_values=old_values,
-                    new_values={"description": description}
-                )
-                
-                await session.commit()
-                return True
+                except Exception as e:
+                    await session.rollback()
+                    raise e
         
         # Run the coroutine in the event loop
         future = asyncio.run_coroutine_threadsafe(

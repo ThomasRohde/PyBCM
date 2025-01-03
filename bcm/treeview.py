@@ -149,6 +149,17 @@ class CapabilityTreeview(ttk.Treeview):
                 self._wrap_async(self.db_ops.update_capability(capability_id, dialog.result))
                 self.refresh_tree()
 
+    async def _delete_capability_async(self, capability_id: int, session) -> bool:
+        """Helper to delete capability and create audit log within a single session."""
+        try:
+            # Delete capability and its children
+            success = await self.db_ops.delete_capability(capability_id, session)
+            if success:
+                return True
+            return False
+        except Exception as e:
+            raise e
+
     def delete_capability(self):
         """Delete selected capability."""
         selected = self.selection()
@@ -163,9 +174,30 @@ class CapabilityTreeview(ttk.Treeview):
             "Are you sure you want to delete this capability\nand all its children?"
         ):
             try:
+                # Create async function for deletion
+                async def delete_async():
+                    async with await self.db_ops._get_session() as session:
+                        try:
+                            success = await self._delete_capability_async(capability_id, session)
+                            if success:
+                                await session.commit()
+                                return True
+                            return False
+                        except Exception as e:
+                            await session.rollback()
+                            raise e
+
                 # Use _wrap_async to properly await the async operation
-                self._wrap_async(self.db_ops.delete_capability(capability_id))
-                self.refresh_tree()
+                success = self._wrap_async(delete_async())
+                if success:
+                    self.refresh_tree()
+                else:
+                    create_dialog(
+                        self,
+                        "Error",
+                        "Failed to delete capability - not found",
+                        ok_only=True
+                    )
             except Exception as e:
                 print(f"Error deleting capability: {e}")
                 create_dialog(
@@ -263,23 +295,19 @@ class CapabilityTreeview(ttk.Treeview):
         """Recursively load capabilities into the treeview."""
         try:
             capabilities = self._wrap_async(self.db_ops.get_capabilities(parent_id))
-            for cap in capabilities:
-                item_id = str(cap.id)
-                self.insert(
-                    parent,
-                    END,
-                    iid=item_id,
-                    text=cap.name,
-                    open=True
-                )
-                self._load_capabilities(item_id, cap.id)
+            if capabilities:  # Only process if we have capabilities
+                for cap in capabilities:
+                    item_id = str(cap.id)
+                    self.insert(
+                        parent,
+                        END,
+                        iid=item_id,
+                        text=cap.name,
+                        open=True
+                    )
+                    self._load_capabilities(item_id, cap.id)
         except Exception as e:
-            create_dialog(
-                self,
-                "Error", 
-                f"Failed to load capabilities: {str(e)}",
-                ok_only=True
-            )
+            print(f"Error loading capabilities: {e}")  # Log error for debugging
 
     def on_click(self, event):
         """Handle mouse click event."""

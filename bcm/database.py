@@ -27,9 +27,15 @@ class DatabaseOperations:
         """Get a fresh session for operations."""
         return self.session_factory()
 
-    async def create_capability(self, capability: CapabilityCreate) -> Capability:
+    async def create_capability(self, capability: CapabilityCreate, session=None) -> Capability:
         """Create a new capability."""
-        async with await self._get_session() as session:
+        if session is None:
+            async with await self._get_session() as session:
+                return await self._create_capability_impl(capability, session)
+        else:
+            return await self._create_capability_impl(capability, session)
+
+    async def _create_capability_impl(self, capability: CapabilityCreate, session) -> Capability:
             # Get max order for the parent
             result = await session.execute(
                 select(func.max(Capability.order_position))
@@ -74,9 +80,15 @@ class DatabaseOperations:
             
             return db_capability
 
-    async def get_capability(self, capability_id: int) -> Optional[Capability]:
+    async def get_capability(self, capability_id: int, session=None) -> Optional[Capability]:
         """Get a capability by ID."""
-        async with await self._get_session() as session:
+        if session is None:
+            async with await self._get_session() as session:
+                return await self._get_capability_impl(capability_id, session)
+        else:
+            return await self._get_capability_impl(capability_id, session)
+
+    async def _get_capability_impl(self, capability_id: int, session) -> Optional[Capability]:
             stmt = select(Capability).where(Capability.id == capability_id)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
@@ -88,15 +100,22 @@ class DatabaseOperations:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
-    async def get_capabilities(self, parent_id: Optional[int] = None) -> List[Capability]:
+    async def get_capabilities(self, parent_id: Optional[int] = None, session=None) -> List[Capability]:
         """Get all capabilities, optionally filtered by parent_id."""
-        async with await self._get_session() as session:
+        if session is None:
+            async with await self._get_session() as session:
+                return await self._get_capabilities_impl(parent_id, session)
+        else:
+            return await self._get_capabilities_impl(parent_id, session)
+
+    async def _get_capabilities_impl(self, parent_id: Optional[int], session) -> List[Capability]:
             try:
                 stmt = select(Capability).where(
                     Capability.parent_id == parent_id
                 ).order_by(Capability.order_position)
                 result = await session.execute(stmt)
-                return result.scalars().all()
+                capabilities = result.scalars().all()
+                return list(capabilities) if capabilities else []
             except Exception as e:
                 raise e
 
@@ -149,9 +168,15 @@ class DatabaseOperations:
                 "children": await build_hierarchy(capability.id)
             }
 
-    async def update_capability(self, capability_id: int, capability: CapabilityUpdate) -> Optional[Capability]:
+    async def update_capability(self, capability_id: int, capability: CapabilityUpdate, session=None) -> Optional[Capability]:
         """Update a capability."""
-        async with await self._get_session() as session:
+        if session is None:
+            async with await self._get_session() as session:
+                return await self._update_capability_impl(capability_id, capability, session)
+        else:
+            return await self._update_capability_impl(capability_id, capability, session)
+
+    async def _update_capability_impl(self, capability_id: int, capability: CapabilityUpdate, session) -> Optional[Capability]:
             try:
                 # Enable foreign key constraints
                 await session.execute(text("PRAGMA foreign_keys = ON"))
@@ -240,9 +265,15 @@ class DatabaseOperations:
                 await session.rollback()
                 raise
 
-    async def delete_capability(self, capability_id: int) -> bool:
+    async def delete_capability(self, capability_id: int, session=None) -> bool:
         """Delete a capability and its children."""
-        async with await self._get_session() as session:
+        if session is None:
+            async with await self._get_session() as session:
+                return await self._delete_capability_impl(capability_id, session)
+        else:
+            return await self._delete_capability_impl(capability_id, session)
+
+    async def _delete_capability_impl(self, capability_id: int, session) -> bool:
             try:
                 # Enable foreign key constraints for this session
                 await session.execute(text("PRAGMA foreign_keys = ON"))
