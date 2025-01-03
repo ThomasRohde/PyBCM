@@ -140,8 +140,9 @@ async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[D
         }
     return None
 
-# Chat history storage
-chat_history = []
+# Replace the global chat_history with a connection-specific store
+from weakref import WeakKeyDictionary
+chat_histories = WeakKeyDictionary()  # This will automatically clean up disconnected sessions
 
 # Load chat template
 chat_template = jinja_env.get_template('chat.html')
@@ -155,10 +156,13 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
         
-        # Send chat history
+        # Initialize empty chat history for this connection
+        chat_histories[websocket] = []
+        
+        # Send empty chat history for new connection
         await websocket.send_json({
             "type": "history",
-            "messages": [to_chat_message(msg) for msg in chat_history]
+            "messages": []
         })
         
         while True:
@@ -174,16 +178,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     )]
                 )
                 await websocket.send_json(to_chat_message(user_msg))
-                chat_history.append(user_msg)
+                chat_histories[websocket].append(user_msg)
 
-                # Process with AI using the properly structured chat history
+                # Process with AI using the connection-specific chat history
                 from .models import AsyncSessionLocal
                 deps = Deps(db_factory=AsyncSessionLocal)
                 print("  preparing model and tools")
                 # Initialize an empty string to collect the full response
                 full_response = ""
                 
-                async with agent.run_stream(user_content, message_history=chat_history, deps=deps) as result:
+                async with agent.run_stream(user_content, message_history=chat_histories[websocket], deps=deps) as result:
                     print("  model request started")
                     async for text in result.stream(debounce_by=0.01):
                         if websocket.client_state != WebSocketState.CONNECTED:
@@ -203,10 +207,12 @@ async def websocket_endpoint(websocket: WebSocket):
                             parts=[TextPart(content=full_response)],
                             timestamp=result.timestamp()
                         )
-                        chat_history.append(final_response)
+                        chat_histories[websocket].append(final_response)
                         
             except WebSocketDisconnect:
                 print("Client disconnected")
+                if websocket in chat_histories:
+                    del chat_histories[websocket]  # Clean up the chat history
                 break
             except Exception as e:
                 print(f"WebSocket error: {e}")
@@ -220,7 +226,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         timestamp=datetime.now(tz=timezone.utc)
                     )
                     await websocket.send_json(to_chat_message(error_response))
-                    chat_history.append(error_response)
+                    chat_histories[websocket].append(error_response)
     except Exception as e:
         print(f"WebSocket connection error: {e}")
     finally:
