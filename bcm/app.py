@@ -437,10 +437,8 @@ class App:
             children=children
         )
 
-    def _export_to_archimate(self):
-        """Export capabilities to Archimate Open Exchange format starting from selected node."""
-        from .archimate_export import export_to_archimate
-        
+    def _export_capability_model(self, export_type, export_func, file_extension, file_type_name):
+        """Base method for exporting capability model to different formats."""
         # Get selected node or use root if none selected
         selected = self.tree.selection()
         if selected:
@@ -483,25 +481,29 @@ class App:
         app_dir = os.path.join(user_dir, '.pybcm')
         os.makedirs(app_dir, exist_ok=True)
         filename = filedialog.asksaveasfilename(
-            title="Export to Archimate",
+            title=f"Export to {export_type}",
             initialdir=app_dir,
-            defaultextension=".xml",
-            filetypes=[("XML files", "*.xml"), ("All files", "*.*")]
+            defaultextension=file_extension,
+            filetypes=[(f"{file_type_name} files", f"*{file_extension}"), ("All files", "*.*")]
         )
         
         if filename:
             try:
-                # Generate Archimate content
-                archimate_content = export_to_archimate(layout_model, self.settings)
+                # Generate content using provided export function
+                content = export_func(layout_model, self.settings)
                 
-                # Write to file
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(archimate_content)
+                # Handle different save methods
+                if isinstance(content, str):
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                else:
+                    # Assume it's a PowerPoint presentation or similar object with save method
+                    content.save(filename)
                 
                 create_dialog(
                     self.root,
                     "Success",
-                    "Capabilities exported to Archimate format successfully",
+                    f"Capabilities exported to {export_type} format successfully",
                     ok_only=True
                 )
                 
@@ -509,160 +511,24 @@ class App:
                 create_dialog(
                     self.root,
                     "Error",
-                    f"Failed to export capabilities to Archimate format: {str(e)}",
+                    f"Failed to export capabilities to {export_type} format: {str(e)}",
                     ok_only=True
                 )
+
+    def _export_to_archimate(self):
+        """Export capabilities to Archimate Open Exchange format starting from selected node."""
+        from .archimate_export import export_to_archimate
+        self._export_capability_model("Archimate", export_to_archimate, ".xml", "XML")
 
     def _export_to_pptx(self):
         """Export capabilities to PowerPoint visualization starting from selected node."""
         from .pptx_export import export_to_pptx
-        
-        # Get selected node or use root if none selected
-        selected = self.tree.selection()
-        if selected:
-            start_node_id = int(selected[0])
-        else:
-            # Find root node - using async method properly
-            async def get_root_node():
-                capabilities = await self.db_ops.get_all_capabilities()
-                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-                if not root_nodes:
-                    return None
-                return root_nodes[0]["id"]
-                
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(
-                get_root_node(),
-                self.loop
-            )
-            start_node_id = future.result()  # Wait for completion
-            
-            if not start_node_id:
-                return
-
-        # Get hierarchical data starting from selected node
-        async def get_node_data():
-            return await self.db_ops.get_capability_with_children(start_node_id)
-            
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(
-            get_node_data(),
-            self.loop
-        )
-        node_data = future.result()  # Wait for completion
-        
-        # Convert to layout format starting from selected node
-        layout_model = self._convert_to_layout_format(node_data)
-        
-        # Get save location from user
-        user_dir = os.path.expanduser('~')
-        app_dir = os.path.join(user_dir, '.pybcm')
-        os.makedirs(app_dir, exist_ok=True)
-        filename = filedialog.asksaveasfilename(
-            title="Export to PowerPoint",
-            initialdir=app_dir,
-            defaultextension=".pptx",
-            filetypes=[("PowerPoint files", "*.pptx"), ("All files", "*.*")]
-        )
-        
-        if filename:
-            try:
-                # Generate PowerPoint presentation
-                prs = export_to_pptx(layout_model, self.settings)
-                
-                # Save presentation
-                prs.save(filename)
-                
-                create_dialog(
-                    self.root,
-                    "Success",
-                    "Capabilities exported to PowerPoint successfully",
-                    ok_only=True
-                )
-                
-            except Exception as e:
-                create_dialog(
-                    self.root,
-                    "Error",
-                    f"Failed to export capabilities to PowerPoint: {str(e)}",
-                    ok_only=True
-                )
+        self._export_capability_model("PowerPoint", export_to_pptx, ".pptx", "PowerPoint")
 
     def _export_to_svg(self):
         """Export capabilities to SVG visualization starting from selected node."""
         from .svg_export import export_to_svg
-        
-        # Get selected node or use root if none selected
-        selected = self.tree.selection()
-        if selected:
-            start_node_id = int(selected[0])
-        else:
-            # Find root node - using async method properly
-            async def get_root_node():
-                capabilities = await self.db_ops.get_all_capabilities()
-                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-                if not root_nodes:
-                    return None
-                return root_nodes[0]["id"]
-                
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(
-                get_root_node(),
-                self.loop
-            )
-            start_node_id = future.result()  # Wait for completion
-            
-            if not start_node_id:
-                return
-
-        # Get hierarchical data starting from selected node
-        async def get_node_data():
-            return await self.db_ops.get_capability_with_children(start_node_id)
-            
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(
-            get_node_data(),
-            self.loop
-        )
-        node_data = future.result()  # Wait for completion
-        
-        # Convert to layout format starting from selected node
-        layout_model = self._convert_to_layout_format(node_data)
-        
-        # Get save location from user
-        user_dir = os.path.expanduser('~')
-        app_dir = os.path.join(user_dir, '.pybcm')
-        os.makedirs(app_dir, exist_ok=True)
-        filename = filedialog.asksaveasfilename(
-            title="Export to SVG",
-            initialdir=app_dir,
-            defaultextension=".svg",
-            filetypes=[("SVG files", "*.svg"), ("All files", "*.*")]
-        )
-        
-        if filename:
-            try:
-                # Generate SVG content
-                svg_content = export_to_svg(layout_model, self.settings)
-                
-                # Write to file
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(svg_content)
-                
-                create_dialog(
-                    self.root,
-                    "Success",
-                    "Capabilities exported to SVG successfully",
-                    ok_only=True
-                )
-                
-            except Exception as e:
-                create_dialog(
-                    self.root,
-                    "Error",
-                    f"Failed to export capabilities to SVG: {str(e)}",
-                    ok_only=True
-                )
+        self._export_capability_model("SVG", export_to_svg, ".svg", "SVG")
     
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
