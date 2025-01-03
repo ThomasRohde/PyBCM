@@ -24,6 +24,10 @@ from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
 
+import logfire
+logfire.configure()  
+logfire.instrument_openai()
+
 async def anext(iterator):
     """Helper function for async iteration compatibility."""
     return await iterator.__anext__()

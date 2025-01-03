@@ -156,21 +156,21 @@ async def get():
 async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
-        
+
         # Initialize empty chat history for this connection
         chat_histories[websocket] = []
-        
+
         # Send empty chat history for new connection
         await websocket.send_json({
             "type": "history",
             "messages": []
         })
-        
+
         while True:
             try:
                 message = await websocket.receive_json()
                 user_content = message["content"]
-                
+
                 # Create and send user message with proper parts
                 user_msg = ModelRequest(
                     parts=[UserPromptPart(
@@ -187,7 +187,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 print("  preparing model and tools")
                 # Initialize an empty string to collect the full response
                 full_response = ""
-                
+
                 async with agent.run_stream(user_content, message_history=chat_histories[websocket], deps=deps) as result:
                     print("  model request started")
                     async for text in result.stream(debounce_by=0.01):
@@ -201,7 +201,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             timestamp=result.timestamp()
                         )
                         await websocket.send_json(to_chat_message(msg))
-                    
+
                     if websocket.client_state == WebSocketState.CONNECTED:
                         # Create and add the final complete response to history
                         final_response = ModelResponse(
@@ -209,7 +209,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             timestamp=result.timestamp()
                         )
                         chat_histories[websocket].append(final_response)
-                        
+
             except WebSocketDisconnect:
                 print("Client disconnected")
                 if websocket in chat_histories:
