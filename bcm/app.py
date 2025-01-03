@@ -1,9 +1,9 @@
 import asyncio
-import threading
-from typing import Dict
 import json
 import os
+import threading
 from tkinter import filedialog
+from typing import Dict
 import ttkbootstrap as ttk
 from sqlalchemy import select
 
@@ -75,54 +75,9 @@ class App:
 
     def _import_capabilities(self):
         """Import capabilities from JSON file."""
-        user_dir = os.path.expanduser('~')
-        app_dir = os.path.join(user_dir, '.pybcm')
-        os.makedirs(app_dir, exist_ok=True)
-        filename = filedialog.askopenfilename(
-            title="Import Capabilities",
-            initialdir=app_dir,
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        if not filename:
-            return
-
-        try:
-            with open(filename, 'r') as f:
-                data = json.load(f)
-            
-            # Confirm import
-            if create_dialog(
-                self.root,
-                "Confirm Import",
-                "This will replace all existing capabilities. Continue?"
-            ):
-                # Create coroutine for import operation
-                async def import_async():
-                    await self.db_ops.import_capabilities(data)
-            
-                # Run the coroutine in the event loop
-                future = asyncio.run_coroutine_threadsafe(
-                    import_async(),
-                    self.loop
-                )
-                future.result()  # Wait for completion
-            
-                self.ui.tree.refresh_tree()
-            
-                create_dialog(
-                    self.root,
-                    "Success",
-                    "Capabilities imported successfully",
-                    ok_only=True
-                )
-                
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to import capabilities: {str(e)}",
-                ok_only=True
-            )
+        from .io import import_capabilities
+        if import_capabilities(self.root, self.db_ops, self.loop):
+            self.ui.tree.refresh_tree()
 
     def _convert_to_layout_format(self, node_data, level=0):
         """Convert a node and its children to the layout format using LayoutModel.
@@ -239,46 +194,8 @@ class App:
     
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
-        user_dir = os.path.expanduser('~')
-        app_dir = os.path.join(user_dir, '.pybcm')
-        os.makedirs(app_dir, exist_ok=True)
-        filename = filedialog.asksaveasfilename(
-            title="Export Capabilities",
-            initialdir=app_dir,
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        if not filename:
-            return
-
-        try:
-            # Create coroutine for export operation
-            async def export_async():
-                data = await self.db_ops.export_capabilities()
-                with open(filename, 'w') as f:
-                    json.dump(data, f, indent=2)
-            
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(
-                export_async(),
-                self.loop
-            )
-            future.result()  # Wait for completion
-            
-            create_dialog(
-                self.root,
-                "Success",
-                "Capabilities exported successfully",
-                ok_only=True
-            )
-            
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to export capabilities: {str(e)}",
-                ok_only=True
-            )
+        from .io import export_capabilities
+        export_capabilities(self.root, self.db_ops, self.loop)
 
     async def _save_description_async(self, capability_id: int, description: str, session) -> bool:
         """Helper to save description and create audit log within a single session."""
