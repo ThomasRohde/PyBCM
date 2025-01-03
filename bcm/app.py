@@ -417,14 +417,17 @@ class App:
         """Show the AI chat dialog."""
         import threading
         import webbrowser
-        from .web_agent import start_server
+        from .web_agent import start_server, get_chat_port
         import asyncio
         import sys
+        
+        # Get the port first
+        port = get_chat_port()
         
         def run_server():
             if sys.platform == 'win32':
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-            start_server()
+            start_server(port)
         
         # Start the FastAPI server in a background thread
         server_thread = threading.Thread(target=run_server, daemon=True)
@@ -434,9 +437,9 @@ class App:
         import time
         time.sleep(1)
         
-        # Launch web browser to chat interface
-        webbrowser.open('http://127.0.0.1:8000')
-        
+        # Launch web browser to chat interface with correct port
+        webbrowser.open(f'http://127.0.0.1:{port}')
+
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
         

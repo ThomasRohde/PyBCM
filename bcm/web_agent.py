@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
+from weakref import WeakKeyDictionary
+import socket
 
 from .database import DatabaseOperations
 from pydantic_ai import Agent, RunContext
@@ -141,7 +143,6 @@ async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[D
     return None
 
 # Replace the global chat_history with a connection-specific store
-from weakref import WeakKeyDictionary
 chat_histories = WeakKeyDictionary()  # This will automatically clean up disconnected sessions
 
 # Load chat template
@@ -233,9 +234,37 @@ async def websocket_endpoint(websocket: WebSocket):
         if websocket.client_state == WebSocketState.CONNECTED:
             await websocket.close()
 
-def start_server():
+def is_port_in_use(port: int) -> bool:
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return False
+        except OSError:
+            return True
+
+def find_available_port(start_port: int = 8000, max_attempts: int = 100) -> int:
+    """Find the next available port starting from start_port."""
+    port = start_port
+    while port < (start_port + max_attempts):
+        if not is_port_in_use(port):
+            return port
+        port += 1
+    raise RuntimeError(f"Could not find an available port after {max_attempts} attempts")
+
+def get_chat_port(start_port: int = 8000) -> int:
+    """Get the port for the chat server."""
+    return find_available_port(start_port)
+
+def start_server(port: Optional[int] = None):
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    try:
+        if port is None:
+            port = get_chat_port()
+        print(f"Starting server on port {port}")
+        uvicorn.run(app, host="127.0.0.1", port=port)
+    except Exception as e:
+        print(f"Failed to start server: {e}")
 
 if __name__ == "__main__":
     start_server()
