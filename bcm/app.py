@@ -73,12 +73,6 @@ class App:
         self.root.position_center()  # Position window while it's hidden
         self.root.deiconify()  # Show window in final position
 
-    def _import_capabilities(self):
-        """Import capabilities from JSON file."""
-        from .io import import_capabilities
-        if import_capabilities(self.root, self.db_ops, self.loop):
-            self.ui.tree.refresh_tree()
-
     def _convert_to_layout_format(self, node_data, level=0):
         """Convert a node and its children to the layout format using LayoutModel.
         
@@ -196,6 +190,12 @@ class App:
         """Export capabilities to JSON file."""
         from .io import export_capabilities
         export_capabilities(self.root, self.db_ops, self.loop)
+
+    def _import_capabilities(self):
+        """Import capabilities from JSON file."""
+        from .io import import_capabilities
+        if import_capabilities(self.root, self.db_ops, self.loop):
+            self.ui.tree.refresh_tree()
 
     async def _save_description_async(self, capability_id: int, description: str, session) -> bool:
         """Helper to save description and create audit log within a single session."""
