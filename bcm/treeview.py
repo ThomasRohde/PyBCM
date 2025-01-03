@@ -212,7 +212,6 @@ class CapabilityTreeview(ttk.Treeview):
         import asyncio
         import threading
         import inspect
-        from functools import partial
         
         result = None
         error = None
