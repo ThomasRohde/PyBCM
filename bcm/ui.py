@@ -223,8 +223,20 @@ class BusinessCapabilityUI:
             height=20,
             font=("TkDefaultFont", font_size)
         )
-        self.desc_viewer.configure(state='disabled')  # Disable editing
+        # Get colors from current theme
+        style = ttk.Style()
+        bg_color = style.lookup('TFrame', 'background')
+        fg_color = style.lookup('TFrame', 'foreground')
         
+        # Configure HTMLScrolledText colors
+        self.desc_viewer.configure(
+            state='disabled',  # Disable editing
+            background=bg_color,
+            foreground=fg_color,
+        )
+        self.desc_viewer.html_parser.css_background = bg_color
+        self.desc_viewer.html_parser.css_foreground = fg_color
+        print(bg_color, fg_color)
         # Create text widget for editing
         self.desc_text = ttk.Text(
             self.right_panel,
@@ -326,7 +338,9 @@ class BusinessCapabilityUI:
             # Switch to view mode
             self.desc_text.pack_forget()
             self.desc_viewer.pack(fill="both", expand=True)
-            markdown_html = markdown.markdown(self.desc_text.get('1.0', 'end-1c'))
+            style = ttk.Style()
+            fg_color = style.lookup('TFrame', 'foreground')
+            markdown_html = f'<div style="color: {fg_color}">{markdown.markdown(self.desc_text.get("1.0", "end-1c"))}</div>'
             self.desc_viewer.set_html(markdown_html)
             self.edit_desc_btn.configure(text="Edit")
 
@@ -360,7 +374,9 @@ class BusinessCapabilityUI:
                     self.desc_text.insert('1.0', self.app.current_description)
                     self.desc_text.edit_modified(False)
                 else:
-                    markdown_html = markdown.markdown(self.app.current_description)
+                    style = ttk.Style()
+                    fg_color = style.lookup('TFrame', 'foreground')
+                    markdown_html = f'<div style="color: {fg_color}">{markdown.markdown(self.app.current_description)}</div>'
                     self.desc_viewer.set_html(markdown_html)
                 self.save_desc_btn.configure(state="disabled")
         
