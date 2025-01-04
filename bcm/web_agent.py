@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.websockets import WebSocketState
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from typing import List, Optional, Dict
 from datetime import datetime, timezone
 from dataclasses import dataclass
@@ -49,6 +49,10 @@ app = FastAPI()
 static_path = Path(__file__).parent / "static"
 static_path.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+@app.get("/favicon.png", include_in_schema=False)
+async def favicon():
+    return FileResponse("static/favicon.png")
 
 @dataclass
 class Deps:
