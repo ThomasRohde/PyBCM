@@ -188,27 +188,44 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Initialize an empty string to collect the full response
                 full_response = ""
 
-                async with agent.run_stream(user_content, message_history=chat_histories[websocket], deps=deps) as result:
-                    print("  model request started")
-                    async for text in result.stream(debounce_by=0.01):
-                        if websocket.client_state != WebSocketState.CONNECTED:
-                            break
-                        # Accumulate the full response
-                        full_response += text
-                        # Create a ModelResponse with TextPart for each chunk
-                        msg = ModelResponse(
-                            parts=[TextPart(content=text)],
-                            timestamp=result.timestamp()
-                        )
-                        await websocket.send_json(to_chat_message(msg))
+                try:
+                    async with agent.run_stream(user_content, message_history=chat_histories[websocket], deps=deps) as result:
+                        print("  model request started")
+                        try:
+                            async for text in result.stream(debounce_by=0.01):
+                                if websocket.client_state != WebSocketState.CONNECTED:
+                                    break
+                                # Accumulate the full response
+                                full_response += text
+                                # Create a ModelResponse with TextPart for each chunk
+                                msg = ModelResponse(
+                                    parts=[TextPart(content=text)],
+                                    timestamp=result.timestamp()
+                                )
+                                try:
+                                    await websocket.send_json(to_chat_message(msg))
+                                except WebSocketDisconnect:
+                                    break
 
+                            if websocket.client_state == WebSocketState.CONNECTED:
+                                # Create and add the final complete response to history
+                                final_response = ModelResponse(
+                                    parts=[TextPart(content=full_response)],
+                                    timestamp=result.timestamp()
+                                )
+                                chat_histories[websocket].append(final_response)
+                        except ValueError as ve:
+                            if "generator already executing" not in str(ve):
+                                raise
+                except Exception as e:
+                    print(f"Stream error: {str(e)}")
                     if websocket.client_state == WebSocketState.CONNECTED:
-                        # Create and add the final complete response to history
-                        final_response = ModelResponse(
-                            parts=[TextPart(content=full_response)],
-                            timestamp=result.timestamp()
+                        error_msg = f"An error occurred while processing your request."
+                        error_response = ModelResponse(
+                            parts=[TextPart(content=error_msg)],
+                            timestamp=datetime.now(tz=timezone.utc)
                         )
-                        chat_histories[websocket].append(final_response)
+                        await websocket.send_json(to_chat_message(error_response))
 
             except WebSocketDisconnect:
                 print("Client disconnected")
