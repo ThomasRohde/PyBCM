@@ -1,6 +1,8 @@
 import asyncio
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
+from tkhtmlview import HTMLScrolledText
+import markdown
 
 from .dialogs import create_dialog
 from .treeview import CapabilityTreeview
@@ -138,16 +140,25 @@ class BusinessCapabilityUI:
         ToolTip(self.clear_search_btn, text="Clear search")
         self.clear_search_btn.configure(state="disabled")
 
-        # Add save button to toolbar
+        # Add edit/save buttons to toolbar
+        self.edit_desc_btn = ttk.Button(
+            self.toolbar,
+            text="Edit",
+            command=self._toggle_edit_mode,
+            style="info-outline.TButton",
+            padding=3
+        )
+        ToolTip(self.edit_desc_btn, text="Edit description markdown")
+
         self.save_desc_btn = ttk.Button(
             self.toolbar,
-            text="Save Description",
+            text="Save",
             command=self._save_description,
             style="primary.TButton",
             state="disabled",
             padding=3
         )
-        ToolTip(self.save_desc_btn, text="Save capability description")
+        ToolTip(self.save_desc_btn, text="Save description")
 
         self.expand_btn.pack(side="left", padx=2)
         self.collapse_btn.pack(side="left", padx=2)
@@ -157,6 +168,7 @@ class BusinessCapabilityUI:
         ttk.Label(self.toolbar, text="Search:").pack(side="left", padx=(10, 2))
         self.search_entry.pack(side="left", padx=2)
         self.clear_search_btn.pack(side="left", padx=2)
+        self.edit_desc_btn.pack(side="right", padx=2)
         self.save_desc_btn.pack(side="right", padx=2)
 
     def _create_widgets(self):
@@ -204,7 +216,16 @@ class BusinessCapabilityUI:
         # Create right panel for description
         self.right_panel = ttk.Frame(self.main_container)
         
-        # Create text widget with current font size
+        # Create HTML viewer for markdown rendering
+        self.desc_viewer = HTMLScrolledText(
+            self.right_panel,
+            width=40,
+            height=20,
+            font=("TkDefaultFont", font_size)
+        )
+        self.desc_viewer.configure(state='disabled')  # Disable editing
+        
+        # Create text widget for editing
         self.desc_text = ttk.Text(
             self.right_panel,
             wrap="word",
@@ -212,20 +233,10 @@ class BusinessCapabilityUI:
             height=20,
             font=("TkDefaultFont", font_size)
         )
-        self.desc_scroll = ttk.Scrollbar(
-            self.right_panel,
-            orient="vertical",
-            command=self.desc_text.yview
-        )
         
-        def desc_scroll_handler(*args):
-            if self.desc_text.yview() == (0.0, 1.0):
-                self.desc_scroll.pack_forget()
-            else:
-                self.desc_scroll.pack(side="right", fill="y")
-            self.desc_scroll.set(*args)
-        
-        self.desc_text.configure(yscrollcommand=desc_scroll_handler)
+        # Initially show viewer
+        self.editing_mode = False
+        self.desc_viewer.pack(fill="both", expand=True)
         
         # Bind events
         self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
@@ -269,19 +280,16 @@ class BusinessCapabilityUI:
         self.left_panel.rowconfigure(0, weight=1)
 
         # Layout right panel
-        self.desc_text.pack(side="left", fill="both", expand=True)
-        self.desc_scroll.pack(side="right", fill="y")
+        # Initially show viewer (edit mode text widget is handled by toggle)
+        self.desc_viewer.pack(fill="both", expand=True)
         
         # Add panels to PanedWindow
         self.main_container.add(self.left_panel, weight=1)
         self.main_container.add(self.right_panel, weight=1)
         
-        # Initially hide scrollbars
+        # Initially hide tree scrollbar if not needed
         if self.tree.yview() == (0.0, 1.0):
             self.tree_scroll.grid_remove()
-        
-        if self.desc_text.yview() == (0.0, 1.0):
-            self.desc_scroll.pack_forget()
 
     def _expand_all(self):
         """Expand all items in the tree."""
@@ -303,6 +311,25 @@ class BusinessCapabilityUI:
         for item in self.tree.get_children():
             collapse_recursive(item)
 
+    def _toggle_edit_mode(self):
+        """Toggle between edit and view modes."""
+        self.editing_mode = not self.editing_mode
+        
+        if self.editing_mode:
+            # Switch to edit mode
+            self.desc_viewer.pack_forget()
+            self.desc_text.pack(fill="both", expand=True)
+            self.desc_text.delete('1.0', 'end')
+            self.desc_text.insert('1.0', self.app.current_description)
+            self.edit_desc_btn.configure(text="View")
+        else:
+            # Switch to view mode
+            self.desc_text.pack_forget()
+            self.desc_viewer.pack(fill="both", expand=True)
+            markdown_html = markdown.markdown(self.desc_text.get('1.0', 'end-1c'))
+            self.desc_viewer.set_html(markdown_html)
+            self.edit_desc_btn.configure(text="Edit")
+
     def _on_text_modified(self, event):
         """Handle text modifications."""
         if self.desc_text.edit_modified():
@@ -317,6 +344,7 @@ class BusinessCapabilityUI:
         selected = self.tree.selection()
         if not selected:
             self.desc_text.delete('1.0', 'end')
+            self.desc_viewer.set_html("")
             self.save_desc_btn.configure(state="disabled")
             self.app.current_description = ""
             return
@@ -327,9 +355,13 @@ class BusinessCapabilityUI:
             capability = await self.db_ops.get_capability(capability_id)
             if capability:
                 self.app.current_description = capability.description or ""
-                self.desc_text.delete('1.0', 'end')
-                self.desc_text.insert('1.0', self.app.current_description)
-                self.desc_text.edit_modified(False)
+                if self.editing_mode:
+                    self.desc_text.delete('1.0', 'end')
+                    self.desc_text.insert('1.0', self.app.current_description)
+                    self.desc_text.edit_modified(False)
+                else:
+                    markdown_html = markdown.markdown(self.app.current_description)
+                    self.desc_viewer.set_html(markdown_html)
                 self.save_desc_btn.configure(state="disabled")
         
         # Run the coroutine in the event loop
