@@ -406,6 +406,9 @@ class BusinessCapabilityUI:
                 "Description saved successfully",
                 ok_only=True
             )
+            # Switch back to view mode after successful save
+            if self.editing_mode:
+                self._toggle_edit_mode()
         else:
             create_dialog(
                 self.root,
