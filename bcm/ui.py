@@ -234,9 +234,17 @@ class BusinessCapabilityUI:
             background=bg_color,
             foreground=fg_color,
         )
+        # Set background color for both the widget and HTML content
         self.desc_viewer.html_parser.css_background = bg_color
         self.desc_viewer.html_parser.css_foreground = fg_color
-        print(bg_color, fg_color)
+        self.desc_viewer.html_parser.css = f"""
+            body {{ 
+                background-color: {bg_color}; 
+                color: {fg_color}; 
+                margin: 0; 
+                padding: 0; 
+            }}
+        """
         # Create text widget for editing
         self.desc_text = ttk.Text(
             self.right_panel,
