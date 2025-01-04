@@ -1,7 +1,7 @@
 /* General Styles */
 body {
-    font-family: sans-serif;
-    background-color: #f4f7f6;
+    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     margin: 0;
     display: flex;
     justify-content: center;
@@ -11,40 +11,45 @@ body {
 
 /* Chat Container */
 #chat-container {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     overflow: hidden;
     width: 80%;
-    max-width: 800px;
-    height: 80vh;
+    max-width: 1000px;
+    height: 85vh;
     display: flex;
     flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Messages Area */
 #messages {
     flex-grow: 1;
-    padding: 15px; /* Slightly reduced padding */
+    padding: 24px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Use gap for spacing between messages */
+    gap: 16px;
+    background-color: #f8fafc;
 }
 
 /* Individual Message */
 .message {
     display: flex;
     align-items: flex-start;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Avatar */
 .avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    margin-right: 8px; /* Slightly reduced margin */
-    flex-shrink: 0; /* Prevent shrinking */
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* User Message Styling */
@@ -53,11 +58,11 @@ body {
 }
 
 .user-message .message-content {
-    background-color: #dcf8c6;
-    border-radius: 10px 10px 0 10px;
-    padding: 0px 12px; /* Slightly reduced horizontal padding */
-    word-wrap: break-word;
-    text-align: right;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: #ffffff;
+    border-radius: 16px 16px 0 16px;
+    padding: 0px 16px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
 }
 
 /* Assistant Message Styling */
@@ -66,27 +71,29 @@ body {
 }
 
 .assistant-message .message-content {
-    background-color: #ececec;
-    border-radius: 0 10px 10px 10px;
-    padding: 10px 12px; /* Slightly reduced horizontal padding */
-    word-wrap: break-word;
+    background-color: #ffffff;
+    border-radius: 16px 16px 16px 0;
+    padding: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
 }
 
 /* Message Content (Shared) */
 .message-content {
     flex-grow: 1;
     position: relative;
-    max-width: 80%;
-    min-width: 100px; /* Adjusted min-width */
+    max-width: 70%;
+    min-width: 120px;
     white-space: pre-wrap;
     overflow-wrap: break-word;
-    line-height: 1.3; /* Slightly reduced line height */
+    line-height: 1.6;
+    font-size: 15px;
 }
 
-/* Reduced spacing for elements within message content */
+/* Spacing for elements within message content */
 .message-content > * {
-    margin-top: 0.3em;
-    margin-bottom: 0.3em;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 .message-content > *:first-child {
@@ -101,142 +108,183 @@ body {
     margin: 0;
 }
 
-/* Adjust list spacing */
+/* List styling */
 .message-content ol,
 .message-content ul {
-    margin-top: -1.4em;
-    margin-bottom: 0.3em;
-    padding-left: 1.2em;
+    margin: -1em 0;
+    padding-left: 2.5em;
 }
 
 .message-content li {
-    margin-bottom: -1.8em; /* Reduced spacing between list items */
-    line-height: 1.2;
+    margin: -0.6em 0;
+    line-height: 1.5;
 }
 
-.message-content li:last-child {
-    margin-bottom: 0;
+/* Reduce space after last list item */
+.message-content ol li:last-child,
+.message-content ul li:last-child {
+    margin-bottom: -1.8em;
 }
 
-/* Style code blocks within messages */
+/* Code block styling */
 .message-content pre {
-    background-color: #f8f9fa;
-    padding: 8px; /* Slightly reduced padding */
-    border-radius: 4px;
+    background-color: #1e293b;
+    padding: 16px;
+    border-radius: 12px;
     overflow-x: auto;
-    margin-top: 0.5em;
-    margin-bottom: 0.5em;
+    margin: 1em 0;
+    border: 1px solid #334155;
 }
 
 .message-content code {
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9em;
-    line-height: 1.4; /* Adjust line height for code */
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+/* Inline code */
+.message-content :not(pre) > code {
+    background-color: #f1f5f9;
+    padding: 0.2em 0.4em;
+    border-radius: 6px;
+    font-size: 85%;
+    color: #0f172a;
 }
 
 /* Timestamp */
 .timestamp {
     position: absolute;
-    bottom: -16px; /* Slightly adjusted position */
-    right: 5px;
-    font-size: 0.7em;
-    color: #777;
+    bottom: -20px;
+    right: 8px;
+    font-size: 0.75em;
+    color: #64748b;
 }
 
 /* Input Area */
 #input-container {
-    padding: 8px; /* Slightly reduced padding */
+    padding: 16px;
     display: flex;
-    border-top: 1px solid #eee;
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
 }
 
 #message-input {
     flex-grow: 1;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 8px; /* Slightly reduced padding */
-    margin-right: 8px; /* Slightly reduced margin */
-    font-size: 1em;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-right: 12px;
+    font-size: 15px;
     resize: none;
     overflow: auto;
-    min-height: 30px; /* Slightly reduced min-height */
-    max-height: 80px; /* Slightly reduced max-height */
-    line-height: 1.3; /* Ensure consistent line height */
+    min-height: 24px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease;
+    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#message-input:focus {
+    outline: none;
+    border-color: #3b82f6;
 }
 
 #send-button {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
     color: white;
     border: none;
-    border-radius: 5px;
-    padding: 8px 12px; /* Slightly reduced padding */
+    border-radius: 12px;
+    padding: 12px 24px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 #send-button:disabled {
-    background-color: #ccc;
-    cursor: default;
+    background: #e2e8f0;
+    cursor: not-allowed;
 }
 
 #send-button:hover:not(:disabled) {
-    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 /* Custom Scrollbar */
 #messages::-webkit-scrollbar {
-    width: 6px; /* Slightly thinner scrollbar */
+    width: 8px;
 }
 
 #messages::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #f1f5f9;
     border-radius: 10px;
 }
 
 #messages::-webkit-scrollbar-thumb {
-    background: #ccc;
+    background: #cbd5e1;
     border-radius: 10px;
+    border: 2px solid #f1f5f9;
 }
 
 #messages::-webkit-scrollbar-thumb:hover {
-    background: #bbb;
+    background: #94a3b8;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     #chat-container {
         width: 95%;
-        height: 90vh;
+        height: 95vh;
+        border-radius: 12px;
     }
+    
     #messages {
-        padding: 10px;
-        gap: 6px; /* Reduced gap in responsive mode */
+        padding: 16px;
+        gap: 16px;
     }
+    
     #input-container {
-        padding: 6px;
+        padding: 12px;
     }
+    
     #message-input {
-        font-size: 0.9em;
-        margin-right: 6px;
-        padding: 6px;
+        font-size: 14px;
+        margin-right: 8px;
+        padding: 10px 14px;
     }
+    
     #send-button {
-        font-size: 0.9em;
-        padding: 6px 10px;
+        padding: 10px 20px;
+        font-size: 14px;
     }
+    
     .avatar {
-        width: 24px;
-        height: 24px;
-        margin-right: 6px;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
     }
+    
     .timestamp {
-        bottom: -14px;
-        right: 3px;
-        font-size: 0.6em;
+        bottom: -18px;
+        right: 6px;
+        font-size: 0.7em;
     }
-    .user-message .message-content,
-    .assistant-message .message-content {
-        padding: 8px 10px; /* Further reduce padding in responsive mode */
+    
+    .message-content {
+        max-width: 80%;
     }
 }
