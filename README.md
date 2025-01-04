@@ -1,190 +1,203 @@
 # PyBCM - Python Business Capability Modeler
 
-A modern, interactive business capability modeling tool built with Python. This application helps organizations map and manage their business capabilities in a hierarchical structure.
+**PyBCM** is a powerful and user-friendly Business Capability Modeling (BCM) application built with Python. It provides an intuitive graphical interface for creating, visualizing, and managing hierarchical business capability models. This tool is designed to help business architects, analysts, and strategists map and understand their organization's capabilities effectively.
 
-## Features
+## Key Features
 
-### Core Features
-- Hierarchical capability tree visualization
-- Drag-and-drop capability reordering
-- CRUD operations for managing capabilities
-- Modern Bootstrap-styled interface
-- SQLite database for persistent storage
-- Form validation using Pydantic
-- Rich text descriptions with auto-save
-- Export capabilities to Archimate Open Exchange Format
+PyBCM offers a comprehensive set of features to support various aspects of business capability modeling:
 
-### Advanced Features
-- AI-powered capability expansion
-- Search functionality for capabilities
-- Import/Export capabilities to JSON
-- Expand/Collapse all tree nodes
+### Core Capability Management
 
-### Visualization Features
-- Interactive capability model visualization
-  - Zoomable canvas (Ctrl + MouseWheel)
-  - Pan navigation with mouse drag
-  - Color-coded capability levels
-  - Tooltips showing capability descriptions
-  - Auto-sizing and responsive layout
-- Multiple export formats:
-  - SVG export for vector graphics
-  - PowerPoint export with preserved styling
-  - Archimate Open Exchange Format
-- Advanced layout algorithms:
-  - Optimized grid-based layout
-  - Intelligent child node placement
-  - Aspect ratio optimization
-  - Automatic space distribution
-  - High-quality node ordering
-- Customizable visualization settings:
-  - Adjustable padding and gaps
-  - Custom color schemes
-  - Font size control
-  - Layout parameters
+*   **Hierarchical Tree View:**  Visualize and navigate your capability model in an intuitive tree structure.
+*   **Drag-and-Drop Reordering:** Easily rearrange capabilities within the hierarchy by simply dragging and dropping them.
+*   **CRUD Operations:** Create, read, update, and delete capabilities seamlessly.
+*   **Rich Text Descriptions:**  Add detailed descriptions to capabilities using Markdown, with real-time preview and automatic saving.
+*   **Persistent Storage:** Utilizes a robust SQLite database to store your capability model reliably.
+*   **Search Functionality:** Quickly find capabilities by name or description using the built-in search bar.
+*   **Import/Export:** Import and export your entire capability model in JSON format for easy sharing and backup.
 
-## Requirements
+### Advanced AI Assistance
 
-- Python 3.11 or higher
-- Dependencies:
-  - ttkbootstrap>=1.10.1
-  - sqlalchemy>=2.0.0
-  - pydantic>=2.0.0
+*   **AI-Powered Expansion:**  Leverage the power of large language models (LLMs) to automatically generate sub-capabilities based on selected capabilities.
+*   **First-Level Capability Generation:** Use AI to create initial high-level capabilities from an organization name and description.
+*   **Customizable AI Settings:** Configure the maximum number of AI-generated capabilities and adjust settings for initial capability creation.
+*   **AI Chat Interface:** Interact with an AI assistant to explore your capability model, search capabilities, and get insights.
+
+### Interactive Visualization
+
+*   **Dynamic Visualizer:** Generate interactive visualizations of your capability model within a dedicated window.
+*   **Zoom and Pan:**  Easily navigate the visualization using zoom (Ctrl + Mouse Wheel) and pan (click and drag).
+*   **Color-Coded Levels:** Visually distinguish different levels of the capability hierarchy with customizable color schemes.
+*   **Tooltips:** Hover over capabilities to view their detailed descriptions.
+*   **Auto-Layout:**  Intelligent layout algorithms automatically arrange capabilities for optimal clarity and readability.
+    *   **Standard Layout:** A balanced layout algorithm suitable for most models.
+    *   **High-Quality (HQ) Layout:** An advanced algorithm that optimizes for aspect ratio and space utilization, especially useful for complex models.
+*   **Customizable Visualization Settings:** Adjust layout parameters, colors, font sizes, and more to tailor the visualization to your preferences.
+
+### Export Options
+
+*   **SVG Export:** Generate high-quality vector graphics (SVG) of your capability model for use in documentation, presentations, and web pages.
+*   **PowerPoint Export:** Export your capability model directly to a PowerPoint presentation, preserving layout and styling for seamless integration into your reports.
+*   **Archimate Open Exchange Format:** Export your capability model in Archimate Open Exchange format, making it compatible with popular enterprise architecture tools like Archi.
+*   **Audit Log Export:** Export detailed audit logs of all changes made to your capability model in Excel format.
+
+### Audit Logging and Security
+
+*   **Detailed Audit Trail:** Track all changes to your capability model, including creation, updates, deletions, and moves, with timestamps and details of old and new values.
+*   **Audit Log Viewer:** A dedicated interface to view, search, and filter audit logs.
+*   **Excel Export:** Export audit logs to an Excel file for further analysis and reporting.
+*   **Secure Database:** The application uses SQLite with foreign key constraints enabled by default to ensure data integrity and prevent unauthorized modifications.
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/pybcm.git
-cd pybcm
-```
+### Prerequisites
 
-2. Install dependencies using uv:
-```bash
-uv pip install -e .
-```
+*   Python 3.11 or higher
+*   `uv` package manager (recommended for faster dependency management)
+
+### Steps
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/yourusername/pybcm.git
+    cd pybcm
+    ```
+
+2. **Install dependencies using `uv`:**
+
+    ```bash
+    uv pip install -e .
+    ```
 
 ## Usage
 
-Run the application:
+### Launching the Application
+
+Run the application from the command line:
+
 ```bash
 bcm
 ```
 
+### Basic Navigation
+
+*   **Tree View:** The left panel displays the hierarchical capability tree.
+*   **Description:** The right panel shows the description of the selected capability.
+*   **Toolbar:** Provides quick access to common actions like expand/collapse, AI expansion, visualization, search, and editing.
+*   **Menu Bar:** Offers more advanced options, including import/export, settings, and audit log management.
+
 ### Managing Capabilities
 
-1. **Adding a Capability**
-   - Enter the capability name and optional description
-   - Select a parent capability in the tree (optional)
-   - Click "Add New"
+1. **Adding a Capability:**
+    *   Right-click on the desired parent in the tree view and select "New Child."
+    *   Enter the capability name and an optional description.
+    *   Click "OK."
 
-2. **Updating a Capability**
-   - Select a capability in the tree
-   - Modify the name or description
-   - Click "Update" or "Save Description"
+2. **Updating a Capability:**
+    *   Select a capability in the tree view.
+    *   Click "Edit" in the toolbar to switch to edit mode.
+    *   Modify the name or description in the right panel.
+    *   Click "View" to see a markdown preview or "Save" to save changes to the database.
 
-3. **Deleting a Capability**
-   - Select a capability in the tree
-   - Click "Delete"
-   - Confirm deletion
+3. **Deleting a Capability:**
+    *   Right-click on the capability in the tree view and select "Delete."
+    *   Confirm the deletion.
 
-4. **Reordering Capabilities**
-   - Drag and drop capabilities in the tree
-   - The order is automatically saved
+4. **Reordering Capabilities:**
+    *   Drag and drop capabilities within the tree view to change their order or parent.
+
+### Using AI Features
+
+1. **AI Capability Expansion:**
+    *   Select a capability in the tree view.
+    *   Click the "✨" (sparkles) button in the toolbar.
+    *   Review the AI-generated sub-capabilities.
+    *   Check the boxes next to the capabilities you want to add.
+    *   Click "OK."
+
+2. **AI Chat:**
+    *   Click the "🤖" (robot) button in the toolbar.
+    *   A new browser window will open, allowing you to interact with the AI assistant.
+    *   Ask questions about your capability model, search for capabilities, and get insights using natural language.
 
 ### Working with Visualizations
 
-1. **Opening the Visualizer**
-   - Select View > Visualize Model from the menu
-   - A new window opens with the capability model visualization
+1. **Opening the Visualizer:**
+    *   Click the "🗺️" (map) button in the toolbar or select "Visualize Model" from the "Edit" menu.
+    *   A new window opens displaying the interactive visualization.
 
-2. **Navigation**
-   - Zoom: Use Ctrl + Mouse Wheel to zoom in/out
-   - Pan: Click and drag to move around the canvas
-   - Tooltips: Hover over capabilities to view descriptions
+2. **Navigation:**
+    *   **Zoom:** Use Ctrl + Mouse Wheel to zoom in and out.
+    *   **Pan:** Click and drag to move around the canvas.
 
-3. **Exporting**
-   - File > Export as SVG to save the visualization
-   - The SVG file can be opened in any vector graphics editor
+3. **Tooltips:**
+    *   Hover your mouse over a capability to view its description in a tooltip.
 
-4. **Customization**
-   - Adjust visualization settings through the settings menu
-   - Customize colors for different capability levels
-   - Configure layout parameters
+4. **Exporting:**
+    *   **SVG:** Select "File" > "Export to SVG..." to save the visualization as an SVG file.
+    *   **PowerPoint:** Select "File" > "Export to PowerPoint..." to generate a PowerPoint presentation.
+    *   **Archimate:** Select "File" > "Export to Archimate..." to create an Archimate Open Exchange file.
 
-4. **Export Options**
-   - **SVG Export**
-     - File > Export as SVG
-     - Vector graphics format
-     - Ideal for documentation
-   
-   - **PowerPoint Export**
-     - File > Export to PowerPoint
-     - Preserves layout and styling
-     - Automatic scaling and font sizing
-     - Color-coded capability levels
-     - Professional presentation format
-   
-   - **Archimate Export**
-     - File > Export to Archimate
-     - Compatible with Archi and other tools
-     - Preserves layout and hierarchy
-     - Capabilities as Archimate elements
-     - Includes descriptions and relationships
-     - Color-coding preserved in diagram
+5. **Customization:**
+    *   Access visualization settings through "File" > "Settings."
+    *   Customize colors, layout parameters, font sizes, and more.
 
-### Advanced Features
+### Settings
 
-1. **AI Capability Expansion**
-   - Select a capability in the tree
-   - Click the "✨" button in the toolbar
-   - Review and select suggested sub-capabilities
-   - Click OK to add selected capabilities
+Access the application settings through "File" > "Settings." Here you can customize:
 
-2. **Search**
-   - Use the search bar in the toolbar
-   - Results update in real-time
-   - Clear search with the "✕" button
-
-3. **Import/Export**
-   - File menu > Import: Load capabilities from JSON
-   - File menu > Export: Save capabilities to JSON
-
-4. **Tree Navigation**
-   - Use "⬇" to expand all nodes
-   - Use "⬆" to collapse all nodes
-
-## Project Structure
-
-```
-pybcm/
-├── bcm/
-│   ├── __init__.py      # Package initialization
-│   ├── app.py           # Main application and UI
-│   ├── database.py      # Database operations
-│   ├── dialogs.py       # Custom dialog windows
-│   ├── layout.py        # Layout engine for visualization
-│   ├── models.py        # Data models and schemas
-│   ├── pb.py           # Progress bar implementation
-│   ├── settings.py      # Application settings management
-│   ├── svg_export.py    # SVG export functionality
-│   ├── treeview.py      # Custom tree view widget
-│   ├── utils.py         # Utility functions
-│   ├── visualizer.py    # Interactive capability visualizer
-│   └── templates/       # Template files for layouts and prompts
-├── pyproject.toml       # Project configuration
-└── README.md           # Documentation
-```
+*   **Visual Theme:** Choose from a variety of ttkbootstrap themes.
+*   **AI Generation:** Configure the maximum number of AI-generated capabilities and the range for first-level capabilities.
+*   **Model Selection:** Select the LLM model to be used for AI features.
+*   **Layout:** Adjust layout algorithm, root font size, box dimensions, gaps, padding, target aspect ratio, and maximum level for visualization.
+*   **Coloring:** Customize the color scheme for different capability levels and leaf nodes in the visualizer.
 
 ## Development
 
-The project uses:
-- `ttkbootstrap` for the modern UI components
-- `SQLAlchemy` for database operations
-- `Pydantic` for data validation
-- `PydanticAI` for LLM generation
-- `uv` for dependency management
+### Technologies Used
+
+*   **Frontend:**
+    *   [ttkbootstrap](https://ttkbootstrap.readthedocs.io/): Modern, themed Tkinter widgets.
+    *   [tkinterweb](https://github.com/Andereoo/Tkinterweb): HTML rendering for rich text display.
+*   **Backend:**
+    *   [SQLAlchemy](https://www.sqlalchemy.org/): Database ORM for interacting with SQLite.
+    *   [Pydantic](https://docs.pydantic.dev/): Data validation and settings management.
+    *   [PydanticAI](https://github.com/e-dang/pydantic_ai): AI agent based on Pydantic models.
+*   **AI:**
+    *   [OpenAI API](https://openai.com/): For AI capability expansion (using GPT-4o or other configurable models).
+*   **Visualization:**
+    *   Custom layout algorithms implemented in `layout.py` and `hq_layout.py`.
+    *   `tkinter` Canvas for rendering.
+*   **Export:**
+    *   `svgwrite` (implicitly used for SVG generation)
+    *   `python-pptx` for PowerPoint generation.
+    *   `xml.etree.ElementTree` for Archimate XML generation.
+*   **Other:**
+    *   `uv`: Fast package manager for installing dependencies.
+    *   `jinja2`: Templating engine for generating prompts and reports.
+    *   `markdown`: For Markdown rendering in descriptions and AI chat.
+    *   `logfire`: For logging and instrumentation.
+
+### Contributing
+
+Contributions are welcome! If you want to contribute to PyBCM, please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and write unit tests if applicable.
+4. Ensure all tests pass and the code follows the project's style guide (we use `black`).
+5. Submit a pull request with a clear description of your changes.
 
 ## License
 
-MIT License
+PyBCM is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+## Acknowledgements
+
+*   Thanks to the developers of all the open-source libraries used in this project.
+*   Special thanks to [ttkbootstrap](https://github.com/israel-dryer/ttkbootstrap) for providing a fantastic set of modern Tkinter themes and widgets.
+
+## Contact
+
+For any questions or feedback, please open an issue on the [GitHub repository](https://github.com/yourusername/pybcm).
