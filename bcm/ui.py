@@ -228,23 +228,11 @@ class BusinessCapabilityUI:
         bg_color = style.lookup('TFrame', 'background')
         fg_color = style.lookup('TFrame', 'foreground')
         
-        # Configure HTMLScrolledText colors
+        # Configure HTMLScrolledText
         self.desc_viewer.configure(
             state='disabled',  # Disable editing
             background=bg_color,
-            foreground=fg_color,
         )
-        # Set background color for both the widget and HTML content
-        self.desc_viewer.html_parser.css_background = bg_color
-        self.desc_viewer.html_parser.css_foreground = fg_color
-        self.desc_viewer.html_parser.css = f"""
-            body {{ 
-                background-color: {bg_color}; 
-                color: {fg_color}; 
-                margin: 0; 
-                padding: 0; 
-            }}
-        """
         # Create text widget for editing
         self.desc_text = ttk.Text(
             self.right_panel,
@@ -284,6 +272,9 @@ class BusinessCapabilityUI:
         
         # Update description text font
         self.desc_text.configure(font=("TkDefaultFont", font_size))
+        
+        # Update HTML viewer font
+        self.desc_viewer.configure(font=("TkDefaultFont", font_size))
 
     def _create_layout(self):
         """Create main application layout."""
@@ -347,8 +338,10 @@ class BusinessCapabilityUI:
             self.desc_text.pack_forget()
             self.desc_viewer.pack(fill="both", expand=True)
             style = ttk.Style()
+            bg_color = style.lookup('TFrame', 'background')
             fg_color = style.lookup('TFrame', 'foreground')
-            markdown_html = f'<div style="color: {fg_color}">{markdown.markdown(self.desc_text.get("1.0", "end-1c"))}</div>'
+            font_size = self.settings.get("font_size")
+            markdown_html = f'<div style="color: {fg_color}; background-color: {bg_color}; font-family: TkDefaultFont; font-size: {font_size}px; margin: 0; padding: 0;">{markdown.markdown(self.desc_text.get("1.0", "end-1c"))}</div>'
             self.desc_viewer.set_html(markdown_html)
             self.edit_desc_btn.configure(text="Edit")
 
@@ -383,8 +376,10 @@ class BusinessCapabilityUI:
                     self.desc_text.edit_modified(False)
                 else:
                     style = ttk.Style()
+                    bg_color = style.lookup('TFrame', 'background')
                     fg_color = style.lookup('TFrame', 'foreground')
-                    markdown_html = f'<div style="color: {fg_color}">{markdown.markdown(self.app.current_description)}</div>'
+                    font_size = self.settings.get("font_size")
+                    markdown_html = f'<div style="color: {fg_color}; background-color: {bg_color}; font-family: TkDefaultFont; font-size: {font_size}px; margin: 0; padding: 0;">{markdown.markdown(self.app.current_description)}</div>'
                     self.desc_viewer.set_html(markdown_html)
                 self.save_desc_btn.configure(state="disabled")
         
