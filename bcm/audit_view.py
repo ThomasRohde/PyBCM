@@ -105,9 +105,12 @@ class AuditLogViewer(ttk.Toplevel):
                     elif key == 'name':
                         changes.append(f"Name changed from '{old_val}' to '{new_val}'")
                     elif key == 'description':
-                        old_desc = old_val if old_val else "(empty)"
                         new_desc = new_val if new_val else "(empty)"
-                        changes.append(f"Description changed from '{old_desc}' to '{new_desc}'")
+                        # Replace newlines with spaces and truncate if too long
+                        display_desc = new_desc.replace('\n', ' ')
+                        if len(display_desc) > 100:
+                            display_desc = display_desc[:97] + "..."
+                        changes.append(f"Description: '{display_desc}'")
                     else:
                         changes.append(f"{key}: {old_val} → {new_val}")
         elif new_values:
@@ -116,6 +119,12 @@ class AuditLogViewer(ttk.Toplevel):
                 if key == 'parent_id' and value:
                     parent_name = self.capability_names.get(value, f"Unknown (ID: {value})")
                     changes.append(f"Parent: {parent_name}")
+                elif key == 'description':
+                    # Replace newlines with spaces and truncate if too long
+                    display_desc = value.replace('\n', ' ') if value else "(empty)"
+                    if len(display_desc) > 100:
+                        display_desc = display_desc[:97] + "..."
+                    changes.append(f"Description: '{display_desc}'")
                 elif key != 'id':  # Skip ID assignments
                     changes.append(f"{key}: {value}")
         elif old_values:
@@ -242,23 +251,75 @@ class AuditLogViewer(ttk.Toplevel):
         self.table.insert_row("end", ["Error", "", "", error_message])
         
     def export_to_excel(self):
-        """Export the current table view to Excel."""
+        """Export audit logs to Excel with full descriptions."""
         try:
-            # Get data from tableview and convert to list of dicts
+            # Get raw logs with full descriptions
+            import asyncio
+            logs = asyncio.run_coroutine_threadsafe(self.get_logs(), self._loop).result()
+            
+            # Sort logs by timestamp
+            logs.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]).timestamp(), reverse=False)
+            
+            # Convert logs to list of dicts with full descriptions
             data = []
-            for item in self.table.view.get_children():
-                try:
-                    values = self.table.view.item(item)['values']
-                    if len(values) == 4:  # Ensure we have all columns
-                        data.append({
-                            "Timestamp": str(values[0]),
-                            "Operation": str(values[1]),
-                            "Capability": str(values[2]),
-                            "Changes": str(values[3])
-                        })
-                except (IndexError, TypeError, AttributeError) as e:
-                    print(f"Error processing row: {e}")
-                    continue
+            seen_entries = set()
+            
+            for log in logs:
+                timestamp = datetime.fromisoformat(log["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+                operation = log["operation"]
+                capability = f"{log['capability_name']}"
+                if log["capability_id"]:
+                    capability += f" (ID: {log['capability_id']})"
+                
+                # Format changes with full descriptions
+                changes = []
+                if log["old_values"] and log["new_values"]:
+                    for key in set(log["old_values"].keys()) | set(log["new_values"].keys()):
+                        old_val = log["old_values"].get(key)
+                        new_val = log["new_values"].get(key)
+                        if old_val != new_val:
+                            if key == 'parent_id':
+                                old_name = log["old_values"].get('parent_name', self.capability_names.get(old_val, f"Unknown (ID: {old_val})")) if old_val else "None"
+                                new_name = log["new_values"].get('parent_name', self.capability_names.get(new_val, f"Unknown (ID: {new_val})")) if new_val else "None"
+                                changes.append(f"Moved from '{old_name}' to '{new_name}'")
+                            elif key == 'name':
+                                changes.append(f"Name changed from '{old_val}' to '{new_val}'")
+                            elif key == 'description':
+                                new_desc = new_val if new_val else "(empty)"
+                                changes.append(f"Description: '{new_desc}'")
+                            else:
+                                changes.append(f"{key}: {old_val} → {new_val}")
+                elif log["new_values"]:
+                    for key, value in log["new_values"].items():
+                        if key == 'parent_id' and value:
+                            parent_name = self.capability_names.get(value, f"Unknown (ID: {value})")
+                            changes.append(f"Parent: {parent_name}")
+                        elif key == 'description':
+                            changes.append(f"Description: '{value if value else '(empty)'}'")
+                        elif key != 'id':
+                            changes.append(f"{key}: {value}")
+                elif log["old_values"]:
+                    for key, value in log["old_values"].items():
+                        if key == 'parent_id' and value:
+                            parent_name = self.capability_names.get(value, f"Unknown (ID: {value})")
+                            changes.append(f"Parent was: {parent_name}")
+                        else:
+                            changes.append(f"{key}: {value}")
+                
+                changes_text = " | ".join(changes)
+                
+                # Create a unique key for this entry
+                entry_key = (timestamp, operation, capability, changes_text)
+                
+                # Only add if we haven't seen this exact entry before
+                if entry_key not in seen_entries:
+                    seen_entries.add(entry_key)
+                    data.append({
+                        "Timestamp": timestamp,
+                        "Operation": operation,
+                        "Capability": capability,
+                        "Changes": changes_text
+                    })
             
             if not data:
                 create_dialog(
