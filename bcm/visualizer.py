@@ -52,7 +52,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.tooltip.overrideredirect(True)  # Remove window decorations
 
         # IMPORTANT: wraplength to set a max width
-        self.tooltip_label = ttk.Label(self.tooltip, text="", background="yellow", wraplength=500)
+        self.tooltip_label = ttk.Label(self.tooltip, padding=5, borderwidth=1, text="", background="white", foreground="black", wraplength=500)
         self.tooltip_label.pack()
 
         # List to hold item references so we can bind hover events
