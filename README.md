@@ -2,6 +2,8 @@
 
 **PyBCM** is a powerful and user-friendly Business Capability Modeling (BCM) application built with Python. It provides an intuitive graphical interface for creating, visualizing, and managing hierarchical business capability models. This tool is designed to help business architects, analysts, and strategists map and understand their organization's capabilities effectively.
 
+![PyBCM Screenshot](images/image.png)
+
 ## Key Features
 
 PyBCM offers a comprehensive set of features to support various aspects of business capability modeling:
