@@ -6,13 +6,14 @@ from fastapi.responses import HTMLResponse, FileResponse
 from typing import List, Optional, Dict
 from datetime import datetime, timezone
 from dataclasses import dataclass
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment
 import os
 from pathlib import Path
 from weakref import WeakKeyDictionary
 import socket
 
 from .database import DatabaseOperations
+from .utils import get_jinja_env
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
@@ -63,9 +64,8 @@ class Deps:
     db_factory: AsyncSession  # This will actually hold the session factory
 
 
-# Set up Jinja environment
-template_dir = os.path.join(os.path.dirname(__file__), "templates")
-jinja_env = Environment(loader=FileSystemLoader(template_dir))
+# Use shared Jinja environment
+jinja_env = get_jinja_env()
 
 # Load system prompt template
 system_prompt_template = jinja_env.get_template("system_prompt.j2")

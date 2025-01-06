@@ -155,6 +155,43 @@ Access the application settings through "File" > "Settings." Here you can custom
 *   **Layout:** Adjust layout algorithm, root font size, box dimensions, gaps, padding, target aspect ratio, and maximum level for visualization.
 *   **Coloring:** Customize the color scheme for different capability levels and leaf nodes in the visualizer.
 
+### User Directory and Template Customization
+
+PyBCM creates a `.pybcm` directory in your home folder to store user-specific data and customizations:
+
+```
+~/.pybcm/
+├── settings.json      # User settings
+├── templates/         # Customizable templates
+│   ├── chat.html            # Chat interface template
+│   ├── expansion_prompt.j2  # AI capability expansion prompt
+│   ├── first_level_prompt.j2# First-level capabilities prompt
+│   └── system_prompt.j2     # AI system prompt
+```
+
+#### Template Customization
+
+You can customize how PyBCM generates capabilities and displays the chat interface by modifying the templates in `~/.pybcm/templates/`:
+
+1. **AI Prompts:**
+   - `expansion_prompt.j2`: Customize how the AI generates sub-capabilities
+   - `first_level_prompt.j2`: Modify the prompt for generating first-level capabilities
+   - `system_prompt.j2`: Adjust the AI system prompt for better domain-specific responses
+
+2. **Chat Interface:**
+   - `chat.html`: Customize the appearance and behavior of the AI chat interface
+
+The application will:
+1. Create these templates automatically on first run
+2. Use your customized versions if they exist
+3. Fall back to the built-in templates if a customized version doesn't exist
+
+This allows you to:
+- Tailor the AI prompts for your specific industry or use case
+- Customize the chat interface appearance
+- Experiment with different prompt strategies
+- Maintain your customizations across application updates
+
 ## Development
 
 ### Technologies Used

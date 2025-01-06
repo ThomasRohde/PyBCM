@@ -19,7 +19,7 @@ from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .settings import Settings, SettingsDialog
 from .ui import BusinessCapabilityUI
-from .utils import expand_capability_ai, generate_first_level_capabilities
+from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates
 from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
@@ -37,6 +37,9 @@ async def anext(iterator):
 
 class App:
     def __init__(self):
+        # Initialize user templates
+        init_user_templates()
+        
         # Add async event loop
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)

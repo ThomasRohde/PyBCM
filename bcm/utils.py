@@ -5,9 +5,32 @@ import os
 from bcm.settings import Settings
 from bcm.models import CapabilityExpansion, FirstLevelCapabilities
 
-# Setup Jinja2 environment
-template_dir = os.path.join(os.path.dirname(__file__), "templates")
-jinja_env = Environment(loader=FileSystemLoader(template_dir))
+def init_user_templates():
+    """Initialize user template directory and copy application templates if needed."""
+    # Get application and user template directories
+    app_template_dir = os.path.join(os.path.dirname(__file__), "templates")
+    user_dir = os.path.expanduser("~")
+    user_template_dir = os.path.join(user_dir, ".pybcm", "templates")
+    
+    # Create user template directory if it doesn't exist
+    os.makedirs(user_template_dir, exist_ok=True)
+    
+    # Copy application templates to user directory if they don't exist
+    for template in os.listdir(app_template_dir):
+        src = os.path.join(app_template_dir, template)
+        dst = os.path.join(user_template_dir, template)
+        if not os.path.exists(dst) and os.path.isfile(src):
+            with open(src, 'r') as f_src, open(dst, 'w') as f_dst:
+                f_dst.write(f_src.read())
+    return app_template_dir, user_template_dir
+
+def get_jinja_env() -> Environment:
+    """Get the shared Jinja2 environment that checks user templates first, then falls back to application templates."""
+    app_template_dir, user_template_dir = init_user_templates()
+    return Environment(loader=FileSystemLoader([user_template_dir, app_template_dir]))
+
+# Initialize the shared Jinja environment
+jinja_env = get_jinja_env()
 
 
 async def generate_first_level_capabilities(
