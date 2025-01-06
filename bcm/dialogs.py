@@ -13,13 +13,14 @@ class CapabilityConfirmDialog(ttk.Toplevel):
     
     def __init__(self, parent, capabilities: Dict[str, str]):
         super().__init__(parent)
+        self.iconbitmap("./bcm/business_capability_model.ico")
         self.capabilities = capabilities
         self.result = {}
         
         self.title("Confirm Capabilities")
         self.geometry(f"{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}")
         self.position_center()
-        self.minsize(400, 300)  # Set minimum size
+        self.minsize(500, 450)  # Set minimum size
         self.resizable(True, True)  # Allow window resizing
         
         self._create_widgets()
