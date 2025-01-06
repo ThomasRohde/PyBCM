@@ -209,7 +209,7 @@ class CapabilityVisualizer(ttk.Toplevel):
                 node.width,
                 node.height,
                 node.name,
-                node.description,
+                node.description if level > 0 else None,  # Skip tooltip for root
                 bool(node.children),
                 level,
             )
