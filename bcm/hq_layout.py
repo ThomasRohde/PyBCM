@@ -1,6 +1,8 @@
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
-
+from functools import lru_cache
+import hashlib
+import json
 from .models import LayoutModel
 from .settings import Settings
 
@@ -31,15 +33,85 @@ class LayoutResult:
     layout: GridLayout
     permutation: List[int]  # Indices of child_sizes in the best order
 
+@dataclass
+class CacheKey:
+    """Represents a unique key for caching layout calculations"""
+    node_id: int
+    settings_hash: str
 
-def calculate_node_size(node: LayoutModel, settings: Settings) -> NodeSize:
-    """Calculate the minimum bounding size needed for a node and its children."""
+    def __hash__(self):
+        return hash((self.node_id, self.settings_hash))
+
+
+class LayoutCache:
+    def __init__(self):
+        self._size_cache: Dict[CacheKey, NodeSize] = {}
+        self._layout_cache: Dict[Tuple[int, ...], LayoutResult] = {}
+    
+    def get_node_size(self, key: CacheKey) -> Optional[NodeSize]:
+        return self._size_cache.get(key)
+    
+    def set_node_size(self, key: CacheKey, size: NodeSize):
+        self._size_cache[key] = size
+    
+    def get_layout(self, child_ids: Tuple[int, ...], settings_hash: str) -> Optional[LayoutResult]:
+        return self._layout_cache.get((child_ids, settings_hash))
+    
+    def set_layout(self, child_ids: Tuple[int, ...], settings_hash: str, result: LayoutResult):
+        self._layout_cache[(child_ids, settings_hash)] = result
+
+
+def hash_settings(settings: Settings) -> str:
+    """Create a stable hash of settings that affect layout"""
+    relevant_settings = {
+        'box_min_width': settings.get('box_min_width'),
+        'box_min_height': settings.get('box_min_height'),
+        'horizontal_gap': settings.get('horizontal_gap'),
+        'vertical_gap': settings.get('vertical_gap'),
+        'padding': settings.get('padding'),
+        'top_padding': settings.get('top_padding'),
+        'target_aspect_ratio': settings.get('target_aspect_ratio'),
+    }
+    settings_str = json.dumps(relevant_settings, sort_keys=True)
+    return hashlib.sha256(settings_str.encode()).hexdigest()
+
+
+def calculate_node_size(
+    node: LayoutModel,
+    settings: Settings,
+    cache: LayoutCache,
+    settings_hash: str
+) -> NodeSize:
+    """Calculate the minimum bounding size needed for a node and its children, with caching."""
+    # Check cache first
+    cache_key = CacheKey(node.id, settings_hash)
+    cached_size = cache.get_node_size(cache_key)
+    if cached_size is not None:
+        return cached_size
+
     if not node.children:
-        return NodeSize(settings.get("box_min_width"), settings.get("box_min_height"))
+        size = NodeSize(settings.get("box_min_width"), settings.get("box_min_height"))
+    else:
+        # Calculate sizes for all children (using cache)
+        child_sizes = [
+            calculate_node_size(child, settings, cache, settings_hash)
+            for child in node.children
+        ]
+        
+        # Create tuple of child IDs for layout cache key
+        child_ids = tuple(child.id for child in node.children)
+        
+        # Try to get cached layout result
+        layout_result = cache.get_layout(child_ids, settings_hash)
+        if layout_result is None:
+            layout_result = find_best_layout(child_sizes, len(child_sizes), settings)
+            cache.set_layout(child_ids, settings_hash, layout_result)
+        
+        size = NodeSize(layout_result.layout.width, layout_result.layout.height)
 
-    child_sizes = [calculate_node_size(child, settings) for child in node.children]
-    best_result = find_best_layout(child_sizes, len(child_sizes), settings)
-    return NodeSize(best_result.layout.width, best_result.layout.height)
+    # Cache the result
+    cache.set_node_size(cache_key, size)
+    return size
 
 
 def _try_layout_for_permutation(
@@ -232,12 +304,14 @@ def find_best_layout(
 
 
 def layout_tree(
-    node: LayoutModel, settings: Settings, x: float = 0.0, y: float = 0.0
+    node: LayoutModel,
+    settings: Settings,
+    cache: LayoutCache,
+    settings_hash: str,
+    x: float = 0.0,
+    y: float = 0.0
 ) -> LayoutModel:
-    """
-    Recursively layout the tree starting from the given node.
-    We reorder node.children according to the best permutation found.
-    """
+    """Recursively layout the tree starting from the given node, using cache."""
     if not node.children:
         node.width = settings.get("box_min_width")
         node.height = settings.get("box_min_height")
@@ -245,31 +319,32 @@ def layout_tree(
         node.y = y
         return node
 
-    # Compute child sizes (recursively)
-    child_sizes = [calculate_node_size(child, settings) for child in node.children]
+    # Calculate child sizes (using cache)
+    child_sizes = [
+        calculate_node_size(child, settings, cache, settings_hash)
+        for child in node.children
+    ]
 
-    # Find best layout (and best ordering) for these children
-    result = find_best_layout(child_sizes, len(child_sizes), settings)
-    best_layout = result.layout
-    best_perm = result.permutation
+    # Get layout result from cache or compute it
+    child_ids = tuple(child.id for child in node.children)
+    layout_result = cache.get_layout(child_ids, settings_hash)
+    if layout_result is None:
+        layout_result = find_best_layout(child_sizes, len(child_sizes), settings)
+        cache.set_layout(child_ids, settings_hash, layout_result)
 
-    # Reorder node.children to match the best permutation
-    node.children = [node.children[i] for i in best_perm]
+    # Reorder children according to best permutation
+    node.children = [node.children[i] for i in layout_result.permutation]
+    child_sizes = [child_sizes[i] for i in layout_result.permutation]
 
-    # Reorder child_sizes similarly
-    child_sizes = [child_sizes[i] for i in best_perm]
-
-    # Assign bounding box for this parent node
+    # Assign bounding box for parent node
     node.x = x
     node.y = y
-    node.width = best_layout.width
-    node.height = best_layout.height
+    node.width = layout_result.layout.width
+    node.height = layout_result.layout.height
 
-    # Now place each child in the positions that produced the best layout
-    for child, pos in zip(node.children, best_layout.positions):
-        # Recursively layout the child
-        layout_tree(child, settings, x + pos["x"], y + pos["y"])
-        # Also set the child's bounding box explicitly
+    # Place each child
+    for child, pos in zip(node.children, layout_result.layout.positions):
+        layout_tree(child, settings, cache, settings_hash, x + pos["x"], y + pos["y"])
         child.width = pos["width"]
         child.height = pos["height"]
 
@@ -277,7 +352,9 @@ def layout_tree(
 
 
 def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
-    """
-    Entrypoint: Process the layout for the entire tree.
-    """
-    return layout_tree(model, settings)
+    """Process the layout for the entire tree with caching."""
+    # Create cache and hash settings
+    cache = LayoutCache()
+    settings_hash = hash_settings(settings)
+    
+    return layout_tree(model, settings, cache, settings_hash)
