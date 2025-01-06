@@ -6,58 +6,63 @@ from bcm.settings import Settings
 from bcm.models import CapabilityExpansion, FirstLevelCapabilities
 
 # Setup Jinja2 environment
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+template_dir = os.path.join(os.path.dirname(__file__), "templates")
 jinja_env = Environment(loader=FileSystemLoader(template_dir))
 
-async def generate_first_level_capabilities(organisation_name: str, organisation_description: str) -> Dict[str, str]:
+
+async def generate_first_level_capabilities(
+    organisation_name: str, organisation_description: str
+) -> Dict[str, str]:
     """
     Generate first-level capabilities for an organization using AI.
     Returns a dictionary of capability names and their descriptions.
     """
-    first_level_template = jinja_env.get_template('first_level_prompt.j2')
+    first_level_template = jinja_env.get_template("first_level_prompt.j2")
     settings = Settings()
     model = settings.get("model")
-    
+
     agent = Agent(
         model,
         system_prompt="You are a business capability modeling expert. Generate clear, strategic first-level capabilities.",
-        result_type=FirstLevelCapabilities
+        result_type=FirstLevelCapabilities,
     )
 
     prompt = first_level_template.render(
         organisation_name=organisation_name,
         organisation_description=organisation_description,
-        first_level=settings.get("first_level_range")
+        first_level=settings.get("first_level_range"),
     )
 
     result = await agent.run(prompt)
     return {cap.name: cap.description for cap in result.data.capabilities}
 
-async def expand_capability_ai(context: str, capability_name: str, max_capabilities: int = 5) -> Dict[str, str]:
+
+async def expand_capability_ai(
+    context: str, capability_name: str, max_capabilities: int = 5
+) -> Dict[str, str]:
     """
     Use PydanticAI to expand a capability into sub-capabilities with descriptions,
     following best practices for business capability modeling.
     """
     # Load and render templates
-    system_template = jinja_env.get_template('system_prompt.j2')
-    expansion_template = jinja_env.get_template('expansion_prompt.j2')
+    system_template = jinja_env.get_template("system_prompt.j2")
+    expansion_template = jinja_env.get_template("expansion_prompt.j2")
     settings = Settings()
     model = settings.get("model")
 
     agent = Agent(
-        model,
-        system_prompt=system_template.render(),
-        result_type=CapabilityExpansion
+        model, system_prompt=system_template.render(), result_type=CapabilityExpansion
     )
 
     prompt = expansion_template.render(
         capability_name=capability_name,
         context=context,
-        max_capabilities=max_capabilities
+        max_capabilities=max_capabilities,
     )
 
     result = await agent.run(prompt)
     return {cap.name: cap.description for cap in result.data.subcapabilities}
+
 
 async def get_capability_context(db_ops, capability_id: int) -> str:
     """Get context information for AI expansion, including full parent hierarchy."""
@@ -79,7 +84,10 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 2: Capability Tree
     context_parts.append("<capability_tree>")
-    async def build_capability_tree(root_caps, current_cap_id: int, level: int = 0, prefix: str = "") -> List[str]:
+
+    async def build_capability_tree(
+        root_caps, current_cap_id: int, level: int = 0, prefix: str = ""
+    ) -> List[str]:
         tree_lines = []
         last_index = len(root_caps) - 1
 
@@ -88,14 +96,16 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
             current_prefix = prefix + ("└── " if is_last else "├── ")
             marker = " *" if cap.id == current_cap_id else ""
             tree_lines.append(f"{prefix}{current_prefix}{cap.name}{marker}")
-            
+
             # Get children
             children = await db_ops.get_capabilities(cap.id)
             if children:
                 next_prefix = prefix + ("    " if is_last else "│   ")
-                child_lines = await build_capability_tree(children, current_cap_id, level + 1, next_prefix)
+                child_lines = await build_capability_tree(
+                    children, current_cap_id, level + 1, next_prefix
+                )
                 tree_lines.extend(child_lines)
-        
+
         return tree_lines
 
     tree_lines = await build_capability_tree(first_level_caps, capability_id)
@@ -104,6 +114,7 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 3: Parent Hierarchy
     context_parts.append("<parent_hierarchy>")
+
     async def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
         parent = await db_ops.get_capability(cap_id)
         if parent:

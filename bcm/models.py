@@ -8,30 +8,41 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 
+
 class Base(DeclarativeBase):
     pass
 
+
 class AuditLog(Base):
     """SQLAlchemy model for audit logging."""
+
     __tablename__ = "audit_log"
 
     id = Column(Integer, primary_key=True, index=True)
     operation = Column(String(50), nullable=False)  # CREATE, UPDATE, DELETE, MOVE
-    capability_id = Column(Integer, nullable=True)  # Can be null for imports/clear operations
+    capability_id = Column(
+        Integer, nullable=True
+    )  # Can be null for imports/clear operations
     capability_name = Column(String(255), nullable=True)
     old_values = Column(Text, nullable=True)  # JSON string of old values
     new_values = Column(Text, nullable=True)  # JSON string of new values
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+
 class Capability(Base):
     """SQLAlchemy model for capabilities in the database."""
+
     __tablename__ = "capabilities"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    parent_id = Column(Integer, ForeignKey("capabilities.id", ondelete="CASCADE"), nullable=True)
-    order_position = Column(Integer, default=0)  # Changed from 'order' which is a reserved word
+    parent_id = Column(
+        Integer, ForeignKey("capabilities.id", ondelete="CASCADE"), nullable=True
+    )
+    order_position = Column(
+        Integer, default=0
+    )  # Changed from 'order' which is a reserved word
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -50,22 +61,27 @@ class Capability(Base):
 
     # Add indexes
     __table_args__ = (
-        Index('ix_capabilities_name', 'name'),
-        Index('ix_capabilities_description', 'description'),
-        Index('ix_capabilities_parent_id', 'parent_id'),
+        Index("ix_capabilities_name", "name"),
+        Index("ix_capabilities_description", "description"),
+        Index("ix_capabilities_parent_id", "parent_id"),
     )
+
 
 class CapabilityCreate(BaseModel):
     """Pydantic model for creating a new capability."""
+
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     parent_id: Optional[int] = None
 
+
 class CapabilityUpdate(BaseModel):
     """Pydantic model for updating an existing capability."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     parent_id: Optional[int] = None
+
 
 class CapabilityExport(BaseModel):
     id: str  # UUID string
@@ -74,14 +90,17 @@ class CapabilityExport(BaseModel):
     description: str = ""
     parent: Optional[str] = None  # Can be string ID or null
 
+
 # Use RootModel instead of __root__
 CapabilityExportList = RootModel[List[CapabilityExport]]
 
+
 class LayoutModel(BaseModel):
     """Pydantic model for representing the hierarchical layout of capabilities."""
+
     name: str
     description: Optional[str] = None
-    children: Optional[List['LayoutModel']] = None
+    children: Optional[List["LayoutModel"]] = None
     # Geometry attributes
     x: float = 0
     y: float = 0
@@ -91,56 +110,71 @@ class LayoutModel(BaseModel):
     class Config:
         from_attributes = True
 
+
 # Required for self-referential Pydantic models
 LayoutModel.model_rebuild()
 
+
 class SubCapability(BaseModel):
     name: str = Field(description="Name of the sub-capability")
-    description: str = Field(description="Clear description of the sub-capability's purpose and scope")
+    description: str = Field(
+        description="Clear description of the sub-capability's purpose and scope"
+    )
+
 
 class CapabilityExpansion(BaseModel):
     subcapabilities: List[SubCapability] = Field(
         description="List of sub-capabilities that would logically extend the given capability"
     )
 
+
 class FirstLevelCapability(BaseModel):
     name: str = Field(description="Name of the first-level capability")
-    description: str = Field(description="Description of the first-level capability's purpose and scope")
+    description: str = Field(
+        description="Description of the first-level capability's purpose and scope"
+    )
+
 
 class FirstLevelCapabilities(BaseModel):
     capabilities: List[FirstLevelCapability] = Field(
         description="List of first-level capabilities for the organization"
     )
 
-def capability_to_layout(capability: Capability, settings=None, current_level: int = 0) -> LayoutModel:
+
+def capability_to_layout(
+    capability: Capability, settings=None, current_level: int = 0
+) -> LayoutModel:
     """
     Convert a Capability model instance to a LayoutModel instance.
     Respects max_level setting to limit visualization depth.
     """
     # Get max_level from settings, default to 6 if settings not provided
     max_level = settings.get("max_level", 6) if settings else 6
-    
+
     # Create children only if we haven't reached max_level
     children = None
     if capability.children and current_level < max_level:
-        children = [capability_to_layout(child, settings, current_level + 1) 
-                   for child in capability.children]
-    
+        children = [
+            capability_to_layout(child, settings, current_level + 1)
+            for child in capability.children
+        ]
+
     return LayoutModel(
-        name=capability.name,
-        description=capability.description,
-        children=children
+        name=capability.name, description=capability.description, children=children
     )
+
 
 # Database setup
 def get_db_path():
     """Get absolute path to database file."""
-    user_dir = os.path.expanduser('~')
-    app_dir = os.path.join(user_dir, '.pybcm')
+    user_dir = os.path.expanduser("~")
+    app_dir = os.path.join(user_dir, ".pybcm")
     os.makedirs(app_dir, exist_ok=True)
     return os.path.join(app_dir, "bcm.db")
 
+
 DATABASE_URL = f"sqlite+aiosqlite:///{get_db_path()}"
+
 
 def create_engine_instance():
     return create_async_engine(
@@ -148,24 +182,27 @@ def create_engine_instance():
         echo=False,
     )
 
+
 engine = create_engine_instance()
 AsyncSessionLocal = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
+
 async def init_db():
     """Initialize the database by creating all tables."""
     db_path = get_db_path()
-    
+
     # Only create tables if database doesn't exist
     if not os.path.exists(db_path):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         # Enable foreign keys for new database
         async with AsyncSessionLocal() as session:
             await session.execute(text("PRAGMA foreign_keys = ON"))
             await session.commit()
+
 
 async def get_db():
     """Get an async database session."""

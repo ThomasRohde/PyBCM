@@ -4,6 +4,7 @@ from .layout_manager import process_layout
 from .models import LayoutModel
 from .settings import Settings
 
+
 class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
         super().__init__(parent)
@@ -14,15 +15,17 @@ class CapabilityVisualizer(ttk.Toplevel):
 
         # Set a default geometry (optional).
         self.geometry("1200x800")
-        
+
         # Process layout
         self.settings = Settings()  # Create settings instance
-        self.model = process_layout(model, self.settings)  # Pass settings to process_layout
-        
+        self.model = process_layout(
+            model, self.settings
+        )  # Pass settings to process_layout
+
         # Configure grid weights
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
-        
+
         # Main frame
         self.frame = ttk.Frame(self)
         self.frame.grid(row=0, column=0, sticky="nsew")
@@ -30,10 +33,10 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.frame.grid_rowconfigure(0, weight=1)
 
         # Canvas setup
-        self.canvas = tk.Canvas(self.frame, background='white')
+        self.canvas = tk.Canvas(self.frame, background="white")
         self.canvas.grid(row=0, column=0, sticky="nsew")
 
-        self.canvas.bind('<Control-MouseWheel>', self._on_mousewheel)
+        self.canvas.bind("<Control-MouseWheel>", self._on_mousewheel)
         self.scale = 1.0
 
         # Add panning variables
@@ -42,17 +45,25 @@ class CapabilityVisualizer(ttk.Toplevel):
         self._panning = False
 
         # Add mouse bindings for panning
-        self.canvas.bind('<ButtonPress-1>', self._start_pan)
-        self.canvas.bind('<B1-Motion>', self._pan)
-        self.canvas.bind('<ButtonRelease-1>', self._stop_pan)
+        self.canvas.bind("<ButtonPress-1>", self._start_pan)
+        self.canvas.bind("<B1-Motion>", self._pan)
+        self.canvas.bind("<ButtonRelease-1>", self._stop_pan)
 
         # Create a hidden tooltip Toplevel
         self.tooltip = tk.Toplevel(self, bg="yellow", padx=5, pady=5)
-        self.tooltip.withdraw()        # Hide by default
+        self.tooltip.withdraw()  # Hide by default
         self.tooltip.overrideredirect(True)  # Remove window decorations
 
         # IMPORTANT: wraplength to set a max width
-        self.tooltip_label = ttk.Label(self.tooltip, padding=5, borderwidth=1, text="", background="white", foreground="black", wraplength=500)
+        self.tooltip_label = ttk.Label(
+            self.tooltip,
+            padding=5,
+            borderwidth=1,
+            text="",
+            background="white",
+            foreground="black",
+            wraplength=500,
+        )
         self.tooltip_label.pack()
 
         # List to hold item references so we can bind hover events
@@ -76,7 +87,9 @@ class CapabilityVisualizer(ttk.Toplevel):
             self.scale *= 0.9
         self.draw_model()
 
-    def draw_box(self, x, y, width, height, text, description=None, has_children=False, level=0):
+    def draw_box(
+        self, x, y, width, height, text, description=None, has_children=False, level=0
+    ):
         """Draw a single capability box with text and bind events for tooltip."""
         # Apply scaling
         sx = int(x * self.scale)
@@ -92,34 +105,49 @@ class CapabilityVisualizer(ttk.Toplevel):
             fill_color = self.settings.get(color_key)
 
         # Set corner radius (scaled with the box size)
-        radius = min(20 * self.scale, sw/8, sh/8)  # Limit radius to prevent oversized corners
-        
+        radius = min(
+            20 * self.scale, sw / 8, sh / 8
+        )  # Limit radius to prevent oversized corners
+
         # Draw rounded rectangle using arcs and lines
         rect_id = self.canvas.create_polygon(
-            sx + radius, sy,                    # Top line start
-            sx + sw - radius, sy,               # Top line end
-            sx + sw, sy,                        # Top right corner
-            sx + sw, sy + radius,
-            sx + sw, sy + sh - radius,         # Right line
-            sx + sw, sy + sh,                  # Bottom right corner
-            sx + sw - radius, sy + sh,
-            sx + radius, sy + sh,              # Bottom line
-            sx, sy + sh,                       # Bottom left corner
-            sx, sy + sh - radius,
-            sx, sy + radius,                   # Left line
-            sx, sy,                            # Top left corner
-            sx + radius, sy,                   # Back to start
-            smooth=True,                       # This creates the rounded effect
+            sx + radius,
+            sy,  # Top line start
+            sx + sw - radius,
+            sy,  # Top line end
+            sx + sw,
+            sy,  # Top right corner
+            sx + sw,
+            sy + radius,
+            sx + sw,
+            sy + sh - radius,  # Right line
+            sx + sw,
+            sy + sh,  # Bottom right corner
+            sx + sw - radius,
+            sy + sh,
+            sx + radius,
+            sy + sh,  # Bottom line
+            sx,
+            sy + sh,  # Bottom left corner
+            sx,
+            sy + sh - radius,
+            sx,
+            sy + radius,  # Left line
+            sx,
+            sy,  # Top left corner
+            sx + radius,
+            sy,  # Back to start
+            smooth=True,  # This creates the rounded effect
             fill=fill_color,
-            outline='black',
-            width=2
+            outline="black",
+            width=2,
         )
 
         # Calculate a suitable font size
         font_size = min(
-            int(10 * self.scale),            # scale-based
-            int(sw / (len(text) + 2) * 1.5), # width-based
-            int(sh / 3)                     # height-based
+            int(10 * self.scale),  # scale-based
+            int(sw / (len(text) + 2) * 1.5),  # width-based
+            int(sh / 3),  # height-based
         )
         font_size = max(8, font_size)  # minimum
 
@@ -133,9 +161,9 @@ class CapabilityVisualizer(ttk.Toplevel):
             text_y,
             text=text,
             width=max(10, sw - 10),
-            font=('TkDefaultFont', font_size),
-            anchor='center',
-            justify='center'
+            font=("TkDefaultFont", font_size),
+            anchor="center",
+            justify="center",
         )
 
         # Only bind tooltip if there's a description
@@ -170,18 +198,20 @@ class CapabilityVisualizer(ttk.Toplevel):
 
     def draw_model(self):
         """Draw the entire capability model."""
-        self.canvas.delete('all')  # Clear canvas
+        self.canvas.delete("all")  # Clear canvas
         self.item_to_description.clear()
 
         def draw_node(node: LayoutModel, level=0):
             # Draw current node
             self.draw_box(
-                node.x, node.y,
-                node.width, node.height,
+                node.x,
+                node.y,
+                node.width,
+                node.height,
                 node.name,
                 node.description,
                 bool(node.children),
-                level
+                level,
             )
             # Recursively draw children with incremented level
             for child in node.children or []:
@@ -191,7 +221,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         draw_node(self.model)
 
         # Update scroll region to fit all elements
-        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
     def _resize_window_to_content(self):
         """Resize Toplevel so it fits the drawn content up to a max fraction of screen size (only done once)."""
@@ -213,7 +243,6 @@ class CapabilityVisualizer(ttk.Toplevel):
         # Pick the smaller between content size and max fraction
         new_width = min(content_width, max_width)
         new_height = min(content_height, max_height)
-
 
         # Update geometry just once
         self.geometry(f"{new_width}x{new_height}")

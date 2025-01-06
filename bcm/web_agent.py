@@ -23,6 +23,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
+
 def to_chat_message(m: ModelMessage) -> dict:
     """Convert a ModelMessage to a chat message dict for the frontend."""
     first_part = m.parts[0]
@@ -42,6 +43,7 @@ def to_chat_message(m: ModelMessage) -> dict:
             }
     raise UnexpectedModelBehavior(f"Unexpected message type for chat app: {m}")
 
+
 # Create FastAPI app
 app = FastAPI()
 
@@ -50,38 +52,49 @@ static_path = Path(__file__).parent / "static"
 static_path.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
+
 @app.get("/favicon.png", include_in_schema=False)
 async def favicon():
     return FileResponse("static/favicon.png")
+
 
 @dataclass
 class Deps:
     db_factory: AsyncSession  # This will actually hold the session factory
 
+
 # Set up Jinja environment
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+template_dir = os.path.join(os.path.dirname(__file__), "templates")
 jinja_env = Environment(loader=FileSystemLoader(template_dir))
 
 # Load system prompt template
-system_prompt_template = jinja_env.get_template('system_prompt.j2')
+system_prompt_template = jinja_env.get_template("system_prompt.j2")
 system_prompt = system_prompt_template.render()
 
 # Initialize the agent
-agent = Agent('openai:gpt-4o-mini', system_prompt=system_prompt, retries=3, deps_type=Deps)
+agent = Agent(
+    "openai:gpt-4o-mini", system_prompt=system_prompt, retries=3, deps_type=Deps
+)
+
 
 @agent.system_prompt
 def add_user_name() -> str:
     try:
         username = os.getlogin()
     except OSError:
-        username = os.environ.get('USERNAME', 'User')
+        username = os.environ.get("USERNAME", "User")
     return f"The user's system name is {username}."
+
 
 @agent.system_prompt
 def add_current_time() -> str:
-    return f"The current time and date is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
+    return (
+        f"The current time and date is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
+    )
+
 
 # Database dependency
+
 
 # Agent tools
 @agent.tool
@@ -94,43 +107,58 @@ async def get_capability(ctx: RunContext[Deps], capability_id: int) -> Optional[
             "name": capability.name,
             "description": capability.description,
             "parent_id": capability.parent_id,
-            "order_position": capability.order_position
+            "order_position": capability.order_position,
         }
     return None
 
-@agent.tool
-async def get_capabilities(ctx: RunContext[Deps], parent_id: Optional[int] = None) -> List[Dict]:
-    db_ops = DatabaseOperations(ctx.deps.db_factory)
-    capabilities = await db_ops.get_capabilities(parent_id)
-    return [{
-        "id": cap.id,
-        "name": cap.name,
-        "description": cap.description,
-        "parent_id": cap.parent_id,
-        "order_position": cap.order_position
-    } for cap in capabilities]
 
 @agent.tool
-async def get_capability_with_children(ctx: RunContext[Deps], capability_id: int) -> Optional[Dict]:
+async def get_capabilities(
+    ctx: RunContext[Deps], parent_id: Optional[int] = None
+) -> List[Dict]:
+    db_ops = DatabaseOperations(ctx.deps.db_factory)
+    capabilities = await db_ops.get_capabilities(parent_id)
+    return [
+        {
+            "id": cap.id,
+            "name": cap.name,
+            "description": cap.description,
+            "parent_id": cap.parent_id,
+            "order_position": cap.order_position,
+        }
+        for cap in capabilities
+    ]
+
+
+@agent.tool
+async def get_capability_with_children(
+    ctx: RunContext[Deps], capability_id: int
+) -> Optional[Dict]:
     db_ops = DatabaseOperations(ctx.deps.db_factory)
     return await db_ops.get_capability_with_children(capability_id)
+
 
 @agent.tool
 async def search_capabilities(ctx: RunContext[Deps], query: str) -> List[Dict]:
     db_ops = DatabaseOperations(ctx.deps.db_factory)
     capabilities = await db_ops.search_capabilities(query)
-    return [{
-        "id": cap.id,
-        "name": cap.name,
-        "description": cap.description,
-        "parent_id": cap.parent_id,
-        "order_position": cap.order_position
-    } for cap in capabilities]
+    return [
+        {
+            "id": cap.id,
+            "name": cap.name,
+            "description": cap.description,
+            "parent_id": cap.parent_id,
+            "order_position": cap.order_position,
+        }
+        for cap in capabilities
+    ]
+
 
 @agent.tool
 async def get_markdown_hierarchy(ctx: RunContext[Deps]) -> str:
     db_ops = DatabaseOperations(ctx.deps.db_factory)
     return await db_ops.get_markdown_hierarchy()
+
 
 @agent.tool
 async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[Dict]:
@@ -142,19 +170,24 @@ async def get_capability_by_name(ctx: RunContext[Deps], name: str) -> Optional[D
             "name": capability.name,
             "description": capability.description,
             "parent_id": capability.parent_id,
-            "order_position": capability.order_position
+            "order_position": capability.order_position,
         }
     return None
 
+
 # Replace the global chat_history with a connection-specific store
-chat_histories = WeakKeyDictionary()  # This will automatically clean up disconnected sessions
+chat_histories = (
+    WeakKeyDictionary()
+)  # This will automatically clean up disconnected sessions
 
 # Load chat template
-chat_template = jinja_env.get_template('chat.html')
+chat_template = jinja_env.get_template("chat.html")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def get():
     return chat_template.render()
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -165,10 +198,7 @@ async def websocket_endpoint(websocket: WebSocket):
         chat_histories[websocket] = []
 
         # Send empty chat history for new connection
-        await websocket.send_json({
-            "type": "history",
-            "messages": []
-        })
+        await websocket.send_json({"type": "history", "messages": []})
 
         while True:
             try:
@@ -177,23 +207,30 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 # Create and send user message with proper parts
                 user_msg = ModelRequest(
-                    parts=[UserPromptPart(
-                        content=user_content,
-                        timestamp=datetime.now(tz=timezone.utc)
-                    )]
+                    parts=[
+                        UserPromptPart(
+                            content=user_content,
+                            timestamp=datetime.now(tz=timezone.utc),
+                        )
+                    ]
                 )
                 await websocket.send_json(to_chat_message(user_msg))
                 chat_histories[websocket].append(user_msg)
 
                 # Process with AI using the connection-specific chat history
                 from .models import AsyncSessionLocal
+
                 deps = Deps(db_factory=AsyncSessionLocal)
                 print("  preparing model and tools")
                 # Initialize an empty string to collect the full response
                 full_response = ""
 
                 try:
-                    async with agent.run_stream(user_content, message_history=chat_histories[websocket], deps=deps) as result:
+                    async with agent.run_stream(
+                        user_content,
+                        message_history=chat_histories[websocket],
+                        deps=deps,
+                    ) as result:
                         print("  model request started")
                         try:
                             async for text in result.stream(debounce_by=0.01):
@@ -204,7 +241,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                 # Create a ModelResponse with TextPart for each chunk
                                 msg = ModelResponse(
                                     parts=[TextPart(content=text)],
-                                    timestamp=result.timestamp()
+                                    timestamp=result.timestamp(),
                                 )
                                 try:
                                     await websocket.send_json(to_chat_message(msg))
@@ -215,7 +252,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                 # Create and add the final complete response to history
                                 final_response = ModelResponse(
                                     parts=[TextPart(content=full_response)],
-                                    timestamp=result.timestamp()
+                                    timestamp=result.timestamp(),
                                 )
                                 chat_histories[websocket].append(final_response)
                         except ValueError as ve:
@@ -227,7 +264,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         error_msg = f"An error occurred while processing your request."
                         error_response = ModelResponse(
                             parts=[TextPart(content=error_msg)],
-                            timestamp=datetime.now(tz=timezone.utc)
+                            timestamp=datetime.now(tz=timezone.utc),
                         )
                         await websocket.send_json(to_chat_message(error_response))
 
@@ -240,12 +277,13 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"WebSocket error: {e}")
                 print(f"Error type: {type(e)}")
                 import traceback
+
                 print(f"Traceback:\n{traceback.format_exc()}")
                 if websocket.client_state == WebSocketState.CONNECTED:
                     error_msg = f"Error: {str(e)}"
                     error_response = ModelResponse(
                         parts=[TextPart(content=error_msg)],
-                        timestamp=datetime.now(tz=timezone.utc)
+                        timestamp=datetime.now(tz=timezone.utc),
                     )
                     await websocket.send_json(to_chat_message(error_response))
                     chat_histories[websocket].append(error_response)
@@ -255,14 +293,16 @@ async def websocket_endpoint(websocket: WebSocket):
         if websocket.client_state == WebSocketState.CONNECTED:
             await websocket.close()
 
+
 def is_port_in_use(port: int) -> bool:
     """Check if a port is already in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind(('127.0.0.1', port))
+            s.bind(("127.0.0.1", port))
             return False
         except OSError:
             return True
+
 
 def find_available_port(start_port: int = 8000, max_attempts: int = 100) -> int:
     """Find the next available port starting from start_port."""
@@ -271,14 +311,19 @@ def find_available_port(start_port: int = 8000, max_attempts: int = 100) -> int:
         if not is_port_in_use(port):
             return port
         port += 1
-    raise RuntimeError(f"Could not find an available port after {max_attempts} attempts")
+    raise RuntimeError(
+        f"Could not find an available port after {max_attempts} attempts"
+    )
+
 
 def get_chat_port(start_port: int = 8000) -> int:
     """Get the port for the chat server."""
     return find_available_port(start_port)
 
+
 def start_server(port: Optional[int] = None):
     import uvicorn
+
     try:
         if port is None:
             port = get_chat_port()
@@ -286,6 +331,7 @@ def start_server(port: Optional[int] = None):
         uvicorn.run(app, host="127.0.0.1", port=port)
     except Exception as e:
         print(f"Failed to start server: {e}")
+
 
 if __name__ == "__main__":
     start_server()

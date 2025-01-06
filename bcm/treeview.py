@@ -4,12 +4,13 @@ from typing import Optional
 from .database import DatabaseOperations
 from .dialogs import CapabilityDialog, create_dialog
 
+
 class CapabilityTreeview(ttk.Treeview):
     @staticmethod
     def _calculate_row_height(style_name):
         """Calculate appropriate row height based on font size."""
         style = ttk.Style()
-        font = style.lookup(style_name, 'font')
+        font = style.lookup(style_name, "font")
         if font:
             # Add padding to font size for better readability
             # Handle both string and tuple font specifications
@@ -27,13 +28,13 @@ class CapabilityTreeview(ttk.Treeview):
         self.db_ops = db_ops
         self.drag_source: Optional[str] = None
         self.drop_target: Optional[str] = None
-        
+
         # Configure item height based on font size
-        if 'style' in kwargs:
+        if "style" in kwargs:
             style = ttk.Style()
-            height = self._calculate_row_height(kwargs['style'])
-            style.configure(kwargs['style'], rowheight=height)
-        
+            height = self._calculate_row_height(kwargs["style"])
+            style.configure(kwargs["style"], rowheight=height)
+
         # Configure treeview with single column
         self["columns"] = ()  # Remove description column
         self.heading("#0", text="Capability")
@@ -51,12 +52,14 @@ class CapabilityTreeview(ttk.Treeview):
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<ButtonRelease-1>", self.on_drop)
         self.bind("<Button-3>", self.show_context_menu)
-        
+
         self.refresh_tree()
 
         # Configure drop target styles
-        self.tag_configure('drop_target', background='lightblue')
-        self.tag_configure('illegal_drop_target', background='#ffcccc')  # Light red for illegal targets
+        self.tag_configure("drop_target", background="lightblue")
+        self.tag_configure(
+            "illegal_drop_target", background="#ffcccc"
+        )  # Light red for illegal targets
 
     def _clear_drop_mark(self):
         """Clear any existing drop mark."""
@@ -71,7 +74,7 @@ class CapabilityTreeview(ttk.Treeview):
             # Can't drop on itself
             if source_id == target_id:
                 return False
-                
+
             # Get source capability
             source = await self.db_ops.get_capability(source_id)
             if not source:
@@ -81,11 +84,11 @@ class CapabilityTreeview(ttk.Treeview):
             target = await self.db_ops.get_capability(target_id)
             if not target:
                 return False
-            
+
             # If target is current parent, it's always valid
             if target_id == source.parent_id:
                 return True
-                
+
             # Check if target is a descendant of source
             async def get_all_descendants(cap_id: int) -> set:
                 result = set()
@@ -95,16 +98,16 @@ class CapabilityTreeview(ttk.Treeview):
                     child_descendants = await get_all_descendants(child.id)
                     result.update(child_descendants)
                 return result
-            
+
             # Get all descendants of source
             descendants = await get_all_descendants(source_id)
-            
+
             # If target is in descendants, it's invalid
             if target_id in descendants:
                 return False
-                
+
             return True
-            
+
         except Exception:
             return False
 
@@ -114,7 +117,7 @@ class CapabilityTreeview(ttk.Treeview):
             self._clear_drop_mark()
             self.drop_target = target
             # Apply the drop target style
-            self.item(target, tags=('drop_target',))
+            self.item(target, tags=("drop_target",))
 
     def show_context_menu(self, event):
         item = self.identify_row(event.y)
@@ -146,7 +149,9 @@ class CapabilityTreeview(ttk.Treeview):
             dialog = CapabilityDialog(self, self.db_ops, capability)
             dialog.wait_window()
             if dialog.result:
-                self._wrap_async(self.db_ops.update_capability(capability_id, dialog.result))
+                self._wrap_async(
+                    self.db_ops.update_capability(capability_id, dialog.result)
+                )
                 self.refresh_tree()
 
     async def _delete_capability_async(self, capability_id: int, session) -> bool:
@@ -171,14 +176,16 @@ class CapabilityTreeview(ttk.Treeview):
         if create_dialog(
             self,
             "Delete Capability",
-            "Are you sure you want to delete this capability\nand all its children?"
+            "Are you sure you want to delete this capability\nand all its children?",
         ):
             try:
                 # Create async function for deletion
                 async def delete_async():
                     async with await self.db_ops._get_session() as session:
                         try:
-                            success = await self._delete_capability_async(capability_id, session)
+                            success = await self._delete_capability_async(
+                                capability_id, session
+                            )
                             if success:
                                 await session.commit()
                                 return True
@@ -196,7 +203,7 @@ class CapabilityTreeview(ttk.Treeview):
                         self,
                         "Error",
                         "Failed to delete capability - not found",
-                        ok_only=True
+                        ok_only=True,
                     )
             except Exception as e:
                 print(f"Error deleting capability: {e}")
@@ -204,7 +211,7 @@ class CapabilityTreeview(ttk.Treeview):
                     self,
                     "Error",
                     f"Failed to delete capability: {str(e)}",
-                    ok_only=True
+                    ok_only=True,
                 )
 
     def _wrap_async(self, coro):
@@ -212,11 +219,11 @@ class CapabilityTreeview(ttk.Treeview):
         import asyncio
         import threading
         import inspect
-        
+
         result = None
         error = None
         event = threading.Event()
-        
+
         async def run_coro():
             try:
                 if inspect.isasyncgen(coro):
@@ -229,7 +236,7 @@ class CapabilityTreeview(ttk.Treeview):
                     return await coro
             except Exception as e:
                 raise e
-        
+
         def run_async():
             nonlocal result, error
             try:
@@ -243,16 +250,16 @@ class CapabilityTreeview(ttk.Treeview):
                 error = e
             finally:
                 event.set()
-        
+
         # Run in a separate thread
         thread = threading.Thread(target=run_async, daemon=True)
         thread.start()
-        
+
         # Wait with timeout to prevent hanging
         if not event.wait(timeout=10.0):  # Increased timeout for complex operations
             error = TimeoutError("Async operation timed out")
             return None
-        
+
         if error:
             raise error
         return result
@@ -262,32 +269,25 @@ class CapabilityTreeview(ttk.Treeview):
         # Store currently open items
         opened_items = set()
         for item in self.get_children():
-            if self.item(item, 'open'):
+            if self.item(item, "open"):
                 opened_items.add(item)
-        
+
         # Clear selection and items
         self.selection_remove(self.selection())
         self.delete(*self.get_children())
-        
+
         # Reload data
         try:
             capabilities = self._wrap_async(self.db_ops.get_capabilities(None))
             for cap in capabilities:
                 item_id = str(cap.id)
                 self.insert(
-                    "",
-                    END,
-                    iid=item_id,
-                    text=cap.name,
-                    open=item_id in opened_items
+                    "", END, iid=item_id, text=cap.name, open=item_id in opened_items
                 )
                 self._load_capabilities(item_id, cap.id)
         except Exception as e:
             create_dialog(
-                self,
-                "Error",
-                f"Failed to refresh tree: {str(e)}",
-                ok_only=True
+                self, "Error", f"Failed to refresh tree: {str(e)}", ok_only=True
             )
 
     def _load_capabilities(self, parent: str = "", parent_id: Optional[int] = None):
@@ -297,13 +297,7 @@ class CapabilityTreeview(ttk.Treeview):
             if capabilities:  # Only process if we have capabilities
                 for cap in capabilities:
                     item_id = str(cap.id)
-                    self.insert(
-                        parent,
-                        END,
-                        iid=item_id,
-                        text=cap.name,
-                        open=True
-                    )
+                    self.insert(parent, END, iid=item_id, text=cap.name, open=True)
                     self._load_capabilities(item_id, cap.id)
         except Exception as e:
             print(f"Error loading capabilities: {e}")  # Log error for debugging
@@ -319,23 +313,23 @@ class CapabilityTreeview(ttk.Treeview):
             self.configure(cursor="fleur")
             # Update drop target visual feedback
             target = self.identify_row(event.y)
-            
+
             # Clear previous drop mark
             self._clear_drop_mark()
-            
+
             if target and target != self.drag_source:
                 # Check if this would be a valid drop target
                 is_valid = self._wrap_async(
                     self._is_valid_drop_target(int(self.drag_source), int(target))
                 )
-                
+
                 self.drop_target = target
-                
+
                 # Apply appropriate tag based on validity
                 if is_valid:
-                    self.item(target, tags=('drop_target',))
+                    self.item(target, tags=("drop_target",))
                 else:
-                    self.item(target, tags=('illegal_drop_target',))
+                    self.item(target, tags=("illegal_drop_target",))
 
     def on_drop(self, event):
         """Handle drop event."""
@@ -345,26 +339,30 @@ class CapabilityTreeview(ttk.Treeview):
 
         self.configure(cursor="")
         target = self.identify_row(event.y)
-        
+
         try:
             source_id = int(self.drag_source)
-            
+
             if not target:
                 # Dropping outside - make it a root node
-                result = self._wrap_async(self.db_ops.update_capability_order(
-                    source_id, 
-                    None,  # No parent = root node
-                    0  # Order position for new root
-                ))
+                result = self._wrap_async(
+                    self.db_ops.update_capability_order(
+                        source_id,
+                        None,  # No parent = root node
+                        0,  # Order position for new root
+                    )
+                )
             else:
                 if target == self.drag_source:
                     self.drag_source = None
                     return
-                    
+
                 target_id = int(target)
                 # Check if this is a valid drop target
-                is_valid = self._wrap_async(self._is_valid_drop_target(source_id, target_id))
-                
+                is_valid = self._wrap_async(
+                    self._is_valid_drop_target(source_id, target_id)
+                )
+
                 if not is_valid:
                     raise ValueError("Invalid drop target")
 
@@ -373,11 +371,11 @@ class CapabilityTreeview(ttk.Treeview):
 
                 try:
                     # Update in database
-                    result = self._wrap_async(self.db_ops.update_capability_order(
-                        source_id, 
-                        target_id,
-                        target_index
-                    ))
+                    result = self._wrap_async(
+                        self.db_ops.update_capability_order(
+                            source_id, target_id, target_index
+                        )
+                    )
                 except Exception as e:
                     # Convert database errors to ValueError for consistent handling
                     raise ValueError(str(e))
@@ -390,23 +388,13 @@ class CapabilityTreeview(ttk.Treeview):
                 self.see(str(source_id))
             else:
                 self.refresh_tree()
-            
+
         except ValueError as ve:
             # Handle specific validation errors
-            create_dialog(
-                self,
-                "Error",
-                str(ve),
-                ok_only=True
-            )
+            create_dialog(self, "Error", str(ve), ok_only=True)
             self.refresh_tree()
         except Exception as e:
-            create_dialog(
-                self,
-                "Error",
-                str(e),
-                ok_only=True
-            )
+            create_dialog(self, "Error", str(e), ok_only=True)
             self.refresh_tree()
         finally:
             self.drag_source = None
