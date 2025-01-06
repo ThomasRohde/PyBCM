@@ -86,7 +86,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         else:
             self.scale *= 0.9
         self.draw_model()
-
+        
     def draw_box(
         self, x, y, width, height, text, description=None, has_children=False, level=0
     ):
@@ -250,22 +250,14 @@ class CapabilityVisualizer(ttk.Toplevel):
     def _start_pan(self, event):
         """Start panning by recording the initial position."""
         self.canvas.configure(cursor="fleur")  # Change cursor to indicate panning
-        self._pan_start_x = event.x
-        self._pan_start_y = event.y
+        self.canvas.scan_mark(event.x, event.y)
         self._panning = True
 
     def _pan(self, event):
         """Pan the canvas based on mouse movement."""
         if not self._panning:
             return
-
-        # Move the canvas contents
         self.canvas.scan_dragto(event.x, event.y, gain=1)
-        self.canvas.scan_mark(event.x, event.y)
-
-        # Update start position
-        self._pan_start_x = event.x
-        self._pan_start_y = event.y
 
     def _stop_pan(self, event):
         """Stop panning."""
