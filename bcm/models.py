@@ -97,7 +97,7 @@ CapabilityExportList = RootModel[List[CapabilityExport]]
 
 class LayoutModel(BaseModel):
     """Pydantic model for representing the hierarchical layout of capabilities."""
-
+    id: int
     name: str
     description: Optional[str] = None
     children: Optional[List["LayoutModel"]] = None
@@ -138,29 +138,6 @@ class FirstLevelCapability(BaseModel):
 class FirstLevelCapabilities(BaseModel):
     capabilities: List[FirstLevelCapability] = Field(
         description="List of first-level capabilities for the organization"
-    )
-
-
-def capability_to_layout(
-    capability: Capability, settings=None, current_level: int = 0
-) -> LayoutModel:
-    """
-    Convert a Capability model instance to a LayoutModel instance.
-    Respects max_level setting to limit visualization depth.
-    """
-    # Get max_level from settings, default to 6 if settings not provided
-    max_level = settings.get("max_level", 6) if settings else 6
-
-    # Create children only if we haven't reached max_level
-    children = None
-    if capability.children and current_level < max_level:
-        children = [
-            capability_to_layout(child, settings, current_level + 1)
-            for child in capability.children
-        ]
-
-    return LayoutModel(
-        name=capability.name, description=capability.description, children=children
     )
 
 

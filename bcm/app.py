@@ -98,6 +98,7 @@ class App:
             ]
 
         return LayoutModel(
+            id=node_data["id"],
             name=node_data["name"],
             description=node_data.get("description", ""),
             children=children,
