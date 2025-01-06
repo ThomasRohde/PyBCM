@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic_ai import models
 from typing import get_args
 from tkinter import colorchooser  # For color selection
+import os
 
 BOX_MIN_WIDTH_DEFAULT = 120
 BOX_MIN_HEIGHT_DEFAULT = 80
@@ -104,7 +105,7 @@ class SettingsDialog(ttk.Toplevel):
         super().__init__(parent)
         self.settings = settings
         self.result = None
-        self.iconbitmap("./bcm/business_capability_model.ico")
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.title("Settings")
         self.geometry("600x700")
         self.position_center()

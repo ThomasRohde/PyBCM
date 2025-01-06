@@ -61,7 +61,7 @@ class App:
         self.root.geometry(f"{window_width}x{window_height}")
 
         self.root.withdraw()  # Hide window temporarily
-        self.root.iconbitmap("./bcm/business_capability_model.ico")
+        self.root.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 

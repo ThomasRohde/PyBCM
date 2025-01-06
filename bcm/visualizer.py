@@ -3,13 +3,13 @@ import tkinter as tk
 from .layout_manager import process_layout
 from .models import LayoutModel
 from .settings import Settings
-
+import os
 
 class CapabilityVisualizer(ttk.Toplevel):
     def __init__(self, parent, model: LayoutModel):
         super().__init__(parent)
         self.title("Capability Model Visualizer")
-        self.iconbitmap("./bcm/business_capability_model.ico")
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         # Fraction of screen size you want to allow. Adjust as necessary.
         self.max_screen_fraction = 0.8
 

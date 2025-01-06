@@ -3,7 +3,7 @@ import ttkbootstrap as ttk
 from typing import Dict
 from .models import CapabilityCreate, CapabilityUpdate
 from .database import DatabaseOperations
-
+import os
 
 class CapabilityConfirmDialog(ttk.Toplevel):
     # Window geometry constants
@@ -14,7 +14,7 @@ class CapabilityConfirmDialog(ttk.Toplevel):
 
     def __init__(self, parent, capabilities: Dict[str, str]):
         super().__init__(parent)
-        self.iconbitmap("./bcm/business_capability_model.ico")
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.capabilities = capabilities
         self.result = {}
 
@@ -245,7 +245,7 @@ class CapabilityDialog(ttk.Toplevel):
         self, parent, db_ops: DatabaseOperations, capability=None, parent_id=None
     ):
         super().__init__(parent)
-        self.iconbitmap("./bcm/business_capability_model.ico")
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.db_ops = db_ops
         self.capability = capability
         self.parent_id = parent_id

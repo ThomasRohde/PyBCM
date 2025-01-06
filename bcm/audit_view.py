@@ -7,7 +7,7 @@ import pandas as pd
 import openpyxl.styles
 from tkinter import filedialog
 from .dialogs import create_dialog
-
+import os
 
 class AuditLogViewer(ttk.Toplevel):
     def __init__(self, parent, db_ops):
@@ -23,7 +23,7 @@ class AuditLogViewer(ttk.Toplevel):
         self.withdraw()  # Hide window initially
         self.title("Audit Log Viewer")
         self.geometry("1000x600")  # Made wider to accommodate table
-        self.iconbitmap("./bcm/business_capability_model.ico")
+        self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
 
         # Create toolbar frame
         self.toolbar = ttk.Frame(self)
