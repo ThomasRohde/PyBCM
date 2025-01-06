@@ -2,7 +2,27 @@
 name = "pybcm"
 version = "0.1.0"
 description = "A Business Capability Modeler built with Python and ttkbootstrap"
-authors = []
+authors = [
+    {name = "Thomas Klok Rohde", email = "thomas@rohde.name"},
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent", 
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+    "Framework :: FastAPI",
+    "Framework :: AsyncIO",
+    "Natural Language :: English"
+]
+keywords = ["bcm", "business", "capability", "modeling", "enterprise-architecture"]
 dependencies = [
     "ttkbootstrap>=1.10.1",
     "sqlalchemy>=2.0.0",

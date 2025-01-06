@@ -6,3 +6,7 @@ recursive-include bcm/templates *
 include bcm/*.ico
 include bcm/*.html
 include bcm/*.md
+recursive-include tests *
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
