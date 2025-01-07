@@ -104,11 +104,11 @@ class SettingsDialog(ttk.Toplevel):
     def __init__(self, parent, settings: Settings):
         super().__init__(parent)
         self.settings = settings
+        self.withdraw()  # Hide window initially
         self.result = None
         self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.title("Settings")
         self.geometry("600x700")
-        self.position_center()
         self.resizable(False, False)
 
         # Bind Return key to OK button
@@ -180,7 +180,9 @@ class SettingsDialog(ttk.Toplevel):
         self.color_5_var.set(self.settings.get("color_5"))
         self.color_6_var.set(self.settings.get("color_6"))
         self.color_leaf_var.set(self.settings.get("color_leaf"))
-
+        self.position_center()
+        self.deiconify()  # Show window after loading settings
+        
     def _create_widgets(self):
         """Create and initialize all the widgets."""
 
