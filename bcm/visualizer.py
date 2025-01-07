@@ -149,7 +149,7 @@ class CapabilityVisualizer(ttk.Toplevel):
             int(sw / (len(text) + 2) * 1.5),  # width-based
             int(sh / 3),  # height-based
         )
-        font_size = max(8, font_size)  # minimum
+        font_size = max(2, font_size)  # minimum
 
         # Adjust text position if node has children (place near top)
         text_x = sx + sw // 2
