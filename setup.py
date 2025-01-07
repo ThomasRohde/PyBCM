@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pybcm",
-    version="0.1.5",
+    version="0.1.6",
     description="A Business Capability Modeler built with Python and ttkbootstrap",
     long_description=long_description,
     long_description_content_type="text/markdown",
