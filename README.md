@@ -81,7 +81,35 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     bcm
     ```
 
-4. **Configure Logfire logging (first time only):**
+4. **Configure LLM API Keys:**
+
+    PyBCM uses PydanticAI to interact with various LLM providers. You'll need to:
+
+    1. Copy the sample environment file:
+       ```bash
+       cp .env.sample .env
+       ```
+    2. Edit `.env` and configure your environment:
+
+       Required variables:
+       - `OPENAI_API_KEY`: Your OpenAI API key (required for default setup)
+
+       Optional LLM providers:
+       - `ANTHROPIC_API_KEY`: For Claude models
+       - `GOOGLE_API_KEY`: For Gemini models
+       - `GROQ_API_KEY`: For Groq models
+       - `MISTRAL_API_KEY`: For Mistral models
+
+       Model settings:
+       - `DEFAULT_MODEL`: Model to use (default: gpt-4-turbo-preview)
+       - `MAX_TOKENS`: Maximum response length (default: 2000)
+       - `TEMPERATURE`: Response creativity 0.0-1.0 (default: 0.7)
+
+       See the [Logfire documentation](https://logfire.pydantic.dev/docs/reference/configuration/#using-environment-variables) for setting environment variables for logging.
+    
+    The application validates these settings on startup and will show an error if required variables are missing.
+
+5. **Configure Logfire logging (first time only):**
 
     PyBCM uses Logfire for advanced logging and monitoring. On first run, you'll need to:
 
@@ -235,7 +263,14 @@ This allows you to:
     *   [Pydantic](https://docs.pydantic.dev/): Data validation and settings management.
     *   [PydanticAI](https://github.com/e-dang/pydantic_ai): AI agent based on Pydantic models.
 *   **AI:**
-    *   [OpenAI API](https://openai.com/): For AI capability expansion (using GPT-4o or other configurable models).
+    *   [PydanticAI](https://github.com/pydantic/pydantic-ai): Agent framework for LLM interactions
+    *   Supported LLM providers:
+        - OpenAI (default)
+        - Anthropic
+        - Google AI (Gemini)
+        - Groq
+        - Mistral
+        - Ollama
 *   **Visualization:**
     *   Custom layout algorithms implemented in `layout.py` and `hq_layout.py`.
     *   `tkinter` Canvas for rendering.

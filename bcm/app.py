@@ -23,12 +23,12 @@ from .utils import expand_capability_ai, generate_first_level_capabilities, init
 from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
-
+from dotenv import load_dotenv
 import logfire
 
+load_dotenv()
 logfire.configure()
 logfire.instrument_openai()
-
 
 async def anext(iterator):
     """Helper function for async iteration compatibility."""
