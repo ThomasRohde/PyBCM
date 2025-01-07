@@ -85,11 +85,12 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
 
     PyBCM uses PydanticAI to interact with various LLM providers. You'll need to:
 
-    1. Copy the sample environment file:
+    1. Copy the sample environment file to your user directory:
        ```bash
-       cp .env.sample .env
+       mkdir -p ~/.pybcm
+       cp .env.sample ~/.pybcm/.env
        ```
-    2. Edit `.env` and configure your environment:
+    2. Edit `~/.pybcm/.env` and configure your environment:
 
        Required variables:
        - `OPENAI_API_KEY`: Your OpenAI API key (required for default setup)
@@ -220,8 +221,9 @@ PyBCM creates a `.pybcm` directory in your home folder to store user-specific da
 
 ```
 ~/.pybcm/
-├── settings.json      # User settings
-├── templates/         # Customizable templates
+├── .env              # Environment configuration
+├── settings.json     # User settings  
+├── templates/        # Customizable templates
 │   ├── chat.html            # Chat interface template
 │   ├── expansion_prompt.j2  # AI capability expansion prompt
 │   ├── first_level_prompt.j2# First-level capabilities prompt

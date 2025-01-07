@@ -26,7 +26,13 @@ from .visualizer import CapabilityVisualizer
 from dotenv import load_dotenv
 import logfire
 
-load_dotenv()
+# Load .env from user directory
+user_dir = os.path.expanduser("~")
+app_dir = os.path.join(user_dir, ".pybcm")
+os.makedirs(app_dir, exist_ok=True)
+env_path = os.path.join(app_dir, ".env")
+load_dotenv(env_path)
+
 logfire.configure()
 logfire.instrument_openai()
 
