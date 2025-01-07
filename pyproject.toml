@@ -1,6 +1,6 @@
 [project]
 name = "pybcm"
-version = "0.1.6"
+version = "0.1.7"
 description = "A Business Capability Modeler built with Python and ttkbootstrap"
 authors = [
     {name = "Thomas Klok Rohde", email = "thomas@rohde.name"},
