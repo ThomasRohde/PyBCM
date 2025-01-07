@@ -270,4 +270,4 @@ PyBCM is released under the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Contact
 
-For any questions or feedback, please open an issue on the [GitHub repository](https://github.com/yourusername/pybcm).
+For any questions or feedback, please open an issue on the [GitHub repository](https://github.com/ThomasRohde/PyBCM).
