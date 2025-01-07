@@ -16,11 +16,11 @@ def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
     Returns:
         The processed model with layout information
     """
-    algorithm = settings.get("layout_algorithm", "standard")
+    algorithm = settings.get("layout_algorithm", "Simple - fast")
 
-    if algorithm == "hq":
+    if algorithm == "Advanced - slow":
         return hq_layout.process_layout(model, settings)
-    if algorithm == "alt":
+    if algorithm == "Experimental":
         return alt_layout.process_layout(model, settings)
     else:  # standard or fallback
         return layout.process_layout(model, settings)

@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
     "font_size": 10,  # Default font size for main text content
     "model": "openai:gpt-4o",  # Default model
     # Layout
-    "layout_algorithm": "standard",  # Layout algorithm to use (standard or hq)
+    "layout_algorithm": "Simple - fast",  # Layout algorithm to use
     "root_font_size": 20,  # Default root font size for layout
     "box_min_width": BOX_MIN_WIDTH_DEFAULT,
     "box_min_height": BOX_MIN_HEIGHT_DEFAULT,
@@ -259,7 +259,7 @@ class SettingsDialog(ttk.Toplevel):
         self.layout_algorithm_combo = ttk.Combobox(
             self.layout_algorithm_frame,
             textvariable=self.layout_algorithm_var,
-            values=["standard", "hq", "alt"],
+            values=["Simple - fast", "Advanced - slow", "Experimental"],
             state="readonly",
         )
 
@@ -613,7 +613,7 @@ class SettingsDialog(ttk.Toplevel):
                 raise ValueError("Max Level cannot exceed 10")
 
             # Layout algorithm validation
-            if self.layout_algorithm_var.get() not in ["standard", "hq", "alt"]:
+            if self.layout_algorithm_var.get() not in ["Simple - fast", "Advanced - slow", "Experimental"]:
                 raise ValueError("Invalid layout algorithm selected")
 
             # Color settings: basic check that they are non-empty strings
