@@ -259,7 +259,7 @@ class SettingsDialog(ttk.Toplevel):
         self.layout_algorithm_combo = ttk.Combobox(
             self.layout_algorithm_frame,
             textvariable=self.layout_algorithm_var,
-            values=["standard", "hq"],
+            values=["standard", "hq", "alt"],
             state="readonly",
         )
 
@@ -613,7 +613,7 @@ class SettingsDialog(ttk.Toplevel):
                 raise ValueError("Max Level cannot exceed 10")
 
             # Layout algorithm validation
-            if self.layout_algorithm_var.get() not in ["standard", "hq"]:
+            if self.layout_algorithm_var.get() not in ["standard", "hq", "alt"]:
                 raise ValueError("Invalid layout algorithm selected")
 
             # Color settings: basic check that they are non-empty strings

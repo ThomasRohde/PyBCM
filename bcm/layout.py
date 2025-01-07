@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from .models import LayoutModel
 from .settings import Settings
 
-
 @dataclass
 class NodeSize:
     width: float

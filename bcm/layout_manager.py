@@ -2,6 +2,7 @@ from .models import LayoutModel
 from .settings import Settings
 from . import layout
 from . import hq_layout
+from . import alt_layout
 
 
 def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
@@ -19,5 +20,7 @@ def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
 
     if algorithm == "hq":
         return hq_layout.process_layout(model, settings)
+    if algorithm == "alt":
+        return alt_layout.process_layout(model, settings)
     else:  # standard or fallback
         return layout.process_layout(model, settings)

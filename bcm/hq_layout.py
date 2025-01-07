@@ -350,7 +350,6 @@ def layout_tree(
 
     return node
 
-
 def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:
     """Process the layout for the entire tree with caching."""
     # Create cache and hash settings
