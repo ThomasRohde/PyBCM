@@ -1,8 +1,8 @@
 ## Enhancements and new features
 
-- Cache visualisations for better performance
 - Reset audit log
 - Local time in audit log
-- Change visualizer tooltip font color, so it do not collide with a dark theme
++ Change visualizer tooltip font color, so it do not collide with a dark theme
 - Format markdown in visualizer tooltip
 + Add database indexes
+- Add chat model in settings

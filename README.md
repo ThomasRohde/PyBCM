@@ -72,6 +72,37 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     uv pip install -e .
     ```
 
+3. **Alternative: Run as a uv tool:**
+
+    You can install bcm directly as a uv tool:
+
+    ```bash
+    uv tool install pybcm
+    bcm
+    ```
+
+4. **Configure Logfire logging (first time only):**
+
+    PyBCM uses Logfire for advanced logging and monitoring. On first run, you'll need to:
+
+    1. Create a Logfire account at [logfire.pydantic.dev](https://logfire.pydantic.dev)
+    2. Install the Logfire CLI:
+       ```bash
+       uv pip install logfire
+       ```
+    3. Authenticate with Logfire:
+       ```bash
+       logfire auth
+       ```
+    4. Create and select a project:
+       ```bash
+       logfire projects new pybcm
+       logfire projects use pybcm
+       ```
+
+    This only needs to be done once. Credentials are stored in `~/.logfire/default.toml`.
+
+
 ## Usage
 
 ### Launching the Application
