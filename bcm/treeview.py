@@ -19,7 +19,7 @@ class CapabilityTreeview(ttk.Treeview):
             else:
                 # Split the font spec and get the size
                 font_size = font.split()[-1]
-            return int(font_size) + 16  # Add padding to font size
+            return int(font_size) + 18  # Add padding to font size
         return 20  # default height
 
     def __init__(self, master, db_ops: DatabaseOperations, **kwargs):
