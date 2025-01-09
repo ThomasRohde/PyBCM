@@ -19,7 +19,7 @@ from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .settings import Settings, SettingsDialog
 from .ui import BusinessCapabilityUI
-from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates
+from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context
 from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
@@ -245,10 +245,39 @@ class App:
         self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown")
 
     def _export_to_clipboard(self, event=None):
-        """Export capabilities to clipboard in Markdown format."""
-        from .markdown_export import export_to_markdown
+        """Export capabilities to clipboard in context format."""
+        selected = self.ui.tree.selection()
+        if not selected:
+            return
 
-        self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown", clipboard=True)
+        capability_id = int(selected[0])
+
+        # Create async function to get context
+        async def get_context():
+            return await get_capability_context(self.db_ops, capability_id)
+
+        try:
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(get_context(), self.loop)
+            context = future.result()  # Wait for completion
+            
+            # Copy to clipboard
+            self.root.clipboard_clear()
+            self.root.clipboard_append(context)
+            
+            create_dialog(
+                self.root,
+                "Success",
+                "Capability context copied to clipboard",
+                ok_only=True,
+            )
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error",
+                f"Failed to copy to clipboard: {str(e)}",
+                ok_only=True,
+            )
 
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
