@@ -210,6 +210,12 @@ class App:
 
         self._export_capability_model("SVG", export_to_svg, ".svg", "SVG")
 
+    def _export_to_markdown(self):
+        """Export capabilities to Markdown format starting from selected node."""
+        from .markdown_export import export_to_markdown
+
+        self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown")
+
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
         from .io import export_capabilities
