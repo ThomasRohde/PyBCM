@@ -73,6 +73,9 @@ class App:
         self.root.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
+        # Bind keyboard shortcuts
+        self.root.bind('<Control-c>', self._export_to_clipboard)
 
         # Initialize database asynchronously
         self.loop.run_until_complete(init_db())
@@ -114,7 +117,7 @@ class App:
         )
 
     def _export_capability_model(
-        self, export_type, export_func, file_extension, file_type_name
+        self, export_type, export_func, file_extension, file_type_name, clipboard=False
     ):
         """Base method for exporting capability model to different formats."""
         # Get selected node or use root if none selected
@@ -148,7 +151,32 @@ class App:
         # Convert to layout format starting from selected node
         layout_model = self._convert_to_layout_format(node_data)
 
-        # Get save location from user
+        if clipboard:
+            try:
+                # Generate content using provided export function
+                content = export_func(layout_model, self.settings)
+                
+                # Copy to clipboard
+                self.root.clipboard_clear()
+                self.root.clipboard_append(content)
+                
+                create_dialog(
+                    self.root,
+                    "Success",
+                    f"Capabilities exported to clipboard in {export_type} format",
+                    ok_only=True,
+                )
+                return
+            except Exception as e:
+                create_dialog(
+                    self.root,
+                    "Error", 
+                    f"Failed to copy to clipboard: {str(e)}",
+                    ok_only=True,
+                )
+                return
+
+        # Get save location from user if not copying to clipboard
         user_dir = os.path.expanduser("~")
         app_dir = os.path.join(user_dir, ".pybcm")
         os.makedirs(app_dir, exist_ok=True)
@@ -215,6 +243,12 @@ class App:
         from .markdown_export import export_to_markdown
 
         self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown")
+
+    def _export_to_clipboard(self, event=None):
+        """Export capabilities to clipboard in Markdown format."""
+        from .markdown_export import export_to_markdown
+
+        self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown", clipboard=True)
 
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
