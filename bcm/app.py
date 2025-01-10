@@ -76,6 +76,7 @@ class App:
         
         # Bind keyboard shortcuts
         self.root.bind('<Control-c>', self._export_to_clipboard)
+        self.root.bind('<Control-v>', self._paste_capability)
 
         # Initialize database asynchronously
         self.loop.run_until_complete(init_db())
@@ -243,6 +244,87 @@ class App:
         from .markdown_export import export_to_markdown
 
         self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown")
+
+    def _paste_capability(self, event=None):
+        """Paste sub-capabilities from clipboard JSON under selected capability."""
+        selected = self.ui.tree.selection()
+        if not selected:
+            create_dialog(
+                self.root, 
+                "Error", 
+                "Please select a parent capability first", 
+                ok_only=True
+            )
+            return
+
+        capability_id = int(selected[0])
+
+        # Get clipboard content
+        try:
+            clipboard_text = self.root.clipboard_get()
+            subcapabilities = json.loads(clipboard_text)
+            
+            if not isinstance(subcapabilities, list):
+                raise ValueError("Clipboard content must be a JSON array")
+                
+            # Validate each item has required fields
+            for cap in subcapabilities:
+                if not isinstance(cap, dict) or 'name' not in cap or 'description' not in cap:
+                    raise ValueError("Each capability must have 'name' and 'description' fields")
+
+        except json.JSONDecodeError:
+            create_dialog(
+                self.root,
+                "Error",
+                "Clipboard content is not valid JSON",
+                ok_only=True
+            )
+            return
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error", 
+                f"Invalid clipboard content: {str(e)}",
+                ok_only=True
+            )
+            return
+
+        progress = None
+        try:
+            progress = ProgressWindow(self.root)
+
+            # Create sub-capabilities
+            async def create_subcapabilities():
+                for cap in subcapabilities:
+                    await self.db_ops.create_capability(
+                        CapabilityCreate(
+                            name=cap['name'],
+                            description=cap['description'],
+                            parent_id=capability_id,
+                        )
+                    )
+
+            # Run creation with progress
+            progress.run_with_progress(create_subcapabilities())
+            self.ui.tree.refresh_tree()
+
+            create_dialog(
+                self.root,
+                "Success",
+                f"Added {len(subcapabilities)} new sub-capabilities",
+                ok_only=True
+            )
+
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error",
+                f"Failed to create sub-capabilities: {str(e)}",
+                ok_only=True
+            )
+        finally:
+            if progress:
+                progress.close()
 
     def _export_to_clipboard(self, event=None):
         """Export capabilities to clipboard in context format."""
