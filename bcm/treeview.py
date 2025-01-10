@@ -8,19 +8,40 @@ from .dialogs import CapabilityDialog, create_dialog
 class CapabilityTreeview(ttk.Treeview):
     @staticmethod
     def _calculate_row_height(style_name):
-        """Calculate appropriate row height based on font size."""
+        """Calculate appropriate row height based on font size and DPI scaling."""
         style = ttk.Style()
         font = style.lookup(style_name, "font")
+        
+        # Get DPI scaling factor using tk scaling
+        try:
+            # Get the root window through style's master
+            root = style.master
+            if root:
+                scaling = root.tk.call('tk', 'scaling')
+            else:
+                scaling = 1.0
+            print(f"Scaling factor: {scaling}")
+        except:  # noqa: E722
+            scaling = 1.0  # Fallback scaling factor
+            
         if font:
-            # Add padding to font size for better readability
             # Handle both string and tuple font specifications
             if isinstance(font, tuple):
-                font_size = font[1]
+                font_size = float(font[1])
             else:
                 # Split the font spec and get the size
-                font_size = font.split()[-1]
-            return int(font_size) + 12  # Add padding to font size
-        return 20  # default height
+                try:
+                    font_size = float(font.split()[-1])
+                except (IndexError, ValueError):
+                    font_size = 10.0  # Default font size if parsing fails
+                    
+            # Calculate base height with DPI awareness
+            base_height = int(font_size * scaling)
+            padding = int(2 * scaling)  # Scale padding too
+            return base_height + padding
+            
+        # Default height with DPI awareness
+        return int(20 * scaling)
 
     def __init__(self, master, db_ops: DatabaseOperations, **kwargs):
         # Initialize with the provided style (if any) for font size support
