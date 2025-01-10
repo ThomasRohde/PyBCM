@@ -741,7 +741,7 @@ class App:
             for widget in self.root.winfo_children():
                 try:
                     widget.configure(state="disabled")
-                except:
+                except:  # noqa: E722
                     pass
 
             # Set shutdown event to trigger async cleanup
@@ -759,7 +759,7 @@ class App:
                 # Ensure the root is destroyed and app quits
                 self.root.quit()
                 self.root.destroy()
-            except:
+            except:  # noqa: E722
                 pass
 
     def run(self):
@@ -770,7 +770,7 @@ class App:
             try:
                 asyncio.set_event_loop(self.loop)
                 # Start periodic shutdown check
-                shutdown_check_task = self.loop.create_task(
+                shutdown_check_task = self.loop.create_task(  # noqa: F841
                     self.periodic_shutdown_check(), name="periodic_shutdown_check"
                 )
                 self.loop.run_forever()

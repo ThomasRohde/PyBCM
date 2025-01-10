@@ -231,7 +231,6 @@ class BusinessCapabilityUI:
         # Get colors from current theme
         style = ttk.Style()
         bg_color = style.lookup("TFrame", "background")
-        fg_color = style.lookup("TFrame", "foreground")
 
         # Configure HTMLScrolledText
         self.desc_viewer.configure(

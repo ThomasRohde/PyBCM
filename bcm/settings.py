@@ -557,7 +557,7 @@ class SettingsDialog(ttk.Toplevel):
                 min_val, max_val = map(int, first_level_range.split("-"))
                 if min_val < 1 or max_val < min_val:
                     raise ValueError
-            except:
+            except:  # noqa: E722
                 raise ValueError(
                     "First level range must be in format 'min-max' (e.g. 5-10)"
                 )

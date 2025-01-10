@@ -20,7 +20,6 @@ class CapabilityTreeview(ttk.Treeview):
                 scaling = root.tk.call('tk', 'scaling')
             else:
                 scaling = 1.0
-            print(f"Scaling factor: {scaling}")
         except:  # noqa: E722
             scaling = 1.0  # Fallback scaling factor
             
