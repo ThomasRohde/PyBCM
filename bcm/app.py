@@ -261,9 +261,31 @@ class App:
             future = asyncio.run_coroutine_threadsafe(get_context(), self.loop)
             context = future.result()  # Wait for completion
             
-            # Render template with context
-            expansion_template = jinja_env.get_template("expansion_prompt_gpt.j2")
-            rendered_context = expansion_template.render(context=context)
+            # Get capability info
+            async def get_capability_info():
+                capability = await self.db_ops.get_capability(capability_id)
+                return capability
+
+            # Run the coroutine in the event loop
+            future = asyncio.run_coroutine_threadsafe(get_capability_info(), self.loop)
+            capability = future.result()  # Wait for completion
+
+            # Determine if this is a first-level capability
+            is_first_level = not capability.parent_id
+            
+            # Render template with appropriate context
+            if is_first_level:
+                template = jinja_env.get_template("first_level_prompt_gpt.j2")
+                rendered_context = template.render(
+                    organisation_name=capability.name,
+                    organisation_description=capability.description or f"An organization focused on {capability.name}",
+                    first_level=self.settings.get("first_level_range")
+                )
+            else:
+                template = jinja_env.get_template("expansion_prompt_gpt.j2")
+                rendered_context = template.render(
+                    context=context
+                )
             
             # Copy to clipboard
             self.root.clipboard_clear()
