@@ -169,6 +169,14 @@ bcm
 4. **Reordering Capabilities:**
     *   Drag and drop capabilities within the tree view to change their order or parent.
 
+5. **Copy/Paste Capabilities:**
+    *   **Copy (Ctrl+C):** Select a capability and press Ctrl+C to copy its context to the clipboard in a format suitable for AI expansion.
+    *   **Paste (Ctrl+V):** Select a parent capability, then press Ctrl+V to paste a JSON array of sub-capabilities. Each capability in the array must have `name` and `description` fields.
+    *   This allows you to:
+        - Copy capability context for use with external AI tools
+        - Paste pre-defined sets of capabilities from JSON
+        - Share capability structures between models
+
 ### Using AI Features
 
 1. **AI Capability Expansion:**
