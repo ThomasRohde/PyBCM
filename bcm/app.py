@@ -284,7 +284,9 @@ class App:
             else:
                 template = jinja_env.get_template("expansion_prompt_gpt.j2")
                 rendered_context = template.render(
-                    context=context
+                    capability_name=capability.name,
+                    context=context,
+                    max_capabilities=self.settings.get("max_ai_capabilities")
                 )
             
             # Copy to clipboard

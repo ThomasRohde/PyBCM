@@ -1,14 +1,6 @@
-{% if first_level %}
-You are tasked with identifying the first-level business capabilities for {{ organisation_name }}. Create {{ num_capabilities }} first-level capabilities that represent the core functions and abilities of this organization.
-
-Organization Description:
-{{ organisation_description }}
-
-{% else %}
 Analyze the business capability '{{ capability_name }}' within the context provided below. Decompose this capability into a set of MECE sub-capabilities that adhere to the principles of effective business capability modeling. Create up to {{ max_capabilities }} sub-capabilities.
 
 The context is formatted using section tags that organize the information:
-{% endif %}
 
 <first_level_capabilities> - Lists all top-level capabilities in the model with their descriptions
 <capability_tree> - Shows the full hierarchical tree structure with the current capability marked
@@ -36,3 +28,26 @@ For each sub-capability identified, provide:
 - **Distinctness:** Ensure there is no overlap in scope or responsibility between sub-capabilities.
 - **Completeness:** The set of sub-capabilities should collectively cover the entire scope of '{{ capability_name }}' without any gaps.
 - **Consistency:**  Maintain a consistent level of detail and abstraction across all sub-capabilities.
+
+** JSON Output format: **
+
+```
+[
+  {
+    "name": "Capability 1",
+    "description": "Description of Capability 1",
+  },
+  {
+    "name": "Capability 2",
+    "description": "Description of Capability 1",
+  },
+  {
+    "name": "Capability 3",
+    "description": "Description of Capability 1",
+  },
+    {
+    "name": "Capability 4",
+    "description": "Description of Capability 1",
+  }
+]
+```
