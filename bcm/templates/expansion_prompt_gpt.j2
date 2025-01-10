@@ -1,0 +1,30 @@
+Analyze the business capability '{{ capability_name }}' within the context provided below. Decompose this capability into a set of MECE sub-capabilities that adhere to the principles of effective business capability modeling. Create up to {{ max_capabilities }} sub-capabilities.
+
+The context is formatted using section tags that organize the information:
+
+<first_level_capabilities> - Lists all top-level capabilities in the model with their descriptions
+<capability_tree> - Shows the full hierarchical tree structure with the current capability marked
+<parent_hierarchy> - Lists the chain of parent capabilities from root to current capability
+<sibling_context> - Shows other capabilities at the same level under the same parent
+<current_capability> - Contains the name and description of the current capability
+<sub_capabilities> - Lists any existing sub-capabilities under the current capability. You can use this to avoid duplication.
+
+These section tags help structure the context in a way that makes it clear how each piece
+of information relates to the overall capability model hierarchy.
+
+**Context:**
+{{ context }}
+
+**Instructions:**
+For each sub-capability identified, provide:
+1. **Name:** A concise and descriptive name that clearly communicates the sub-capability's focus.
+2. **Description:** A two paragraph, business-oriented explanation in markdown format that outlines the sub-capability's scope, purpose, intended outcomes, and alignment with the overall business capability. Ensure the description is understandable to both business and technical stakeholders.
+
+**Consider the following when defining sub-capabilities:**
+- **Alignment with Parent Capability:** Each sub-capability should directly contribute to and be a logical extension of '{{ capability_name }}'.
+- **Alignment with any existing sub-capabilities:** Ensure the sub-capabilities are consistent with any existing sub-capabilities.
+- **MECE Structure:** Ensure the sub-capabilities are Mutually Exclusive and Collectively Exhaustive.
+- **Business Value:** Clearly articulate the value each sub-capability provides to the organization.
+- **Distinctness:** Ensure there is no overlap in scope or responsibility between sub-capabilities.
+- **Completeness:** The set of sub-capabilities should collectively cover the entire scope of '{{ capability_name }}' without any gaps.
+- **Consistency:**  Maintain a consistent level of detail and abstraction across all sub-capabilities.

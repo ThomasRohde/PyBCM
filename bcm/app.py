@@ -19,7 +19,7 @@ from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .settings import Settings, SettingsDialog
 from .ui import BusinessCapabilityUI
-from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context
+from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
 from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
@@ -261,9 +261,13 @@ class App:
             future = asyncio.run_coroutine_threadsafe(get_context(), self.loop)
             context = future.result()  # Wait for completion
             
+            # Render template with context
+            expansion_template = jinja_env.get_template("expansion_prompt_gpt.j2")
+            rendered_context = expansion_template.render(context=context)
+            
             # Copy to clipboard
             self.root.clipboard_clear()
-            self.root.clipboard_append(context)
+            self.root.clipboard_append(rendered_context)
             
             create_dialog(
                 self.root,
