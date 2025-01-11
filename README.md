@@ -1,5 +1,7 @@
 # PyBCM - Python Business Capability Modeler
 
+> **NOTICE:** The `pybcm-noai` branch does not include built-in LLM generation or chat features. AI-powered capability generation is supported exclusively through smart copy/paste features, allowing integration with browser-based AI chat agents like ChatGPT.
+
 **PyBCM** is a powerful and user-friendly Business Capability Modeling (BCM) application built with Python. It provides an intuitive graphical interface for creating, visualizing, and managing hierarchical business capability models. This tool is designed to help business architects, analysts, and strategists map and understand their organization's capabilities effectively.
 
 ![PyBCM Screenshot](https://github.com/ThomasRohde/PyBCM/blob/master/images/image.png?raw=true)
