@@ -1,5 +1,5 @@
 from typing import List, Dict
-from pydantic_ai import Agent
+# from pydantic_ai import Agent
 from jinja2 import Environment, FileSystemLoader
 import os
 from bcm.settings import Settings
@@ -33,58 +33,58 @@ def get_jinja_env() -> Environment:
 jinja_env = get_jinja_env()
 
 
-async def generate_first_level_capabilities(
-    organisation_name: str, organisation_description: str
-) -> Dict[str, str]:
-    """
-    Generate first-level capabilities for an organization using AI.
-    Returns a dictionary of capability names and their descriptions.
-    """
-    first_level_template = jinja_env.get_template("first_level_prompt.j2")
-    settings = Settings()
-    model = settings.get("model")
+# async def generate_first_level_capabilities(
+#     organisation_name: str, organisation_description: str
+# ) -> Dict[str, str]:
+#     """
+#     Generate first-level capabilities for an organization using AI.
+#     Returns a dictionary of capability names and their descriptions.
+#     """
+#     first_level_template = jinja_env.get_template("first_level_prompt.j2")
+#     settings = Settings()
+#     model = settings.get("model")
 
-    agent = Agent(
-        model,
-        system_prompt="You are a business capability modeling expert. Generate clear, strategic first-level capabilities.",
-        result_type=FirstLevelCapabilities,
-    )
+#     agent = Agent(
+#         model,
+#         system_prompt="You are a business capability modeling expert. Generate clear, strategic first-level capabilities.",
+#         result_type=FirstLevelCapabilities,
+#     )
 
-    prompt = first_level_template.render(
-        organisation_name=organisation_name,
-        organisation_description=organisation_description,
-        first_level=settings.get("first_level_range"),
-    )
+#     prompt = first_level_template.render(
+#         organisation_name=organisation_name,
+#         organisation_description=organisation_description,
+#         first_level=settings.get("first_level_range"),
+#     )
 
-    result = await agent.run(prompt)
-    return {cap.name: cap.description for cap in result.data.capabilities}
+#     result = await agent.run(prompt)
+#     return {cap.name: cap.description for cap in result.data.capabilities}
 
 
-async def expand_capability_ai(
-    context: str, capability_name: str, max_capabilities: int = 5
-) -> Dict[str, str]:
-    """
-    Use PydanticAI to expand a capability into sub-capabilities with descriptions,
-    following best practices for business capability modeling.
-    """
-    # Load and render templates
-    system_template = jinja_env.get_template("system_prompt.j2")
-    expansion_template = jinja_env.get_template("expansion_prompt.j2")
-    settings = Settings()
-    model = settings.get("model")
+# async def expand_capability_ai(
+#     context: str, capability_name: str, max_capabilities: int = 5
+# ) -> Dict[str, str]:
+#     """
+#     Use PydanticAI to expand a capability into sub-capabilities with descriptions,
+#     following best practices for business capability modeling.
+#     """
+#     # Load and render templates
+#     system_template = jinja_env.get_template("system_prompt.j2")
+#     expansion_template = jinja_env.get_template("expansion_prompt.j2")
+#     settings = Settings()
+#     model = settings.get("model")
 
-    agent = Agent(
-        model, system_prompt=system_template.render(), result_type=CapabilityExpansion
-    )
+#     agent = Agent(
+#         model, system_prompt=system_template.render(), result_type=CapabilityExpansion
+#     )
 
-    prompt = expansion_template.render(
-        capability_name=capability_name,
-        context=context,
-        max_capabilities=max_capabilities,
-    )
+#     prompt = expansion_template.render(
+#         capability_name=capability_name,
+#         context=context,
+#         max_capabilities=max_capabilities,
+#     )
 
-    result = await agent.run(prompt)
-    return {cap.name: cap.description for cap in result.data.subcapabilities}
+#     result = await agent.run(prompt)
+#     return {cap.name: cap.description for cap in result.data.subcapabilities}
 
 
 async def get_capability_context(db_ops, capability_id: int) -> str:
