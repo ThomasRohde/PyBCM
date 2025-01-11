@@ -19,12 +19,13 @@ from .database import DatabaseOperations
 from .dialogs import create_dialog, CapabilityConfirmDialog
 from .settings import Settings, SettingsDialog
 from .ui import BusinessCapabilityUI
-from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
+# from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
+from .utils import init_user_templates, get_capability_context, jinja_env
 from .pb import ProgressWindow
 from .audit_view import AuditLogViewer
 from .visualizer import CapabilityVisualizer
 from dotenv import load_dotenv
-import logfire
+# import logfire
 
 # Load .env from user directory
 user_dir = os.path.expanduser("~")
@@ -33,8 +34,8 @@ os.makedirs(app_dir, exist_ok=True)
 env_path = os.path.join(app_dir, ".env")
 load_dotenv(env_path)
 
-logfire.configure()
-logfire.instrument_openai()
+# logfire.configure()
+# logfire.instrument_openai()
 
 async def anext(iterator):
     """Helper function for async iteration compatibility."""
@@ -487,90 +488,90 @@ class App:
                 ok_only=True,
             )
 
-    async def _expand_capability_async(
-        self, context: str, capability_name: str
-    ) -> Dict[str, str]:
-        """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
-        selected = self.ui.tree.selection()
-        capability_id = int(selected[0])
-        capability = await self.db_ops.get_capability(capability_id)
+    # async def _expand_capability_async(
+    #     self, context: str, capability_name: str
+    # ) -> Dict[str, str]:
+    #     """Use PydanticAI to expand a capability into sub-capabilities with descriptions."""
+    #     selected = self.ui.tree.selection()
+    #     capability_id = int(selected[0])
+    #     capability = await self.db_ops.get_capability(capability_id)
 
-        # Check if this is a root capability (no parent) AND has no children
-        if not capability.parent_id and not self.ui.tree.get_children(capability_id):
-            # Use the capability's actual name and description for first-level generation
-            return await generate_first_level_capabilities(
-                capability.name,
-                capability.description
-                or f"An organization focused on {capability.name}",
-            )
+    #     # Check if this is a root capability (no parent) AND has no children
+    #     if not capability.parent_id and not self.ui.tree.get_children(capability_id):
+    #         # Use the capability's actual name and description for first-level generation
+    #         return await generate_first_level_capabilities(
+    #             capability.name,
+    #             capability.description
+    #             or f"An organization focused on {capability.name}",
+    #         )
 
-        # For non-root capabilities or those with existing children, use regular expansion
-        return await expand_capability_ai(
-            context, capability_name, self.settings.get("max_ai_capabilities")
-        )
+    #     # For non-root capabilities or those with existing children, use regular expansion
+    #     return await expand_capability_ai(
+    #         context, capability_name, self.settings.get("max_ai_capabilities")
+    #     )
 
-    def _expand_capability(self):
-        """Expand the selected capability using AI."""
+    # def _expand_capability(self):
+    #     """Expand the selected capability using AI."""
 
-        selected = self.ui.tree.selection()
-        if not selected:
-            create_dialog(
-                self.root, "Error", "Please select a capability to expand", ok_only=True
-            )
-            return
+    #     selected = self.ui.tree.selection()
+    #     if not selected:
+    #         create_dialog(
+    #             self.root, "Error", "Please select a capability to expand", ok_only=True
+    #         )
+    #         return
 
-        capability_id = int(selected[0])
+    #     capability_id = int(selected[0])
 
-        progress = None
-        try:
-            progress = ProgressWindow(self.root)
+    #     progress = None
+    #     try:
+    #         progress = ProgressWindow(self.root)
 
-            # Get context and expand capability
-            async def expand():
-                from .utils import get_capability_context
+    #         # Get context and expand capability
+    #         async def expand():
+    #             from .utils import get_capability_context
 
-                capability = await self.db_ops.get_capability(capability_id)
-                if not capability:
-                    return None
+    #             capability = await self.db_ops.get_capability(capability_id)
+    #             if not capability:
+    #                 return None
 
-                context = await get_capability_context(self.db_ops, capability_id)
-                return await self._expand_capability_async(context, capability.name)
+    #             context = await get_capability_context(self.db_ops, capability_id)
+    #             return await self._expand_capability_async(context, capability.name)
 
-            # Run expansion with progress
-            subcapabilities = progress.run_with_progress(expand())
+    #         # Run expansion with progress
+    #         subcapabilities = progress.run_with_progress(expand())
 
-            if subcapabilities:
-                # Show confirmation dialog with checkboxes
-                dialog = CapabilityConfirmDialog(self.root, subcapabilities)
-                self.root.wait_window(dialog)
+    #         if subcapabilities:
+    #             # Show confirmation dialog with checkboxes
+    #             dialog = CapabilityConfirmDialog(self.root, subcapabilities)
+    #             self.root.wait_window(dialog)
 
-                # If user clicked OK and selected some capabilities
-                if dialog.result:
-                    # Create selected sub-capabilities with descriptions
-                    async def create_subcapabilities():
-                        for name, description in dialog.result.items():
-                            await self.db_ops.create_capability(
-                                CapabilityCreate(
-                                    name=name,
-                                    description=description,
-                                    parent_id=capability_id,
-                                )
-                            )
+    #             # If user clicked OK and selected some capabilities
+    #             if dialog.result:
+    #                 # Create selected sub-capabilities with descriptions
+    #                 async def create_subcapabilities():
+    #                     for name, description in dialog.result.items():
+    #                         await self.db_ops.create_capability(
+    #                             CapabilityCreate(
+    #                                 name=name,
+    #                                 description=description,
+    #                                 parent_id=capability_id,
+    #                             )
+    #                         )
 
-                    # Run creation with progress
-                    progress.run_with_progress(create_subcapabilities())
-                    self.ui.tree.refresh_tree()
+    #                 # Run creation with progress
+    #                 progress.run_with_progress(create_subcapabilities())
+    #                 self.ui.tree.refresh_tree()
 
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to expand capability: {str(e)}",
-                ok_only=True,
-            )
-        finally:
-            if progress:
-                progress.close()
+    #     except Exception as e:
+    #         create_dialog(
+    #             self.root,
+    #             "Error",
+    #             f"Failed to expand capability: {str(e)}",
+    #             ok_only=True,
+    #         )
+    #     finally:
+    #         if progress:
+    #             progress.close()
 
     def _view_audit_logs(self):
         """Show the audit log viewer."""
@@ -613,33 +614,33 @@ class App:
                 ok_only=True,
             )
 
-    def _show_chat(self):
-        """Show the AI chat dialog."""
-        import threading
-        import webbrowser
-        from .web_agent import start_server, get_chat_port
-        import asyncio
-        import sys
+    # def _show_chat(self):
+    #     """Show the AI chat dialog."""
+    #     import threading
+    #     import webbrowser
+    #     from .web_agent import start_server, get_chat_port
+    #     import asyncio
+    #     import sys
 
-        # Get the port first
-        port = get_chat_port()
+    #     # Get the port first
+    #     port = get_chat_port()
 
-        def run_server():
-            if sys.platform == "win32":
-                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-            start_server(port)
+    #     def run_server():
+    #         if sys.platform == "win32":
+    #             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    #         start_server(port)
 
-        # Start the FastAPI server in a background thread
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
+    #     # Start the FastAPI server in a background thread
+    #     server_thread = threading.Thread(target=run_server, daemon=True)
+    #     server_thread.start()
 
-        # Give the server a moment to start
-        import time
+    #     # Give the server a moment to start
+    #     import time
 
-        time.sleep(1)
+    #     time.sleep(1)
 
-        # Launch web browser to chat interface with correct port
-        webbrowser.open(f"http://127.0.0.1:{port}", 1)
+    #     # Launch web browser to chat interface with correct port
+    #     webbrowser.open(f"http://127.0.0.1:{port}", 1)
 
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""

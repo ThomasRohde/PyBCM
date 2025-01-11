@@ -67,23 +67,23 @@ class BusinessCapabilityUI:
         self.edit_menu.add_command(
             label="Edit", command=lambda: self.tree.edit_capability()
         )
-        self.edit_menu.add_command(label="Expand", command=self.app._expand_capability)
+        # self.edit_menu.add_command(label="Expand", command=self.app._expand_capability)
 
     def _create_toolbar(self):
         """Create toolbar with expand/collapse buttons."""
         self.toolbar = ttk.Frame(self.root)
 
         # Add expand capability button
-        self.expand_cap_btn = ttk.Button(
-            self.toolbar,
-            text="✨",  # Sparkles emoji for AI expansion
-            command=self.app._expand_capability,
-            style="info-outline.TButton",
-            width=3,
-            bootstyle="info-outline",
-            padding=3,
-        )
-        ToolTip(self.expand_cap_btn, text="AI Expand Capability")
+        # self.expand_cap_btn = ttk.Button(
+        #     self.toolbar,
+        #     text="✨",  # Sparkles emoji for AI expansion
+        #     command=self.app._expand_capability,
+        #     style="info-outline.TButton",
+        #     width=3,
+        #     bootstyle="info-outline",
+        #     padding=3,
+        # )
+        # ToolTip(self.expand_cap_btn, text="AI Expand Capability")
 
         # Add visualize button
         self.visualize_btn = ttk.Button(
@@ -97,17 +97,17 @@ class BusinessCapabilityUI:
         )
         ToolTip(self.visualize_btn, text="Visualize Model")
 
-        # Add chat button
-        self.chat_btn = ttk.Button(
-            self.toolbar,
-            text="🤖",  # Chat emoji
-            command=self.app._show_chat,
-            style="info-outline.TButton",
-            width=3,
-            bootstyle="info-outline",
-            padding=3,
-        )
-        ToolTip(self.chat_btn, text="AI Chat")
+        # # Add chat button
+        # self.chat_btn = ttk.Button(
+        #     self.toolbar,
+        #     text="🤖",  # Chat emoji
+        #     command=self.app._show_chat,
+        #     style="info-outline.TButton",
+        #     width=3,
+        #     bootstyle="info-outline",
+        #     padding=3,
+        # )
+        # ToolTip(self.chat_btn, text="AI Chat")
 
         # Expand All button with icon
         self.expand_btn = ttk.Button(
@@ -176,9 +176,9 @@ class BusinessCapabilityUI:
 
         self.expand_btn.pack(side="left", padx=2)
         self.collapse_btn.pack(side="left", padx=2)
-        self.expand_cap_btn.pack(side="left", padx=2)
+        # self.expand_cap_btn.pack(side="left", padx=2)
         self.visualize_btn.pack(side="left", padx=2)
-        self.chat_btn.pack(side="left", padx=2)
+        # self.chat_btn.pack(side="left", padx=2)
         ttk.Label(self.toolbar, text="Search:").pack(side="left", padx=(10, 2))
         self.search_entry.pack(side="left", padx=2)
         self.clear_search_btn.pack(side="left", padx=2)
