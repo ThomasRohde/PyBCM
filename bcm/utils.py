@@ -116,16 +116,16 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
         for i, cap in enumerate(root_caps):
             is_last = i == last_index
-            current_prefix = prefix + ("└── " if is_last else "├── ")
+            branch = "└── " if is_last else "├── "
             marker = " *" if cap.id == current_cap_id else ""
-            tree_lines.append(f"{prefix}{current_prefix}{cap.name}{marker}")
+            tree_lines.append(f"{prefix}{branch}{cap.name}{marker}")
 
             # Get children
             children = await db_ops.get_capabilities(cap.id)
             if children:
-                next_prefix = prefix + ("    " if is_last else "│   ")
+                child_prefix = prefix + ("    " if is_last else "│   ")
                 child_lines = await build_capability_tree(
-                    children, current_cap_id, level + 1, next_prefix
+                    children, current_cap_id, level + 1, child_prefix
                 )
                 tree_lines.extend(child_lines)
 
