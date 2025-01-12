@@ -224,6 +224,12 @@ def create_dialog(
 
     # Show the window and adjust size to content
     dialog.deiconify()
+    
+    # Grab focus for the dialog
+    dialog.focus_force()
+
+    # Bind escape key to close dialog
+    dialog.winfo_toplevel().bind("<Escape>", lambda event: dialog.destroy())
 
     # Update dialog to calculate required size
     dialog.update_idletasks()
