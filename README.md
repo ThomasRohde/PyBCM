@@ -66,6 +66,7 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     ```bash
     git clone https://github.com/yourusername/pybcm.git
     cd pybcm
+    git checkout pybcm-noai  # Switch to the branch without AI features
     ```
 
 2. **Install dependencies using `uv`:**
