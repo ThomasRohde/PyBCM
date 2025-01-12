@@ -253,6 +253,10 @@ class BusinessCapabilityUI:
         # Bind events
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
         self.desc_text.bind("<<Modified>>", self._on_text_modified)
+        
+        # Bind treeview-specific copy/paste
+        self.tree.bind("<Control-c>", self.app._export_to_clipboard)
+        self.tree.bind("<Control-v>", self.app._paste_capability)
 
     def update_font_sizes(self):
         """Update font sizes for UI elements based on current settings."""

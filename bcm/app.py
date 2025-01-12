@@ -74,10 +74,6 @@ class App:
         # Handle window close event
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         
-        # Bind keyboard shortcuts
-        self.root.bind('<Control-c>', self._export_to_clipboard)
-        self.root.bind('<Control-v>', self._paste_capability)
-
         # Initialize database asynchronously
         self.loop.run_until_complete(init_db())
         self.db = self.loop.run_until_complete(anext(get_db()))
