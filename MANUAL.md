@@ -5,47 +5,38 @@ PyBCM (Python Business Capability Modeler) is a graphical application for creati
 
 ## Installation
 
-### Using Git Clone and Pip Install
+### Prerequisites
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/pybcm.git
-cd pybcm
-```
+*   Python 3.11 or higher
 
-2. Install dependencies using pip:
-```bash
-pip install -e .
-```
+### Steps
 
-### Creating an Executable File
+1. **Clone the repository:**
 
-#### Command-line Tool
-PyBCM is installed as a command-line tool. After installation, you can run it by simply typing:
-```bash
-bcm
-```
+    ```bash
+    git clone https://github.com/ThomasRohde/PyBCM.git
+    cd pybcm
+    git checkout pybcm-noai  # Switch to the branch without AI features
+    ```
 
-#### Standalone Executable
-You can create a standalone executable using PyInstaller:
+2. **Create and activate a virtual environment:**
 
-1. Install PyInstaller:
-```bash
-pip install pyinstaller
-```
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+    ```
 
-2. Create the executable:
-```bash
-pyinstaller .\pybcm.spec
-```
+3. **Install dependencies using pip:**
 
-This will:
-- Create a single executable file named `pybcm.exe` (Windows) or `pybcm` (Linux/Mac)
-- Include all necessary dependencies
-- Add the BCM icon to the executable
-- Create a windowed application (no console window)
+    ```bash
+    pip install -e .
+    ```
 
-The executable will be created in the `dist` directory. You can distribute this single file to users who don't have Python installed.
+4. **Run the application:**
+
+    ```bash
+    bcm
+    ```
 
 ## Understanding the .pybcm Directory
 
@@ -129,3 +120,33 @@ This allows you to:
 - Tailor capability formats for specific AI tools
 - Customize the structure of AI-generated responses
 - Maintain your customizations across application updates
+
+## Using Copy/Paste with ChatGPT
+
+PyBCM provides smart copy/paste functionality for AI integration, allowing you to expand your capability model using ChatGPT.
+
+### Copying a Prompt from a Selected Capability
+
+1. **Select a capability** in the tree view.
+2. **Press Ctrl+C** to copy its context to the clipboard in a format optimized for AI tools like ChatGPT.
+
+### Pasting the Prompt into ChatGPT
+
+1. **Open ChatGPT** in your browser.
+2. **Paste the copied prompt** into the chat input field and submit it.
+
+### Copying the Resulting JSON from ChatGPT
+
+1. **Wait for ChatGPT** to generate the JSON array of sub-capabilities.
+2. **Copy the resulting JSON** from the chat response.
+
+### Pasting the JSON into the Tree View
+
+1. **Select the parent capability** in the tree view where you want to add the sub-capabilities.
+2. **Press Ctrl+V** to paste the JSON array of sub-capabilities.
+3. Ensure each capability in the array has `name` and `description` fields.
+
+This allows you to:
+- Copy capability context for use with ChatGPT.
+- Paste AI-generated capabilities from ChatGPT into your model.
+- Seamlessly integrate AI-generated content into your capability structure.

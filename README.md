@@ -63,7 +63,7 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/pybcm.git
+    git clone https://github.com/ThomasRohde/PyBCM.git
     cd pybcm
     git checkout pybcm-noai  # Switch to the branch without AI features
     ```
@@ -131,6 +131,36 @@ bcm
         - Copy capability context for use with AI tools like ChatGPT
         - Paste AI-generated capabilities from browser-based chat agents
         - Share capability structures between models and AI tools
+
+### Using Copy/Paste with ChatGPT
+
+PyBCM provides smart copy/paste functionality for AI integration, allowing you to expand your capability model using ChatGPT.
+
+#### Copying a Prompt from a Selected Capability
+
+1. **Select a capability** in the tree view.
+2. **Press Ctrl+C** to copy its context to the clipboard in a format optimized for AI tools like ChatGPT.
+
+#### Pasting the Prompt into ChatGPT
+
+1. **Open ChatGPT** in your browser.
+2. **Paste the copied prompt** into the chat input field and submit it.
+
+#### Copying the Resulting JSON from ChatGPT
+
+1. **Wait for ChatGPT** to generate the JSON array of sub-capabilities.
+2. **Copy the resulting JSON** from the chat response.
+
+#### Pasting the JSON into the Tree View
+
+1. **Select the parent capability** in the tree view where you want to add the sub-capabilities.
+2. **Press Ctrl+V** to paste the JSON array of sub-capabilities.
+3. Ensure each capability in the array has `name` and `description` fields.
+
+This allows you to:
+- Copy capability context for use with ChatGPT.
+- Paste AI-generated capabilities from ChatGPT into your model.
+- Seamlessly integrate AI-generated content into your capability structure.
 
 ### Working with Visualizations
 
