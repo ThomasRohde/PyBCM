@@ -4,26 +4,22 @@ import os
 import threading
 from tkinter import filedialog
 from typing import Dict
+
 import ttkbootstrap as ttk
+from dotenv import load_dotenv
 from sqlalchemy import select
 
-from bcm.models import (
-    init_db,
-    get_db,
-    CapabilityCreate,
-    AsyncSessionLocal,
-    Capability,
-    LayoutModel,
-)
+from bcm.audit_view import AuditLogViewer
 from bcm.database import DatabaseOperations
-from bcm.dialogs import create_dialog, CapabilityConfirmDialog
+from bcm.dialogs import CapabilityConfirmDialog, create_dialog
+from bcm.models import (AsyncSessionLocal, Capability, CapabilityCreate,
+                        LayoutModel, get_db, init_db)
+from bcm.pb import ProgressWindow
 from bcm.settings import Settings, SettingsDialog
 from bcm.ui import BusinessCapabilityUI
-from bcm.utils import init_user_templates, get_capability_context, jinja_env
-from bcm.pb import ProgressWindow
-from bcm.audit_view import AuditLogViewer
+from bcm.utils import get_capability_context, init_user_templates, jinja_env
 from bcm.visualizer import CapabilityVisualizer
-from dotenv import load_dotenv
+
 # import logfire
 
 # Load .env from user directory
@@ -611,11 +607,12 @@ class App:
 
     def _show_chat(self):
         """Show the AI chat dialog."""
-        import threading
-        import webbrowser
-        from bcm.web_agent import start_server, get_chat_port
         import asyncio
         import sys
+        import threading
+        import webbrowser
+
+        from bcm.web_agent import get_chat_port, start_server
 
     #     # Get the port first
     #     port = get_chat_port()
@@ -811,4 +808,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print("Starting Business Capability Modeler - please holde...")
     main()

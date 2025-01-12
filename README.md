@@ -68,13 +68,20 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     git checkout pybcm-noai  # Switch to the branch without AI features
     ```
 
-2. **Install dependencies using pip:**
+2. **Create and activate a virtual environment:**
+
+    ```bash
+    python -m venv venv
+    .venv/bin/activate
+    ```
+
+3. **Install dependencies using pip:**
 
     ```bash
     pip install -e .
     ```
 
-3. **Run the application:**
+4. **Run the application:**
 
     ```bash
     bcm

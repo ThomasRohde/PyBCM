@@ -36,7 +36,7 @@ pip install pyinstaller
 
 2. Create the executable:
 ```bash
-pyinstaller --name pybcm --onefile --windowed --icon bcm/business_capability_model.ico bcm/app.py
+pyinstaller .\pybcm.spec
 ```
 
 This will:
