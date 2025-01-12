@@ -1,8 +1,8 @@
-from .models import LayoutModel
-from .settings import Settings
-from . import layout
-from . import hq_layout
-from . import alt_layout
+from bcm.models import LayoutModel
+from bcm.settings import Settings
+from bcm import layout
+from bcm import hq_layout
+from bcm import alt_layout
 
 
 def process_layout(model: LayoutModel, settings: Settings) -> LayoutModel:

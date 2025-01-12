@@ -1,7 +1,7 @@
 from typing import List, Dict
 from dataclasses import dataclass
-from .models import LayoutModel
-from .settings import Settings
+from bcm.models import LayoutModel
+from bcm.settings import Settings
 
 @dataclass
 class NodeSize:

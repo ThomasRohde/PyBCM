@@ -2,9 +2,9 @@ import uuid
 import xml.etree.ElementTree as ET
 from typing import Dict
 
-from .models import LayoutModel
-from .layout_manager import process_layout
-from .settings import Settings
+from bcm.models import LayoutModel
+from bcm.layout_manager import process_layout
+from bcm.settings import Settings
 
 
 def generate_id() -> str:

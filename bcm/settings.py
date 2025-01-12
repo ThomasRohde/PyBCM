@@ -539,7 +539,7 @@ class SettingsDialog(ttk.Toplevel):
 
     def _validate_settings(self):
         """Validate settings before saving."""
-        from .dialogs import (
+        from bcm.dialogs import (
             create_dialog,
         )  # import inside the method to avoid circular import issues
 

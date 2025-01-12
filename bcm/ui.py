@@ -4,8 +4,8 @@ from ttkbootstrap.tooltip import ToolTip
 from tkhtmlview import HTMLScrolledText
 import markdown
 
-from .dialogs import create_dialog
-from .treeview import CapabilityTreeview
+from bcm.dialogs import create_dialog
+from bcm.treeview import CapabilityTreeview
 
 
 class BusinessCapabilityUI:

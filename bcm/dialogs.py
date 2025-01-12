@@ -1,8 +1,8 @@
 import asyncio
 import ttkbootstrap as ttk
 from typing import Dict
-from .models import CapabilityCreate, CapabilityUpdate
-from .database import DatabaseOperations
+from bcm.models import CapabilityCreate, CapabilityUpdate
+from bcm.database import DatabaseOperations
 import os
 
 class CapabilityConfirmDialog(ttk.Toplevel):

@@ -1,8 +1,8 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import END
 from typing import Optional
-from .database import DatabaseOperations
-from .dialogs import CapabilityDialog, create_dialog
+from bcm.database import DatabaseOperations
+from bcm.dialogs import CapabilityDialog, create_dialog
 
 
 class CapabilityTreeview(ttk.Treeview):

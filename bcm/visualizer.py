@@ -1,8 +1,8 @@
 import ttkbootstrap as ttk
 import tkinter as tk
-from .layout_manager import process_layout
-from .models import LayoutModel
-from .settings import Settings
+from bcm.layout_manager import process_layout
+from bcm.models import LayoutModel
+from bcm.settings import Settings
 import os
 
 class CapabilityVisualizer(ttk.Toplevel):

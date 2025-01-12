@@ -3,10 +3,9 @@ from typing import List
 import xml.etree.ElementTree as ET
 import textwrap
 
-from .models import LayoutModel
-from .layout_manager import process_layout
-from .settings import Settings
-
+from bcm.models import LayoutModel
+from bcm.layout_manager import process_layout
+from bcm.settings import Settings
 
 def create_svg_element(width: int, height: int) -> ET.Element:
     """Create the root SVG element with given dimensions."""
