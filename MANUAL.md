@@ -13,12 +13,7 @@ git clone https://github.com/yourusername/pybcm.git
 cd pybcm
 ```
 
-2. Install dependencies using `uv` (recommended):
-```bash
-uv pip install -e .
-```
-
-Alternatively, you can use standard pip:
+2. Install dependencies using pip:
 ```bash
 pip install -e .
 ```
@@ -29,11 +24,6 @@ pip install -e .
 PyBCM is installed as a command-line tool. After installation, you can run it by simply typing:
 ```bash
 bcm
-```
-
-You can also install it directly as a uv tool:
-```bash
-uv tool install pybcm
 ```
 
 #### Standalone Executable

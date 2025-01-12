@@ -57,7 +57,6 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
 ### Prerequisites
 
 *   Python 3.11 or higher
-*   `uv` package manager (recommended for faster dependency management)
 
 ### Steps
 
@@ -69,18 +68,15 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     git checkout pybcm-noai  # Switch to the branch without AI features
     ```
 
-2. **Install dependencies using `uv`:**
+2. **Install dependencies using pip:**
 
     ```bash
-    uv pip install -e .
+    pip install -e .
     ```
 
-3. **Alternative: Run as a uv tool:**
-
-    You can install bcm directly as a uv tool:
+3. **Run the application:**
 
     ```bash
-    uv tool install pybcm
     bcm
     ```
 
@@ -207,7 +203,6 @@ Note: This branch does not support direct API integration with AI services. Inst
     *   `python-pptx` for PowerPoint generation.
     *   `xml.etree.ElementTree` for Archimate XML generation.
 *   **Other:**
-    *   `uv`: Fast package manager for installing dependencies.
     *   `jinja2`: Templating engine for generating prompts and reports.
     *   `markdown`: For Markdown rendering in descriptions.
     *   `logfire`: For logging and instrumentation.
