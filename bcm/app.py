@@ -19,7 +19,7 @@ from bcm.database import DatabaseOperations
 from bcm.dialogs import create_dialog, CapabilityConfirmDialog
 from bcm.settings import Settings, SettingsDialog
 from bcm.ui import BusinessCapabilityUI
-from bcm.utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
+from bcm.utils import init_user_templates, get_capability_context, jinja_env
 from bcm.pb import ProgressWindow
 from bcm.audit_view import AuditLogViewer
 from bcm.visualizer import CapabilityVisualizer
