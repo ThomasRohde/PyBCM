@@ -7,7 +7,7 @@ from typing import Dict
 import ttkbootstrap as ttk
 from sqlalchemy import select
 
-from .models import (
+from bcm.models import (
     init_db,
     get_db,
     CapabilityCreate,
@@ -15,14 +15,14 @@ from .models import (
     Capability,
     LayoutModel,
 )
-from .database import DatabaseOperations
-from .dialogs import create_dialog, CapabilityConfirmDialog
-from .settings import Settings, SettingsDialog
-from .ui import BusinessCapabilityUI
-from .utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
-from .pb import ProgressWindow
-from .audit_view import AuditLogViewer
-from .visualizer import CapabilityVisualizer
+from bcm.database import DatabaseOperations
+from bcm.dialogs import create_dialog, CapabilityConfirmDialog
+from bcm.settings import Settings, SettingsDialog
+from bcm.ui import BusinessCapabilityUI
+from bcm.utils import expand_capability_ai, generate_first_level_capabilities, init_user_templates, get_capability_context, jinja_env
+from bcm.pb import ProgressWindow
+from bcm.audit_view import AuditLogViewer
+from bcm.visualizer import CapabilityVisualizer
 from dotenv import load_dotenv
 import logfire
 
@@ -221,13 +221,13 @@ class App:
 
     def _export_to_archimate(self):
         """Export capabilities to Archimate Open Exchange format starting from selected node."""
-        from .archimate_export import export_to_archimate
+        from bcm.archimate_export import export_to_archimate
 
         self._export_capability_model("Archimate", export_to_archimate, ".xml", "XML")
 
     def _export_to_pptx(self):
         """Export capabilities to PowerPoint visualization starting from selected node."""
-        from .pptx_export import export_to_pptx
+        from bcm.pptx_export import export_to_pptx
 
         self._export_capability_model(
             "PowerPoint", export_to_pptx, ".pptx", "PowerPoint"
@@ -235,13 +235,13 @@ class App:
 
     def _export_to_svg(self):
         """Export capabilities to SVG visualization starting from selected node."""
-        from .svg_export import export_to_svg
+        from bcm.svg_export import export_to_svg
 
         self._export_capability_model("SVG", export_to_svg, ".svg", "SVG")
 
     def _export_to_markdown(self):
         """Export capabilities to Markdown format starting from selected node."""
-        from .markdown_export import export_to_markdown
+        from bcm.markdown_export import export_to_markdown
 
         self._export_capability_model("Markdown", export_to_markdown, ".md", "Markdown")
 
@@ -391,13 +391,13 @@ class App:
 
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
-        from .io import export_capabilities
+        from bcm.io import export_capabilities
 
         export_capabilities(self.root, self.db_ops, self.loop)
 
     def _import_capabilities(self):
         """Import capabilities from JSON file."""
-        from .io import import_capabilities
+        from bcm.io import import_capabilities
 
         if import_capabilities(self.root, self.db_ops, self.loop):
             self.ui.tree.refresh_tree()
@@ -527,7 +527,7 @@ class App:
 
             # Get context and expand capability
             async def expand():
-                from .utils import get_capability_context
+                from bcm.utils import get_capability_context
 
                 capability = await self.db_ops.get_capability(capability_id)
                 if not capability:
@@ -617,7 +617,7 @@ class App:
         """Show the AI chat dialog."""
         import threading
         import webbrowser
-        from .web_agent import start_server, get_chat_port
+        from bcm.web_agent import start_server, get_chat_port
         import asyncio
         import sys
 

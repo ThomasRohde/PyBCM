@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 from tkinter import filedialog
-from .dialogs import create_dialog
+from bcm.dialogs import create_dialog
 
 
 def import_capabilities(root, db_ops, loop):

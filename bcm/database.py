@@ -2,7 +2,7 @@ from typing import List, Optional
 import json
 from datetime import datetime
 from sqlalchemy import select, func, text, or_
-from .models import (
+from bcm.models import (
     Capability,
     CapabilityCreate,
     CapabilityUpdate,

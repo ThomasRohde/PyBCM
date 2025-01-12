@@ -2,11 +2,11 @@ import ttkbootstrap as ttk
 from datetime import datetime
 from sqlalchemy import select
 from ttkbootstrap.tableview import Tableview
-from .models import Capability
+from bcm.models import Capability
 import pandas as pd
 import openpyxl.styles
 from tkinter import filedialog
-from .dialogs import create_dialog
+from bcm.dialogs import create_dialog
 import os
 
 class AuditLogViewer(ttk.Toplevel):

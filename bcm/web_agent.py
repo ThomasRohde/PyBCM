@@ -12,8 +12,8 @@ from pathlib import Path
 from weakref import WeakKeyDictionary
 import socket
 
-from .database import DatabaseOperations
-from .utils import get_jinja_env
+from bcm.database import DatabaseOperations
+from bcm.utils import get_jinja_env
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
@@ -218,7 +218,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 chat_histories[websocket].append(user_msg)
 
                 # Process with AI using the connection-specific chat history
-                from .models import AsyncSessionLocal
+                from bcm.models import AsyncSessionLocal
 
                 deps = Deps(db_factory=AsyncSessionLocal)
                 print("  preparing model and tools")

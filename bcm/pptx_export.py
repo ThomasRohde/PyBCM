@@ -11,9 +11,9 @@ from dataclasses import dataclass
 # Assuming your LayoutModel is defined in a module named 'models'
 # and your layout algorithm in a module named 'layout'
 # Update these imports according to your project structure
-from .models import LayoutModel
-from .layout_manager import process_layout
-from .settings import Settings
+from bcm.models import LayoutModel
+from bcm.layout_manager import process_layout
+from bcm.settings import Settings
 
 
 @dataclass

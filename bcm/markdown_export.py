@@ -1,7 +1,7 @@
 from typing import List
-from .models import LayoutModel
-from .layout_manager import process_layout
-from .settings import Settings
+from bcm.models import LayoutModel
+from bcm.layout_manager import process_layout
+from bcm.settings import Settings
 
 def _format_description(description: str) -> str:
     """Format description text for markdown, handling newlines and quotes."""
