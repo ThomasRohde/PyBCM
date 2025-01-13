@@ -213,26 +213,26 @@ class SettingsDialog(ttk.Toplevel):
         )
 
         # Ai generation tab
-        # self.ai_frame = ttk.Frame(self.notebook)
+        self.ai_frame = ttk.Frame(self.notebook)
 
         # # Max capabilities
-        # self.cap_frame = ttk.LabelFrame(
-        #     self.ai_frame, text="AI Generation Settings", padding=10
-        # )
-        # self.max_cap_label = ttk.Label(
-        #     self.cap_frame, text="Maximum capabilities to generate:"
-        # )
-        # self.max_cap_entry = ttk.Entry(
-        #     self.cap_frame, textvariable=self.max_cap_var, width=5
-        # )
+        self.cap_frame = ttk.LabelFrame(
+            self.ai_frame, text="AI Generation Settings", padding=10
+        )
+        self.max_cap_label = ttk.Label(
+            self.cap_frame, text="Maximum capabilities to generate:"
+        )
+        self.max_cap_entry = ttk.Entry(
+            self.cap_frame, textvariable=self.max_cap_var, width=5
+        )
 
-        # First level range
-        # self.first_level_range_label = ttk.Label(
-        #     self.cap_frame, text="First level capabilities range (e.g. 5-10):"
-        # )
-        # self.first_level_range_entry = ttk.Entry(
-        #     self.cap_frame, textvariable=self.first_level_range_var, width=10
-        # )
+        # # First level range
+        self.first_level_range_label = ttk.Label(
+            self.cap_frame, text="First level capabilities range (e.g. 5-10):"
+        )
+        self.first_level_range_entry = ttk.Entry(
+            self.cap_frame, textvariable=self.first_level_range_var, width=10
+        )
 
         # Model selection
         # self.model_frame = ttk.LabelFrame(
@@ -424,13 +424,13 @@ class SettingsDialog(ttk.Toplevel):
         self.theme_combo.pack(fill="x")
 
         # AI generation tab
-        # self.ai_frame.pack(fill="both", expand=True)
+        self.ai_frame.pack(fill="both", expand=True)
 
-        # self.cap_frame.pack(fill="x", padx=10, pady=(10, 5))
-        # self.max_cap_label.pack(anchor="w")
-        # self.max_cap_entry.pack(anchor="w")
-        # self.first_level_range_label.pack(anchor="w", pady=(10, 0))
-        # self.first_level_range_entry.pack(anchor="w")
+        self.cap_frame.pack(fill="x", padx=10, pady=(10, 5))
+        self.max_cap_label.pack(anchor="w")
+        self.max_cap_entry.pack(anchor="w")
+        self.first_level_range_label.pack(anchor="w", pady=(10, 0))
+        self.first_level_range_entry.pack(anchor="w")
 
         # self.model_frame.pack(fill="x", padx=10, pady=5)
         # self.model_combo.pack(fill="x")
@@ -507,7 +507,7 @@ class SettingsDialog(ttk.Toplevel):
 
         # Add tabs to Notebook
         self.notebook.add(self.look_frame, text="Look & Feel")
-        # self.notebook.add(self.ai_frame, text="AI Generation")
+        self.notebook.add(self.ai_frame, text="AI Generation")
         self.notebook.add(self.layout_frame, text="Layout")
         self.notebook.add(self.color_frame, text="Coloring")
 
