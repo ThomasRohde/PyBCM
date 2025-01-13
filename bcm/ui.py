@@ -46,6 +46,9 @@ class BusinessCapabilityUI:
         self.file_menu.add_command(
             label="Export to Markdown...", command=self.app._export_to_markdown
         )
+        self.file_menu.add_command(
+            label="Export to Word...", command=self.app._export_to_word
+        )
         self.file_menu.add_separator()
         self.file_menu.add_command(
             label="View Audit Logs", command=self.app._view_audit_logs
