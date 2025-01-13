@@ -83,7 +83,31 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     bcm
     ```
 
-4. **Configure LLM API Keys:**
+4. **Updating the Project:**
+
+    To update PyBCM to the latest version from GitHub:
+
+    1. Navigate to your local repository:
+       ```bash
+       cd path/to/pybcm
+       ```
+    
+    2. Pull the latest changes:
+       ```bash
+       git pull origin master
+       ```
+    
+    3. Update dependencies:
+       ```bash
+       uv pip install -e .
+       ```
+    
+    Note: Before updating, it's recommended to:
+    - Back up your `.pybcm` directory in case you've made custom template modifications
+    - Check the release notes on GitHub for any breaking changes
+    - Export your capability models if you want to be extra cautious
+
+5. **Configure LLM API Keys:**
 
     PyBCM uses PydanticAI to interact with various LLM providers. You'll need to:
 
@@ -112,7 +136,7 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     
     The application validates these settings on startup and will show an error if required variables are missing.
 
-5. **Configure Logfire logging (first time only):**
+6. **Configure Logfire logging (first time only):**
 
     PyBCM uses Logfire for advanced logging and monitoring. On first run, you'll need to:
 
@@ -220,7 +244,7 @@ bcm
 Access the application settings through "File" > "Settings." Here you can customize:
 
 *   **Visual Theme:** Choose from a variety of ttkbootstrap themes.
-*   **AI Generation:** Configure the maximum number of AI-generated capabilities and the range for first-level capabilities.
+*   **AI Generation:** Configure the maximum number of AI-generated capabilities, range for first-level capabilities, and select prompt templates for different operations.
 *   **Model Selection:** Select the LLM model to be used for AI features.
 *   **Layout:** Adjust layout algorithm, root font size, box dimensions, gaps, padding, target aspect ratio, and maximum level for visualization.
 *   **Coloring:** Customize the color scheme for different capability levels and leaf nodes in the visualizer.
@@ -257,10 +281,19 @@ The application will:
 2. Use your customized versions if they exist
 3. Fall back to the built-in templates if a customized version doesn't exist
 
+You can select which templates to use for different operations through the Settings dialog:
+1. Open Settings (File > Settings)
+2. Go to the "AI Generation" tab
+3. Choose templates from the dropdown menus:
+   - "First-level generation template": Template for generating initial capabilities
+   - "Normal generation template": Template for expanding existing capabilities
+
 This allows you to:
 - Tailor the AI prompts for your specific industry or use case
 - Customize the chat interface appearance
 - Experiment with different prompt strategies
+- Switch between different prompt templates without editing files
+- Maintain multiple template versions for different use cases
 - Maintain your customizations across application updates
 
 ## Development
