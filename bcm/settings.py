@@ -249,7 +249,7 @@ class SettingsDialog(ttk.Toplevel):
         user_dir = os.path.expanduser("~")
         user_template_dir = os.path.join(user_dir, ".pybcm", "templates")
         template_files = sorted([f for f in os.listdir(user_template_dir) if f.endswith('.j2')])
-        
+
         # First level template
         self.first_level_template_label = ttk.Label(
             self.template_frame, text="First-level generation template:"
@@ -469,6 +469,13 @@ class SettingsDialog(ttk.Toplevel):
         self.max_cap_entry.pack(anchor="w")
         self.first_level_range_label.pack(anchor="w", pady=(10, 0))
         self.first_level_range_entry.pack(anchor="w")
+
+        # Template selection frame layout
+        self.template_frame.pack(fill="x", padx=10, pady=5)
+        self.first_level_template_label.pack(anchor="w")
+        self.first_level_template_combo.pack(fill="x", pady=(0, 10))
+        self.normal_template_label.pack(anchor="w")
+        self.normal_template_combo.pack(fill="x")
 
         # self.model_frame.pack(fill="x", padx=10, pady=5)
         # self.model_combo.pack(fill="x")
