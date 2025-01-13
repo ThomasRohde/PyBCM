@@ -18,8 +18,8 @@ DEFAULT_SETTINGS = {
     "theme": "litera",  # Default ttkbootstrap theme
     "max_ai_capabilities": 10,  # Default max number of AI-generated capabilities
     "first_level_range": "5-10",  # Default range for first level capabilities
-    "first_level_template": "first_level_prompt.j2",  # Default first level template
-    "normal_template": "expansion_prompt.j2",  # Default normal template
+    "first_level_template": "first_level_prompt_gpt.j2",  # Default first level template
+    "normal_template": "expansion_prompt_gpt.j2",  # Default normal template
     "font_size": 10,  # Default font size for main text content
     "model": "openai:gpt-4o",  # Default model
     # Layout
