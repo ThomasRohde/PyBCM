@@ -18,6 +18,8 @@ DEFAULT_SETTINGS = {
     "theme": "litera",  # Default ttkbootstrap theme
     "max_ai_capabilities": 10,  # Default max number of AI-generated capabilities
     "first_level_range": "5-10",  # Default range for first level capabilities
+    "first_level_template": "first_level_prompt.j2",  # Default first level template
+    "normal_template": "expansion_prompt.j2",  # Default normal template
     "font_size": 10,  # Default font size for main text content
     "model": "openai:gpt-4o",  # Default model
     # Layout
@@ -119,6 +121,8 @@ class SettingsDialog(ttk.Toplevel):
         self.theme_var = ttk.StringVar()
         self.max_cap_var = ttk.StringVar()
         self.first_level_range_var = ttk.StringVar()
+        self.first_level_template_var = ttk.StringVar()
+        self.normal_template_var = ttk.StringVar()
         self.font_size_var = ttk.StringVar()
         self.model_var = ttk.StringVar()
 
@@ -154,6 +158,8 @@ class SettingsDialog(ttk.Toplevel):
         self.theme_var.set(self.settings.get("theme"))
         self.max_cap_var.set(str(self.settings.get("max_ai_capabilities")))
         self.first_level_range_var.set(str(self.settings.get("first_level_range")))
+        self.first_level_template_var.set(self.settings.get("first_level_template"))
+        self.normal_template_var.set(self.settings.get("normal_template"))
         self.font_size_var.set(str(self.settings.get("font_size")))
         self.model_var.set(self.settings.get("model"))
 
@@ -232,6 +238,38 @@ class SettingsDialog(ttk.Toplevel):
         )
         self.first_level_range_entry = ttk.Entry(
             self.cap_frame, textvariable=self.first_level_range_var, width=10
+        )
+
+        # Template selection
+        self.template_frame = ttk.LabelFrame(
+            self.ai_frame, text="Template Selection", padding=10
+        )
+        
+        # Get template files from user directory only
+        user_dir = os.path.expanduser("~")
+        user_template_dir = os.path.join(user_dir, ".pybcm", "templates")
+        template_files = sorted([f for f in os.listdir(user_template_dir) if f.endswith('.j2')])
+        
+        # First level template
+        self.first_level_template_label = ttk.Label(
+            self.template_frame, text="First-level generation template:"
+        )
+        self.first_level_template_combo = ttk.Combobox(
+            self.template_frame,
+            textvariable=self.first_level_template_var,
+            values=template_files,
+            state="readonly"
+        )
+        
+        # Normal template
+        self.normal_template_label = ttk.Label(
+            self.template_frame, text="Normal generation template:"
+        )
+        self.normal_template_combo = ttk.Combobox(
+            self.template_frame,
+            textvariable=self.normal_template_var,
+            values=template_files,
+            state="readonly"
         )
 
         # Model selection
@@ -651,6 +689,8 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("theme", self.theme_var.get())
         self.settings.set("max_ai_capabilities", int(self.max_cap_var.get()))
         self.settings.set("first_level_range", self.first_level_range_var.get())
+        self.settings.set("first_level_template", self.first_level_template_var.get())
+        self.settings.set("normal_template", self.normal_template_var.get())
         self.settings.set("font_size", int(self.font_size_var.get()))
         self.settings.set("model", self.model_var.get())
 
@@ -682,12 +722,3 @@ class SettingsDialog(ttk.Toplevel):
 
         self.result = True
         self.destroy()
-
-    def position_center(self):
-        """Helper method to center the dialog on the parent."""
-        self.update_idletasks()
-        width = self.winfo_reqwidth()
-        height = self.winfo_reqheight()
-        x = (self.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.winfo_screenheight() // 2) - (height // 2)
-        self.geometry(f"+{x}+{y}")
