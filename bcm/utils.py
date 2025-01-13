@@ -40,8 +40,8 @@ async def generate_first_level_capabilities(
     Generate first-level capabilities for an organization using AI.
     Returns a dictionary of capability names and their descriptions.
     """
-    first_level_template = jinja_env.get_template("first_level_prompt.j2")
     settings = Settings()
+    first_level_template = jinja_env.get_template(settings.get("first_level_template"))
     model = settings.get("model")
 
     agent = Agent(
@@ -68,9 +68,9 @@ async def expand_capability_ai(
     following best practices for business capability modeling.
     """
     # Load and render templates
-    system_template = jinja_env.get_template("system_prompt.j2")
-    expansion_template = jinja_env.get_template("expansion_prompt.j2")
     settings = Settings()
+    system_template = jinja_env.get_template("system_prompt.j2")
+    expansion_template = jinja_env.get_template(settings.get("normal_template"))
     model = settings.get("model")
 
     agent = Agent(

@@ -353,14 +353,14 @@ class App:
             
             # Render template with appropriate context
             if is_first_level:
-                template = jinja_env.get_template("first_level_prompt_gpt.j2")
+                template = jinja_env.get_template(self.settings.get("first_level_template"))
                 rendered_context = template.render(
                     organisation_name=capability.name,
                     organisation_description=capability.description or f"An organization focused on {capability.name}",
                     first_level=self.settings.get("first_level_range")
                 )
             else:
-                template = jinja_env.get_template("expansion_prompt_gpt.j2")
+                template = jinja_env.get_template(self.settings.get("normal_template"))
                 rendered_context = template.render(
                     capability_name=capability.name,
                     context=context,

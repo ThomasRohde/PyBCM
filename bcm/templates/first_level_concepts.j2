@@ -1,0 +1,46 @@
+## Generate Top-Level Concepts for {{ organisation_name }}
+
+Based on the description of {{ organisation_name }} provided below, generate a set of **{{first_level}}** top-level concepts. These concepts should represent the primary categories or groupings within the domain, be distinct from each other, and collectively form a cohesive foundation for further exploration or subdivision into deeper levels of detail.
+
+**Domain Description:**
+
+{{ organisation_description }}
+
+**Instructions:**
+
+For each top-level concept identified, provide:
+1. **Name:** A concise, descriptive name that clearly communicates the concept's focus.
+2. **Description:** A two-paragraph, domain-oriented explanation in markdown format that outlines the concept’s scope, purpose, intended outcomes, and relevance. Ensure the description is understandable to both domain experts and non-experts.
+
+**Guidelines:**
+
+1. **Focus on Conceptual Coverage:** Structure the concepts around the core topics or themes in the domain, capturing the essential areas that users or stakeholders would need to understand.
+2. **Limit the Number:** Aim for **{{first_level}}** top-level concepts to avoid overcomplicating the model at its highest level.
+3. **Coverage:** Ensure that all critical themes, functions, or activities in the domain are accounted for and that each concept is necessary for a holistic understanding.
+4. **Ensure Clarity and Distinctness:** Each top-level concept should be uniquely defined and represent a separate area of focus, avoiding overlap or duplication. Use clear, specific language to describe each concept.
+5. **Consider Future Expansion:** Plan for deeper levels of detail. The model should be adaptable to future changes, additional categories, and evolving needs.
+6. **MECE Principle:** Keep concepts mutually exclusive and collectively exhaustive (MECE). They should be distinct enough to stand independently but collectively define the domain's key elements.
+7. **Provide Context:** Offer a two-paragraph explanation in markdown format of each concept to ensure clarity and context for all stakeholders.
+
+**JSON Output Format:**
+
+```
+[
+  {
+    "name": "Concept 1",
+    "description": "Description of Concept 1"
+  },
+  {
+    "name": "Concept 2",
+    "description": "Description of Concept 2"
+  },
+  {
+    "name": "Concept 3",
+    "description": "Description of Concept 3"
+  },
+  {
+    "name": "Concept 4",
+    "description": "Description of Concept 4"
+  }
+]
+```

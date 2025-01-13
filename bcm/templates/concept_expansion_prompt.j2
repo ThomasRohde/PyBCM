@@ -1,0 +1,78 @@
+## Analyze the Concept '{{ capability_name }}'
+
+Analyze the concept **'{{ capability_name }}'** within the context provided below. Decompose this concept into a set of MECE sub-concepts that adhere to the principles of effective hierarchical concept modeling. Create up to **{{ max_capabilities }}** sub-concepts.
+
+The context is formatted using section tags that organize the information:
+
+<first_level_capabilities> - Lists all top-level concepts in the model with their descriptions.
+<capability_tree> - Shows the full hierarchical tree structure with the current concept marked.
+<parent_hierarchy> - Lists the chain of parent concepts from root to current concept.  
+<sibling_context> - Shows other concepts at the same level under the same parent. 
+<current_capability> - Contains the name and description of the current concept.  
+<sub_capabilities> - Lists any existing sub-concepts under the current concept. You can use this to avoid duplication.
+
+These section tags help structure the context in a way that makes it clear how each piece of information relates to the overall hierarchy of concepts.
+
+---
+
+### Context
+
+{{ context }}
+
+---
+
+### Instructions
+
+For each sub-concept identified, provide:
+
+1. **Name:**  
+   A concise and descriptive name that clearly communicates the sub-concept’s focus.
+
+2. **Description:**  
+   A two-paragraph, **domain-oriented** explanation in markdown format that outlines the sub-concept’s scope, purpose, intended outcomes, and alignment with the overall concept. Ensure the description is understandable to both domain experts and non-experts.
+
+---
+
+### Consider the Following When Defining Sub-Concepts
+
+1. **Alignment with Parent Concept:**  
+   Each sub-concept should directly contribute to and be a logical extension of **'{{ capability_name }}'**.
+
+2. **Alignment with Any Existing Sub-Concepts:**  
+   Ensure the sub-concepts are consistent with any existing sub-concepts.
+
+3. **MECE Structure:**  
+   Sub-concepts must be **Mutually Exclusive** and **Collectively Exhaustive** (MECE).
+
+4. **Domain Value:**  
+   Clearly articulate the value each sub-concept provides within the broader context of the domain.
+
+5. **Distinctness:**  
+   Ensure there is no overlap in scope or responsibility among sub-concepts.
+
+6. **Completeness:**  
+   The set of sub-concepts should collectively cover the entire scope of **'{{ capability_name }}'** without any gaps.
+
+7. **Consistency:**  
+   Maintain a consistent level of detail and abstraction across all sub-concepts.
+
+---
+
+### JSON Output Format
+
+```
+[
+  {
+    "name": "Sub-Concept 1",
+    "description": "Description of Sub-Concept 1"
+  },
+  {
+    "name": "Sub-Concept 2",
+    "description": "Description of Sub-Concept 2"
+  },
+  {
+    "name": "Sub-Concept 3",
+    "description": "Description of Sub-Concept 3"
+  }
+]
+```
