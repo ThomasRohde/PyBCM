@@ -87,6 +87,81 @@ PyBCM offers a comprehensive set of features to support various aspects of busin
     bcm
     ```
 
+4. **Updating the Project:**
+
+    To update PyBCM to the latest version from GitHub:
+
+    1. Navigate to your local repository:
+       ```bash
+       cd path/to/pybcm
+       ```
+    
+    2. Pull the latest changes:
+       ```bash
+       git pull origin master
+       ```
+    
+    3. Update dependencies:
+       ```bash
+       uv pip install -e .
+       ```
+    
+    Note: Before updating, it's recommended to:
+    - Back up your `.pybcm` directory in case you've made custom template modifications
+    - Check the release notes on GitHub for any breaking changes
+    - Export your capability models if you want to be extra cautious
+
+5. **Configure LLM API Keys:**
+
+    PyBCM uses PydanticAI to interact with various LLM providers. You'll need to:
+
+    1. Copy the sample environment file to your user directory:
+       ```bash
+       mkdir -p ~/.pybcm
+       cp .env.sample ~/.pybcm/.env
+       ```
+    2. Edit `~/.pybcm/.env` and configure your environment:
+
+       Required variables:
+       - `OPENAI_API_KEY`: Your OpenAI API key (required for default setup)
+
+       Optional LLM providers:
+       - `ANTHROPIC_API_KEY`: For Claude models
+       - `GOOGLE_API_KEY`: For Gemini models
+       - `GROQ_API_KEY`: For Groq models
+       - `MISTRAL_API_KEY`: For Mistral models
+
+       Model settings:
+       - `DEFAULT_MODEL`: Model to use (default: gpt-4-turbo-preview)
+       - `MAX_TOKENS`: Maximum response length (default: 2000)
+       - `TEMPERATURE`: Response creativity 0.0-1.0 (default: 0.7)
+
+       See the [Logfire documentation](https://logfire.pydantic.dev/docs/reference/configuration/#using-environment-variables) for setting environment variables for logging.
+    
+    The application validates these settings on startup and will show an error if required variables are missing.
+
+6. **Configure Logfire logging (first time only):**
+
+    PyBCM uses Logfire for advanced logging and monitoring. On first run, you'll need to:
+
+    1. Create a Logfire account at [logfire.pydantic.dev](https://logfire.pydantic.dev)
+    2. Install the Logfire CLI:
+       ```bash
+       uv pip install logfire
+       ```
+    3. Authenticate with Logfire:
+       ```bash
+       logfire auth
+       ```
+    4. Create and select a project:
+       ```bash
+       logfire projects new pybcm
+       logfire projects use pybcm
+       ```
+
+    This only needs to be done once. Credentials are stored in `~/.logfire/default.toml`.
+
+
 ## Usage
 
 ### Launching the Application
@@ -189,6 +264,8 @@ This allows you to:
 Access the application settings through "File" > "Settings." Here you can customize:
 
 *   **Visual Theme:** Choose from a variety of ttkbootstrap themes.
+*   **AI Generation:** Configure the maximum number of AI-generated capabilities, range for first-level capabilities, and select prompt templates for different operations.
+*   **Model Selection:** Select the LLM model to be used for AI features.
 *   **Layout:** Adjust layout algorithm, root font size, box dimensions, gaps, padding, target aspect ratio, and maximum level for visualization.
 *   **Coloring:** Customize the color scheme for different capability levels and leaf nodes in the visualizer.
 
@@ -215,9 +292,19 @@ The application will:
 2. Use your customized versions if they exist
 3. Fall back to the built-in templates if a customized version doesn't exist
 
+You can select which templates to use for different operations through the Settings dialog:
+1. Open Settings (File > Settings)
+2. Go to the "AI Generation" tab
+3. Choose templates from the dropdown menus:
+   - "First-level generation template": Template for generating initial capabilities
+   - "Normal generation template": Template for expanding existing capabilities
+
 This allows you to:
-- Tailor the capability format for specific AI tools or use cases
-- Customize the structure of AI-generated responses
+- Tailor the AI prompts for your specific industry or use case
+- Customize the chat interface appearance
+- Experiment with different prompt strategies
+- Switch between different prompt templates without editing files
+- Maintain multiple template versions for different use cases
 - Maintain your customizations across application updates
 
 Note: This branch does not support direct API integration with AI services. Instead, it provides smart copy/paste functionality optimized for browser-based AI chat agents through customizable templates.
