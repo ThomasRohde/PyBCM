@@ -66,6 +66,7 @@ class CapabilityTreeview(ttk.Treeview):
         self.context_menu.add_command(label="Edit", command=self.edit_capability)
         self.context_menu.add_separator()
         self.context_menu.add_command(label="Delete", command=self.delete_capability)
+        self.context_menu.add_command(label="Delete Children", command=self.delete_children)
 
         # Bind events
         self.bind("<Button-1>", self.on_click)
@@ -184,6 +185,70 @@ class CapabilityTreeview(ttk.Treeview):
             return False
         except Exception as e:
             raise e
+
+    async def _delete_children_async(self, capability_id: int, session) -> bool:
+        """Helper to delete all children of a capability within a single session."""
+        try:
+            # Get all immediate children
+            children = await self.db_ops.get_capabilities(capability_id)
+            
+            # Delete each child (which will cascade to their children)
+            for child in children:
+                success = await self.db_ops.delete_capability(child.id, session)
+                if not success:
+                    return False
+            return True
+        except Exception as e:
+            raise e
+
+    def delete_children(self):
+        """Delete all children of the selected capability while keeping the parent."""
+        selected = self.selection()
+        if not selected:
+            return
+
+        capability_id = int(selected[0])
+        
+        if create_dialog(
+            self,
+            "Delete Children",
+            "Are you sure you want to delete all children\nof this capability?",
+        ):
+            try:
+                # Create async function for deletion
+                async def delete_async():
+                    async with await self.db_ops._get_session() as session:
+                        try:
+                            success = await self._delete_children_async(
+                                capability_id, session
+                            )
+                            if success:
+                                await session.commit()
+                                return True
+                            return False
+                        except Exception as e:
+                            await session.rollback()
+                            raise e
+
+                # Use _wrap_async to properly await the async operation
+                success = self._wrap_async(delete_async())
+                if success:
+                    self.refresh_tree()
+                else:
+                    create_dialog(
+                        self,
+                        "Error",
+                        "Failed to delete children",
+                        ok_only=True,
+                    )
+            except Exception as e:
+                print(f"Error deleting children: {e}")
+                create_dialog(
+                    self,
+                    "Error",
+                    f"Failed to delete children: {str(e)}",
+                    ok_only=True,
+                )
 
     def delete_capability(self):
         """Delete selected capability."""
