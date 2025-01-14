@@ -21,6 +21,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         self.model = process_layout(
             model, self.settings
         )  # Pass settings to process_layout
+        self.root_font_size = self.settings.get("root_font_size", 10)
 
         # Configure grid weights
         self.grid_columnconfigure(0, weight=1)
@@ -143,13 +144,13 @@ class CapabilityVisualizer(ttk.Toplevel):
             width=2,
         )
 
-        # Calculate a suitable font size
+        # Calculate a suitable font size using root_font_size
         font_size = min(
-            int(10 * self.scale),  # scale-based
+            int(self.root_font_size * self.scale),  # scale-based
             int(sw / (len(text) + 2) * 1.5),  # width-based
             int(sh / 3),  # height-based
         )
-        font_size = max(2, font_size)  # minimum
+        font_size = max(9, font_size)  # minimum
 
         # Adjust text position if node has children (place near top)
         text_x = sx + sw // 2
