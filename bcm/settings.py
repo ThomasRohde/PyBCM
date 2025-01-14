@@ -22,6 +22,11 @@ DEFAULT_SETTINGS = {
     "normal_template": "expansion_prompt.j2",  # Default normal template
     "font_size": 10,  # Default font size for main text content
     "model": "openai:gpt-4o",  # Default model
+    # Context settings
+    "context-include-parents": True,  # Include parent nodes in context
+    "context-include-siblings": True,  # Include sibling nodes in context
+    "context-first-level": True,  # Include first level nodes in context
+    "context-tree": True,  # Include full tree structure in context
     # Layout
     "layout_algorithm": "Simple - fast",  # Layout algorithm to use
     "root_font_size": 20,  # Default root font size for layout
@@ -110,7 +115,7 @@ class SettingsDialog(ttk.Toplevel):
         self.result = None
         self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.title("Settings")
-        self.geometry("600x700")
+        self.geometry("600x850")
         self.resizable(False, False)
 
         # Bind Return key to OK button
@@ -125,6 +130,12 @@ class SettingsDialog(ttk.Toplevel):
         self.normal_template_var = ttk.StringVar()
         self.font_size_var = ttk.StringVar()
         self.model_var = ttk.StringVar()
+        
+        # Context checkboxes
+        self.context_parents_var = ttk.BooleanVar()
+        self.context_siblings_var = ttk.BooleanVar()
+        self.context_first_level_var = ttk.BooleanVar()
+        self.context_tree_var = ttk.BooleanVar()
 
         # Layout
         self.layout_algorithm_var = ttk.StringVar()  # New variable for layout algorithm
@@ -186,6 +197,13 @@ class SettingsDialog(ttk.Toplevel):
         self.color_5_var.set(self.settings.get("color_5"))
         self.color_6_var.set(self.settings.get("color_6"))
         self.color_leaf_var.set(self.settings.get("color_leaf"))
+
+        # Context settings
+        self.context_parents_var.set(self.settings.get("context-include-parents"))
+        self.context_siblings_var.set(self.settings.get("context-include-siblings"))
+        self.context_first_level_var.set(self.settings.get("context-first-level"))
+        self.context_tree_var.set(self.settings.get("context-tree"))
+
         self.position_center()
         self.deiconify()  # Show window after loading settings
         
@@ -480,6 +498,37 @@ class SettingsDialog(ttk.Toplevel):
         self.model_frame.pack(fill="x", padx=10, pady=5)
         self.model_combo.pack(fill="x")
 
+        # Context settings frame
+        self.context_frame = ttk.LabelFrame(
+            self.ai_frame, text="Context Settings", padding=10
+        )
+        self.context_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Context checkboxes
+        ttk.Checkbutton(
+            self.context_frame,
+            text="Include parent nodes in context",
+            variable=self.context_parents_var
+        ).pack(anchor="w", pady=2)
+        
+        ttk.Checkbutton(
+            self.context_frame,
+            text="Include sibling nodes in context",
+            variable=self.context_siblings_var
+        ).pack(anchor="w", pady=2)
+        
+        ttk.Checkbutton(
+            self.context_frame,
+            text="Include first level nodes in context",
+            variable=self.context_first_level_var
+        ).pack(anchor="w", pady=2)
+        
+        ttk.Checkbutton(
+            self.context_frame,
+            text="Include full tree structure in context",
+            variable=self.context_tree_var
+        ).pack(anchor="w", pady=2)
+
         # Layout tab
         self.layout_frame.pack(fill="both", expand=True)
 
@@ -700,6 +749,12 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("normal_template", self.normal_template_var.get())
         self.settings.set("font_size", int(self.font_size_var.get()))
         self.settings.set("model", self.model_var.get())
+        
+        # Context settings
+        self.settings.set("context-include-parents", bool(self.context_parents_var.get()))
+        self.settings.set("context-include-siblings", bool(self.context_siblings_var.get()))
+        self.settings.set("context-first-level", bool(self.context_first_level_var.get()))
+        self.settings.set("context-tree", bool(self.context_tree_var.get()))
 
         # Layout
         self.settings.set(
