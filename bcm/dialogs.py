@@ -23,6 +23,10 @@ class CapabilityConfirmDialog(ttk.Toplevel):
         self.position_center()
         self.minsize(500, 450)  # Set minimum size
         self.resizable(True, True)  # Allow window resizing
+        
+        # Make dialog modal
+        self.transient(parent)
+        self.grab_set()
 
         self._create_widgets()
         self._create_layout()
@@ -171,10 +175,11 @@ def create_dialog(
     dialog = ttk.Toplevel(parent)
     dialog.withdraw()  # Hide the window initially
     dialog.title(title)
-
-    # Remove window controls
+    
+    # Make dialog modal
+    dialog.transient(parent)
+    dialog.grab_set()
     dialog.resizable(False, False)
-    dialog.overrideredirect(True)
 
     # Create border frame
     border_frame = ttk.Frame(dialog, borderwidth=1, relief="solid")
@@ -261,6 +266,10 @@ class CapabilityDialog(ttk.Toplevel):
         self.geometry("600x450")
         self.minsize(400, 450)
         self.position_center()
+        
+        # Make dialog modal
+        self.transient(parent)
+        self.grab_set()
 
         self._create_widgets()
         self._create_layout()
