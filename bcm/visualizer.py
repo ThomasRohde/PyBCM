@@ -158,14 +158,14 @@ class CapabilityVisualizer(ttk.Toplevel):
             int(sw / (len(text) + 1) * 1.5),
             int(sh / 3),
         )
-        # We'll clamp the upper bound to at least 9
-        max_font_size = max(9, max_font_size)
+        # We'll clamp the upper bound to at least 6 to allow smaller text when zooming out
+        max_font_size = max(6, max_font_size)
 
         # We'll attempt from largest to smaller
         chosen_font_size = max_font_size
         
         # Because each measurement involves creating a text item, we do this in a loop
-        while chosen_font_size >= 9:
+        while chosen_font_size >= 6:
             # Create a temporary text item just to measure
             temp_text_id = self.canvas.create_text(
                 0, 0,  # arbitrary off-screen position
@@ -210,7 +210,7 @@ class CapabilityVisualizer(ttk.Toplevel):
             width=sw - 2 * horizontal_padding,
             font=("TkDefaultFont", chosen_font_size),
             anchor="center",
-            justify="center",
+            justify="center"
         )
 
         # Only bind tooltip if there's a description
