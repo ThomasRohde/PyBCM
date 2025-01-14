@@ -6,5 +6,6 @@
 - Format markdown in visualizer tooltip
 + Add database indexes
 - Add chat model in settings
-- Fix tree output in context
++ Fix tree output in context
 + Create pybcm-noai branch
++ Modal dialogs
