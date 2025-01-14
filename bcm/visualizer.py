@@ -76,10 +76,6 @@ class CapabilityVisualizer(ttk.Toplevel):
         # Optionally, do one automatic resize to content at startup
         self._resize_window_to_content()
 
-        # If you do NOT want further automatic resizing,
-        # remove the bind on <Configure> or comment it out.
-        # self.bind('<Configure>', self._on_resize)  # <-- remove or comment out
-
     def _on_mousewheel(self, event):
         """Handle zooming with mouse wheel (Ctrl + Wheel)."""
         if event.delta > 0:
@@ -87,7 +83,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         else:
             self.scale *= 0.9
         self.draw_model()
-        
+
     def draw_box(
         self, x, y, width, height, text, description=None, has_children=False, level=0
     ):
@@ -144,25 +140,74 @@ class CapabilityVisualizer(ttk.Toplevel):
             width=2,
         )
 
-        # Calculate a suitable font size using root_font_size
-        font_size = min(
-            int(self.root_font_size * self.scale),  # scale-based
-            int(sw / (len(text) + 2) * 1.5),  # width-based
-            int(sh / 3),  # height-based
+        #
+        # ----- FONT SIZING AND PADDING -----
+        #
+        # We use a heuristic: start with a candidate font size and
+        # check if the text fits inside the box with padding.
+        # If it doesn't fit, decrement the font size until it does or until we reach a minimum.
+        #
+
+        horizontal_padding = max(10, int(10 * self.scale))
+        vertical_padding = max(5, int(5 * self.scale))
+
+        # This will be our maximum initial guess
+        max_font_size = min(
+            int(self.root_font_size * self.scale),
+            int(sw / (len(text) + 1) * 1.5),
+            int(sh / 3),
         )
-        font_size = max(9, font_size)  # minimum
+        # We'll clamp the upper bound to at least 9
+        max_font_size = max(9, max_font_size)
 
-        # Adjust text position if node has children (place near top)
+        # We'll attempt from largest to smaller
+        chosen_font_size = max_font_size
+        
+        # Because each measurement involves creating a text item, we do this in a loop
+        while chosen_font_size >= 9:
+            # Create a temporary text item just to measure
+            temp_text_id = self.canvas.create_text(
+                0, 0,  # arbitrary off-screen position
+                text=text,
+                font=("TkDefaultFont", chosen_font_size),
+                anchor="nw",  # top-left to measure easily
+                width=sw - 2 * horizontal_padding,  # set the "wrapping" width if desired
+            )
+            text_bbox = self.canvas.bbox(temp_text_id)
+            self.canvas.delete(temp_text_id)
+
+            if text_bbox is None:
+                # In case there's an edge case where canvas.bbox is None,
+                # we assume it fits.
+                break
+
+            # Calculate the bounding box width/height
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+
+            # Check if it fits with padding
+            if text_width <= (sw - 2 * horizontal_padding) and text_height <= (sh - 2 * vertical_padding):
+                # It fits at this size
+                break
+            else:
+                chosen_font_size -= 1  # Decrement and try again
+
+        # We also shift the text position if the node has children (placing it near the top)
+        if has_children:
+            # Place near the top when the node has children
+            text_y = sy + chosen_font_size + vertical_padding
+        else:
+            # Center vertically if it's a leaf node
+            text_y = sy + sh // 2
+
         text_x = sx + sw // 2
-        padding = max(font_size + 20, 15)
-        text_y = sy + (padding // 2 if has_children else sh // 2)
-
+        # For the final text item
         text_id = self.canvas.create_text(
             text_x,
             text_y,
             text=text,
-            width=max(10, sw - 10),
-            font=("TkDefaultFont", font_size),
+            width=sw - 2 * horizontal_padding,
+            font=("TkDefaultFont", chosen_font_size),
             anchor="center",
             justify="center",
         )
