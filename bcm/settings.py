@@ -148,6 +148,10 @@ class SettingsDialog(ttk.Toplevel):
         self.color_6_var = ttk.StringVar()
         self.color_leaf_var = ttk.StringVar()
 
+        # Make dialog modal
+        self.transient(parent)
+        self.grab_set()
+        
         # Build the UI
         self._create_widgets()
         self._create_layout()
