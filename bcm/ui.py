@@ -406,39 +406,50 @@ class BusinessCapabilityUI:
         capability_id = int(selected[0])
         description = self.desc_text.get("1.0", "end-1c")
 
-        async def update_description():
-            async with await self.db_ops._get_session() as session:
-                try:
-                    success = await self.app._save_description_async(
-                        capability_id, description, session
-                    )
-                    if success:
-                        await session.commit()
-                        return True
-                    return False
-                except Exception as e:
-                    await session.rollback()
-                    raise e
+        async def save():
+            return await self.app.db_ops.save_description(capability_id, description)
 
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(update_description(), self.app.loop)
+        def on_save_complete(future):
+            try:
+                success = future.result()
+                if success:
+                    self.app.current_description = description
+                    self.root.after(0, lambda: [
+                        create_dialog(
+                            self.root, "Success", "Description saved successfully", ok_only=True
+                        ),
+                        self._toggle_edit_mode() if self.editing_mode else None
+                    ])
+                else:
+                    self.root.after(0, lambda: create_dialog(
+                        self.root,
+                        "Error",
+                        "Failed to save description - capability not found",
+                        ok_only=True,
+                    ))
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to save description: {str(future.exception())}",
+                    ok_only=True,
+                ))
+            finally:
+                # Re-enable UI elements
+                self.root.after(0, lambda: [
+                    self.edit_desc_btn.configure(state="normal"),
+                    self.save_desc_btn.configure(state="normal"),
+                    self.desc_text.configure(state="normal")
+                ])
 
-        success = future.result()  # Wait for completion
+        # Disable UI elements during save
+        self.edit_desc_btn.configure(state="disabled")
+        self.save_desc_btn.configure(state="disabled") 
+        self.desc_text.configure(state="disabled")
 
-        if success:
-            create_dialog(
-                self.root, "Success", "Description saved successfully", ok_only=True
-            )
-            # Switch back to view mode after successful save
-            if self.editing_mode:
-                self._toggle_edit_mode()
-        else:
-            create_dialog(
-                self.root,
-                "Error",
-                "Failed to save description - capability not found",
-                ok_only=True,
-            )
+        # Run the coroutine in the event loop with callback
+        future = asyncio.run_coroutine_threadsafe(save(), self.app.loop)
+        future.add_done_callback(on_save_complete)
 
     def _clear_search(self):
         """Clear the search entry and restore the full tree."""
@@ -500,7 +511,7 @@ class BusinessCapabilityUI:
                         self.tree.selection_set(selected_id)
                         self.tree.see(selected_id)
                         self._on_tree_select(None)
-                    except:
+                    except Exception:
                         pass
 
             finally:

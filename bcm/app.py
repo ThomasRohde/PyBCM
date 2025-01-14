@@ -113,103 +113,119 @@ class App:
         self, export_type, export_func, file_extension, file_type_name, clipboard=False
     ):
         """Base method for exporting capability model to different formats."""
-        # Get selected node or use root if none selected
-        selected = self.ui.tree.selection()
-        if selected:
-            start_node_id = int(selected[0])
-        else:
-            # Find root node - using async method properly
-            async def get_root_node():
+        # Get filename first if not copying to clipboard
+        filename = None
+        if not clipboard:
+            user_dir = os.path.expanduser("~")
+            app_dir = os.path.join(user_dir, ".pybcm")
+            os.makedirs(app_dir, exist_ok=True)
+            filename = filedialog.asksaveasfilename(
+                title=f"Export to {export_type}",
+                initialdir=app_dir,
+                defaultextension=file_extension,
+                filetypes=[
+                    (f"{file_type_name} files", f"*{file_extension}"),
+                    ("All files", "*.*"),
+                ],
+            )
+            if not filename:
+                return
+
+        async def export():
+            # Get selected node or use root if none selected
+            selected = self.ui.tree.selection()
+            if selected:
+                start_node_id = int(selected[0])
+            else:
+                # Find root node
                 capabilities = await self.db_ops.get_all_capabilities()
                 root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
                 if not root_nodes:
                     return None
-                return root_nodes[0]["id"]
+                start_node_id = root_nodes[0]["id"]
 
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(get_root_node(), self.loop)
-            start_node_id = future.result()  # Wait for completion
+            # Get hierarchical data starting from selected node
+            node_data = await self.db_ops.get_capability_with_children(start_node_id)
+            if not node_data:
+                return None
 
-            if not start_node_id:
-                return
+            # Convert to layout format
+            layout_model = self._convert_to_layout_format(node_data)
 
-        # Get hierarchical data starting from selected node
-        async def get_node_data():
-            return await self.db_ops.get_capability_with_children(start_node_id)
+            # Generate content using provided export function
+            content = export_func(layout_model, self.settings)
 
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
-        node_data = future.result()  # Wait for completion
+            return content
 
-        # Convert to layout format starting from selected node
-        layout_model = self._convert_to_layout_format(node_data)
-
-        if clipboard:
+        def on_export_complete(future):
             try:
-                # Generate content using provided export function
-                content = export_func(layout_model, self.settings)
-                
-                # Copy to clipboard
-                self.root.clipboard_clear()
-                self.root.clipboard_append(content)
-                
-                create_dialog(
-                    self.root,
-                    "Success",
-                    f"Capabilities exported to clipboard in {export_type} format",
-                    ok_only=True,
-                )
-                return
-            except Exception as e:
-                create_dialog(
-                    self.root,
-                    "Error", 
-                    f"Failed to copy to clipboard: {str(e)}",
-                    ok_only=True,
-                )
-                return
+                content = future.result()
+                if content is None:
+                    self.root.after(0, lambda: create_dialog(
+                        self.root,
+                        "Error",
+                        "No capabilities found to export",
+                        ok_only=True,
+                    ))
+                    return
 
-        # Get save location from user if not copying to clipboard
-        user_dir = os.path.expanduser("~")
-        app_dir = os.path.join(user_dir, ".pybcm")
-        os.makedirs(app_dir, exist_ok=True)
-        filename = filedialog.asksaveasfilename(
-            title=f"Export to {export_type}",
-            initialdir=app_dir,
-            defaultextension=file_extension,
-            filetypes=[
-                (f"{file_type_name} files", f"*{file_extension}"),
-                ("All files", "*.*"),
-            ],
-        )
-
-        if filename:
-            try:
-                # Generate content using provided export function
-                content = export_func(layout_model, self.settings)
-
-                # Handle different save methods
-                if isinstance(content, str):
-                    with open(filename, "w", encoding="utf-8") as f:
-                        f.write(content)
+                if clipboard:
+                    try:
+                        # Copy to clipboard
+                        self.root.clipboard_clear()
+                        self.root.clipboard_append(content)
+                        
+                        self.root.after(0, lambda: create_dialog(
+                            self.root,
+                            "Success",
+                            f"Capabilities exported to clipboard in {export_type} format",
+                            ok_only=True,
+                        ))
+                    except Exception as error:
+                        error_msg = str(error)  # Capture error message
+                        self.root.after(0, lambda err=error_msg: create_dialog(
+                            self.root,
+                            "Error", 
+                            f"Failed to copy to clipboard: {err}",
+                            ok_only=True,
+                        ))
                 else:
-                    # Assume it's a PowerPoint presentation or similar object with save method
-                    content.save(filename)
+                    try:
+                        # Handle different save methods
+                        if isinstance(content, str):
+                            with open(filename, "w", encoding="utf-8") as f:
+                                f.write(content)
+                        else:
+                            # Assume it's a PowerPoint presentation or similar object with save method
+                            content.save(filename)
 
-                create_dialog(
-                    self.root,
-                    "Success",
-                    f"Capabilities exported to {export_type} format successfully",
-                    ok_only=True,
-                )
+                        self.root.after(0, lambda: create_dialog(
+                            self.root,
+                            "Success",
+                            f"Capabilities exported to {export_type} format successfully",
+                            ok_only=True,
+                        ))
+                    except Exception as error:
+                        error_msg = str(error)  # Capture error message
+                        self.root.after(0, lambda err=error_msg: create_dialog(
+                            self.root,
+                            "Error",
+                            f"Failed to export capabilities to {export_type} format: {err}",
+                            ok_only=True,
+                        ))
 
-            except Exception as e:
-                create_dialog(
+            except Exception as error:
+                error_msg = str(error)  # Capture error message
+                self.root.after(0, lambda err=error_msg: create_dialog(
                     self.root,
                     "Error",
-                    f"Failed to export capabilities to {export_type} format: {str(e)}",
+                    f"Export failed: {err}",
                     ok_only=True,
-                )
+                ))
+
+        # Run the export operation
+        future = asyncio.run_coroutine_threadsafe(export(), self.loop)
+        future.add_done_callback(on_export_complete)
 
     def _export_to_archimate(self):
         """Export capabilities to Archimate Open Exchange format starting from selected node."""
@@ -336,56 +352,70 @@ class App:
         async def get_context():
             return await get_capability_context(self.db_ops, capability_id)
 
-        try:
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(get_context(), self.loop)
-            context = future.result()  # Wait for completion
-            
-            # Get capability info
-            async def get_capability_info():
-                capability = await self.db_ops.get_capability(capability_id)
-                return capability
+        def on_capability_info_complete(future):
+            try:
+                capability = future.result()
+                # Determine if this is a first-level capability
+                is_first_level = not capability.parent_id
+                
+                # Render template with appropriate context
+                if is_first_level:
+                    template = jinja_env.get_template(self.settings.get("first_level_template"))
+                    rendered_context = template.render(
+                        organisation_name=capability.name,
+                        organisation_description=capability.description or f"An organization focused on {capability.name}",
+                        first_level=self.settings.get("first_level_range")
+                    )
+                else:
+                    template = jinja_env.get_template(self.settings.get("normal_template"))
+                    rendered_context = template.render(
+                        capability_name=capability.name,
+                        context=context_result,
+                        max_capabilities=self.settings.get("max_ai_capabilities")
+                    )
+                
+                # Copy to clipboard
+                self.root.clipboard_clear()
+                self.root.clipboard_append(rendered_context)
+                
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Success",
+                    "Capability context copied to clipboard",
+                    ok_only=True,
+                ))
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to copy to clipboard: {str(future.exception())}",
+                    ok_only=True,
+                ))
 
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(get_capability_info(), self.loop)
-            capability = future.result()  # Wait for completion
+        def on_context_complete(future):
+            try:
+                global context_result  # Used to share context between callbacks
+                context_result = future.result()
+                
+                # Get capability info
+                async def get_capability_info():
+                    capability = await self.db_ops.get_capability(capability_id)
+                    return capability
 
-            # Determine if this is a first-level capability
-            is_first_level = not capability.parent_id
-            
-            # Render template with appropriate context
-            if is_first_level:
-                template = jinja_env.get_template(self.settings.get("first_level_template"))
-                rendered_context = template.render(
-                    organisation_name=capability.name,
-                    organisation_description=capability.description or f"An organization focused on {capability.name}",
-                    first_level=self.settings.get("first_level_range")
-                )
-            else:
-                template = jinja_env.get_template(self.settings.get("normal_template"))
-                rendered_context = template.render(
-                    capability_name=capability.name,
-                    context=context,
-                    max_capabilities=self.settings.get("max_ai_capabilities")
-                )
-            
-            # Copy to clipboard
-            self.root.clipboard_clear()
-            self.root.clipboard_append(rendered_context)
-            
-            create_dialog(
-                self.root,
-                "Success",
-                "Capability context copied to clipboard",
-                ok_only=True,
-            )
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to copy to clipboard: {str(e)}",
-                ok_only=True,
-            )
+                # Run get_capability_info with callback
+                future = asyncio.run_coroutine_threadsafe(get_capability_info(), self.loop)
+                future.add_done_callback(on_capability_info_complete)
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to get context: {str(future.exception())}",
+                    ok_only=True,
+                ))
+
+        # Run get_context with callback
+        future = asyncio.run_coroutine_threadsafe(get_context(), self.loop)
+        future.add_done_callback(on_context_complete)
 
     def _export_capabilities(self):
         """Export capabilities to JSON file."""
@@ -399,77 +429,6 @@ class App:
 
         if import_capabilities(self.root, self.db_ops, self.loop):
             self.ui.tree.refresh_tree()
-
-    async def _save_description_async(
-        self, capability_id: int, description: str, session
-    ) -> bool:
-        """Helper to save description and create audit log within a single session."""
-        # Get current capability within this session
-        stmt = select(Capability).where(Capability.id == capability_id)
-        result = await session.execute(stmt)
-        capability = result.scalar_one_or_none()
-
-        if not capability:
-            return False
-
-        # Store old values for audit
-        old_values = {"description": capability.description}
-
-        # Update description
-        capability.description = description
-
-        # Add audit log
-        await self.db_ops.log_audit(
-            session,
-            "UPDATE",
-            capability_id=capability_id,
-            capability_name=capability.name,
-            old_values=old_values,
-            new_values={"description": description},
-        )
-
-        return True
-
-    def _save_description(self):
-        """Save the current description to the database."""
-        selected = self.ui.tree.selection()
-        if not selected:
-            return
-
-        capability_id = int(selected[0])
-        description = self.ui.desc_text.get("1.0", "end-1c")
-
-        # Create async function to update description
-        async def update_description():
-            async with await self.db_ops._get_session() as session:
-                try:
-                    success = await self._save_description_async(
-                        capability_id, description, session
-                    )
-                    if success:
-                        await session.commit()
-                        return True
-                    return False
-                except Exception as e:
-                    await session.rollback()
-                    raise e
-
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(update_description(), self.loop)
-
-        success = future.result()  # Wait for completion
-
-        if success:
-            create_dialog(
-                self.root, "Success", "Description saved successfully", ok_only=True
-            )
-        else:
-            create_dialog(
-                self.root,
-                "Error",
-                "Failed to save description - capability not found",
-                ok_only=True,
-            )
 
     def _show_settings(self):
         """Show the settings dialog."""
@@ -588,28 +547,29 @@ class App:
         if not filename:
             return
 
-        try:
-            # Create coroutine for export operation
-            async def export_async():
-                logs = await self.db_ops.export_audit_logs()
-                with open(filename, "w") as f:
-                    json.dump(logs, f, indent=2)
+        # Create coroutine for export operation
+        async def export_async():
+            logs = await self.db_ops.export_audit_logs()
+            with open(filename, "w") as f:
+                json.dump(logs, f, indent=2)
 
-            # Run the coroutine in the event loop
-            future = asyncio.run_coroutine_threadsafe(export_async(), self.loop)
-            future.result()  # Wait for completion
+        def on_export_complete(future):
+            try:
+                future.result()
+                self.root.after(0, lambda: create_dialog(
+                    self.root, "Success", "Audit logs exported successfully", ok_only=True
+                ))
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to export audit logs: {str(future.exception())}",
+                    ok_only=True,
+                ))
 
-            create_dialog(
-                self.root, "Success", "Audit logs exported successfully", ok_only=True
-            )
-
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to export audit logs: {str(e)}",
-                ok_only=True,
-            )
+        # Run the coroutine in the event loop with callback
+        future = asyncio.run_coroutine_threadsafe(export_async(), self.loop)
+        future.add_done_callback(on_export_complete)
 
     def _show_chat(self):
         """Show the AI chat dialog."""
@@ -643,10 +603,53 @@ class App:
     def _show_visualizer(self):
         """Show the capability model visualizer starting from selected node."""
 
+        def on_node_data_complete(future):
+            try:
+                node_data = future.result()
+                # Convert to layout format starting from selected node
+                layout_model = self._convert_to_layout_format(node_data)
+                # Create and show visualizer window
+                self.root.after(0, lambda: CapabilityVisualizer(self.root, layout_model))
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to get node data: {str(future.exception())}",
+                    ok_only=True,
+                ))
+
+        def on_root_node_complete(future):
+            try:
+                start_node_id = future.result()
+                if not start_node_id:
+                    return
+
+                # Get hierarchical data starting from selected node
+                async def get_node_data():
+                    return await self.db_ops.get_capability_with_children(start_node_id)
+
+                # Run get_node_data with callback
+                future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
+                future.add_done_callback(on_node_data_complete)
+            except Exception:
+                self.root.after(0, lambda: create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to get root node: {str(future.exception())}",
+                    ok_only=True,
+                ))
+
         # Get selected node or use root if none selected
         selected = self.ui.tree.selection()
         if selected:
             start_node_id = int(selected[0])
+            # Get hierarchical data starting from selected node
+            async def get_node_data():
+                return await self.db_ops.get_capability_with_children(start_node_id)
+
+            # Run get_node_data with callback
+            future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
+            future.add_done_callback(on_node_data_complete)
         else:
             # Find root node - using async method properly
             async def get_root_node():
@@ -656,26 +659,9 @@ class App:
                     return None
                 return root_nodes[0]["id"]
 
-            # Run the coroutine in the event loop
+            # Run get_root_node with callback
             future = asyncio.run_coroutine_threadsafe(get_root_node(), self.loop)
-            start_node_id = future.result()  # Wait for completion
-
-            if not start_node_id:
-                return
-
-        # Get hierarchical data starting from selected node
-        async def get_node_data():
-            return await self.db_ops.get_capability_with_children(start_node_id)
-
-        # Run the coroutine in the event loop
-        future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
-        node_data = future.result()  # Wait for completion
-
-        # Convert to layout format starting from selected node
-        layout_model = self._convert_to_layout_format(node_data)
-
-        # Create and show visualizer window
-        CapabilityVisualizer(self.root, layout_model)
+            future.add_done_callback(on_root_node_complete)
 
     async def periodic_shutdown_check(self):
         """Periodically check if shutdown has been requested."""
