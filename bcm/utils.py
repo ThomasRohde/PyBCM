@@ -93,74 +93,86 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
     if not capability:
         return ""
 
+    settings = Settings()
     context_parts = []
 
     # Section 1: First-level capabilities
     context_parts.append("<first_level_capabilities>")
-    first_level_caps = await db_ops.get_capabilities(parent_id=None)
-    if first_level_caps:
-        for cap in first_level_caps:
-            context_parts.append(f"- {cap.name}")
-            if cap.description:
-                context_parts.append(f"  Description: {cap.description}")
+    if settings.get("context-first-level", True):
+        first_level_caps = await db_ops.get_capabilities(parent_id=None)
+        if first_level_caps:
+            for cap in first_level_caps:
+                context_parts.append(f"- {cap.name}")
+                if cap.description:
+                    context_parts.append(f"  Description: {cap.description}")
+    else:
+        context_parts.append("Content intentionally left blank")
     context_parts.append("</first_level_capabilities>")
 
     # Section 2: Capability Tree
     context_parts.append("<capability_tree>")
+    if settings.get("context-tree", True):
+        async def build_capability_tree(
+            root_caps, current_cap_id: int, level: int = 0, prefix: str = ""
+        ) -> List[str]:
+            tree_lines = []
+            last_index = len(root_caps) - 1
 
-    async def build_capability_tree(
-        root_caps, current_cap_id: int, level: int = 0, prefix: str = ""
-    ) -> List[str]:
-        tree_lines = []
-        last_index = len(root_caps) - 1
+            for i, cap in enumerate(root_caps):
+                is_last = i == last_index
+                branch = "└── " if is_last else "├── "
+                marker = " *" if cap.id == current_cap_id else ""
+                tree_lines.append(f"{prefix}{branch}{cap.name}{marker}")
 
-        for i, cap in enumerate(root_caps):
-            is_last = i == last_index
-            branch = "└── " if is_last else "├── "
-            marker = " *" if cap.id == current_cap_id else ""
-            tree_lines.append(f"{prefix}{branch}{cap.name}{marker}")
+                # Get children
+                children = await db_ops.get_capabilities(cap.id)
+                if children:
+                    child_prefix = prefix + ("    " if is_last else "│   ")
+                    child_lines = await build_capability_tree(
+                        children, current_cap_id, level + 1, child_prefix
+                    )
+                    tree_lines.extend(child_lines)
 
-            # Get children
-            children = await db_ops.get_capabilities(cap.id)
-            if children:
-                child_prefix = prefix + ("    " if is_last else "│   ")
-                child_lines = await build_capability_tree(
-                    children, current_cap_id, level + 1, child_prefix
-                )
-                tree_lines.extend(child_lines)
+            return tree_lines
 
-        return tree_lines
-
-    tree_lines = await build_capability_tree(first_level_caps, capability_id)
-    context_parts.extend(tree_lines)
+        first_level_caps = await db_ops.get_capabilities(parent_id=None)
+        tree_lines = await build_capability_tree(first_level_caps, capability_id)
+        context_parts.extend(tree_lines)
+    else:
+        context_parts.append("Content intentionally left blank")
     context_parts.append("</capability_tree>")
 
     # Section 3: Parent Hierarchy
     context_parts.append("<parent_hierarchy>")
+    if settings.get("context-include-parents", True):
+        async def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
+            parent = await db_ops.get_capability(cap_id)
+            if parent:
+                if parent.parent_id:
+                    await add_parent_hierarchy(parent.parent_id, level + 1)
+                context_parts.append(f"Level {level+1}: {parent.name}")
+                if parent.description:
+                    # truncate long descriptions
+                    context_parts.append(f"Description: {parent.description[:200]}")
 
-    async def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
-        parent = await db_ops.get_capability(cap_id)
-        if parent:
-            if parent.parent_id:
-                await add_parent_hierarchy(parent.parent_id, level + 1)
-            context_parts.append(f"Level {level+1}: {parent.name}")
-            if parent.description:
-                # truncate long descriptions
-                context_parts.append(f"Description: {parent.description[:200]}")
-
-    if capability.parent_id:
-        await add_parent_hierarchy(capability.parent_id)
+        if capability.parent_id:
+            await add_parent_hierarchy(capability.parent_id)
+    else:
+        context_parts.append("Content intentionally left blank")
     context_parts.append("</parent_hierarchy>")
 
     # Section 4: Sibling Context
     context_parts.append("<sibling_context>")
-    siblings = await db_ops.get_capabilities(capability.parent_id)
-    if siblings:
-        for sibling in siblings:
-            if sibling.id != capability_id:
-                context_parts.append(f"- {sibling.name}")
-                if sibling.description:
-                    context_parts.append(f"  Description: {sibling.description}")
+    if settings.get("context-include-siblings", True):
+        siblings = await db_ops.get_capabilities(capability.parent_id)
+        if siblings:
+            for sibling in siblings:
+                if sibling.id != capability_id:
+                    context_parts.append(f"- {sibling.name}")
+                    if sibling.description:
+                        context_parts.append(f"  Description: {sibling.description}")
+    else:
+        context_parts.append("Content intentionally left blank")
     context_parts.append("</sibling_context>")
 
     # Section 5: Current Capability
