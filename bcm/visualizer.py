@@ -10,6 +10,7 @@ class CapabilityVisualizer(ttk.Toplevel):
         super().__init__(parent)
         self.title("Capability Model Visualizer")
         self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
+        self.resizable(False, False)  # Prevent window resizing (width, height)
         # Fraction of screen size you want to allow. Adjust as necessary.
         self.max_screen_fraction = 0.8
 
