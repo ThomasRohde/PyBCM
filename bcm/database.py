@@ -201,6 +201,40 @@ class DatabaseOperations:
                 "children": await build_hierarchy(capability.id),
             }
 
+    async def save_description(self, capability_id: int, description: str) -> bool:
+        """Save capability description and create audit log."""
+        async with await self._get_session() as session:
+            try:
+                # Get current capability within this session
+                stmt = select(Capability).where(Capability.id == capability_id)
+                result = await session.execute(stmt)
+                capability = result.scalar_one_or_none()
+
+                if not capability:
+                    return False
+
+                # Store old values for audit
+                old_values = {"description": capability.description}
+
+                # Update description
+                capability.description = description
+
+                # Add audit log
+                await self.log_audit(
+                    session,
+                    "UPDATE",
+                    capability_id=capability_id,
+                    capability_name=capability.name,
+                    old_values=old_values,
+                    new_values={"description": description},
+                )
+
+                await session.commit()
+                return True
+            except Exception:
+                await session.rollback()
+                raise
+
     async def update_capability(
         self, capability_id: int, capability: CapabilityUpdate, session=None
     ) -> Optional[Capability]:
