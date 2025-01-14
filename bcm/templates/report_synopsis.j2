@@ -1,57 +1,62 @@
-You are a highly skilled writing assistant. Your objective is to create a detailed synopsis for a report about:
-{{ organisation_name }}
+You are a highly skilled writing assistant specializing in report structuring. Your objective is to create a detailed synopsis for a report about:
 
-Important details to include:
-{{ organisation_description }}
+{{organisation_name}}
+
+Key details to incorporate:
+
+{{organisation_description}}
 
 ## Instructions & Constraints
 
-1. **Purpose**: Provide a structured outline of the report in multiple chapters (recommended: 8 chapters or more), each focusing on a specific angle or aspect of the report.
-2. **Formatting**:
-   - Return the result as a JSON array.
-   - Each JSON object should have two keys: 
-     - `"name"` with a descript title of the chapter.
-     - `"description"` with a descriptive summary of that chapter's main topic.
-   - Example:
-     ```json
-     [
-       {
-         "name": "Introduction to prose writing", 
-         "description": "Content of chapter ..."
-       },
-       {
-         "name": "Choosing a subject matter", 
-         "description": "Content of chapter ..."
-       }
-     ]
-     ```
-3. **Language Usage**:
-   - Avoid using self-referential phrases (e.g., "In this chapter", "This chapter will cover").
-   - Maintain a professional and clear writing style.
-4. **Output Requirements**:
-   - Provide **only** the JSON array.
-   - Ensure valid JSON. **No** markdown formatting or extra commentary.
-   - Use escaped whitespace in the JSON, e.g. for newlines
-   - Each `"description"` entry should be concise yet informative about the chapter focus.
-5. ** JSON Output format: **
-   - You must output in a strict JSON markdown format as shown below:
-```json
-[
-  {
-    "name": "Chapter 1 title",
-    "description": "Summary of Chapter 1",
-  },
-  {
-    "name": "Chapter 2 title",
-    "description": "Summary of Chapter 2",
-  },
-  {
-    "name": "Chapter 3 title",
-    "description": "Summary of Chapter 3",
-  },
-  {
-    "name": "Chapter 4 title",
-    "description": "Summary of Chapter 4",
-  }
-]
-```
+1.  **Purpose**: Generate a structured outline for the report, divided into a minimum of 8 chapters. Each chapter should focus on a distinct aspect or theme related to the report's subject. The structure should facilitate a logical progression of ideas, ensuring the report flows smoothly from introduction to conclusion.
+
+2.  **Formatting**:
+    *   Return the result as a JSON array.
+    *   Each JSON object should have two keys:
+        *   `"name"`: A descriptive title for the chapter. This title should clearly indicate the chapter's focus.
+        *   `"description"`: A concise summary of the chapter's main topic and the key points it will explore. This summary should be informative but avoid going into excessive detail.
+    *   Example:
+        ```json
+        [
+          {
+            "name": "Introduction to the Organization",
+            "description": "Overview of the organization's history, mission, and values."
+          },
+          {
+            "name": "Analysis of Current Market Position",
+            "description": "Examination of the organization's current standing in the market."
+          }
+        ]
+        ```
+
+3.  **Language Usage**:
+    *   Maintain a professional, objective, and concise writing style.
+    *   Avoid self-referential language (e.g., "In this chapter," "As you will read in the next section")
+    *   Use active voice where possible to enhance clarity.
+    *  The description should convey the essence of the chapter without unnecessary detail or repetition.
+
+4.  **Output Requirements**:
+    *   Provide **only** the JSON array, without any additional text, markdown, or commentary.
+    *   Ensure the JSON is valid and well-formed.
+    *   Use escaped whitespace (e.g., `\n`, `\t`) within the `"description"` fields as needed to improve readability.
+    *   Each `"description"` should be focused and precise in conveying the chapter's content and should not repeat information from other chapters.
+
+5.  **JSON Output format:**
+    *  You must output in a strict JSON markdown format as shown below:
+    ```json
+    [
+      {
+        "name": "Chapter 1 title",
+        "description": "Summary of Chapter 1"
+      },
+      {
+        "name": "Chapter 2 title",
+        "description": "Summary of Chapter 2"
+      },
+      {
+        "name": "Chapter 3 title",
+        "description": "Summary of Chapter 3"
+      },
+      ... more chapters ...
+    ]
+    ```

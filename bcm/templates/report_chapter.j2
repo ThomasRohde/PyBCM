@@ -1,57 +1,69 @@
-You are a highly skilled writing assistant. Your objective is to produce the full content for:
-- Chapter: {{ capability_name }}
-- Report subject: {{ organisation_name }}
-- Subject description: {{ organisation_description }}
-- Context: {{ context }}
+You are a highly skilled writing assistant tasked with producing in-depth content for a report chapter. Your objective is to generate a comprehensive chapter based on the following parameters:
 
-## Instructions & Constraints
+*   **Chapter Title:** {{capability_name}}
+*   **Report Subject:** {{organisation_name}}
+*  **Subject Description:** {{organisation_description}}
 
-1. **Purpose**: Provide a detailed, comprehensive write-up of the specified chapter spanning multiple sections.
-2. **Formatting**:
-   - Return the result as a JSON array.
-   - Each JSON object should include:
-     - `"name"`: a concise but descriptive title of the section.
-     - `"description"`: a full, multi-paragraph write-up of the section's content, incorporating all relevant details and context.
-   - Example:
-     ```json
-     [
-       {
-         "name": "Section 1 header",
-         "description": "Paragraph 1...\n\nParagraph 2..."
-       },
-       {
-         "name": "Section 2 header",
-         "description": "Paragraph 1...\n\nParagraph 2..."
-       }
-     ]
-     ```
-3. **Language Usage**:
-   - Avoid self-referential phrases (e.g., "In this chapter" or "This chapter will cover").
-   - Maintain a professional, clear, and informative tone.
-4. **Output Requirements**:
-   - **Only** return the JSON array (no markdown, headings, or extra commentary).
-   - Use escaped whitespace in the JSON, e.g. for newlines
-   - Ensure the JSON is valid.
-   - Each `"description"` must provide full, coherent text reflecting the given chapter and context.
-5. ** JSON Output format: **
-   - You must output in a strict JSON markdown format as shown below:
-```json
-[
-  {
-    "name": "Section 1",
-    "description": "Content of section 1",
-  },
-  {
-    "name": "Section 2",
-    "description": "Content of section 2",
-  },
-  {
-    "name": "Section 3",
-    "description": "Content of section 3",
-  },
-  {
-    "name": "Section 4",
-    "description": "Content of section 4",
-  }
-]
-```
+The **Context** will contain the report synopsis and previously generated chapters.
+
+*   **Context:** {{context}}
+
+## Instructions & Constraints:
+
+1.  **Purpose**: Develop a detailed and engaging chapter, structured into multiple sections. The content must thoroughly cover the designated topic while maintaining coherence with the overall report. This chapter should expand on the overview provided in the synopsis and complement the other chapters, avoiding repetition.
+
+2.  **Formatting**:
+    *   Return the result as a JSON array.
+    *   Each JSON object should include:
+        *   `"name"`: A descriptive title for the section, indicating its specific focus within the chapter.
+        *  `"description"`: A comprehensive, multi-paragraph write-up of the section's content, including all relevant details, arguments, and analysis. This content should build upon the chapter's main theme and contribute to the report's overall narrative.
+    *   Example:
+        ```json
+        [
+          {
+            "name": "Historical Overview",
+            "description": "Paragraph 1 detailing early events...\n\nParagraph 2 discussing key milestones..."
+          },
+          {
+            "name": "Current Operational Status",
+            "description": "Paragraph 1 outlining current activities...\n\nParagraph 2 analyzing current challenges..."
+          }
+        ]
+        ```
+
+3.  **Language Usage**:
+    *   Maintain a professional, clear, and authoritative tone.
+    *   Avoid self-referential phrasing (e.g., "In this section," "As discussed above," or "In the previous chapter").
+    *   Use precise language and terminology relevant to the report's subject matter.
+    *   Ensure each section is cohesive and logically connected to the other sections within the chapter.
+     * Each section should provide unique insights and not repeat previously discussed information.
+
+4.  **Contextual Awareness**:
+    *   Leverage the provided `context` (synopsis and previous chapters) to maintain coherence and consistency across the report.
+    *   Avoid any content duplication or conflicting ideas with what was already presented.
+    *   Build on the previous material while diving deeper into specific details pertinent to the chapter.
+
+5.  **Output Requirements**:
+    *   Provide **only** the JSON array, without any additional text, markdown, or commentary.
+    *   Ensure the JSON is valid.
+    *   Use escaped whitespace (e.g., `\n`, `\t`) within the `"description"` fields as necessary.
+    *  Each `"description"` should present a complete, coherent discussion of the section topic, contributing to the chapter's overall goal.
+6. **JSON Output format:**
+    *  You must output in a strict JSON markdown format as shown below:
+    ```json
+    [
+      {
+        "name": "Section 1",
+        "description": "Content of section 1"
+      },
+      {
+        "name": "Section 2",
+        "description": "Content of section 2"
+      },
+      {
+        "name": "Section 3",
+        "description": "Content of section 3"
+      },
+      ... more sections ...
+    ]
+    ```
