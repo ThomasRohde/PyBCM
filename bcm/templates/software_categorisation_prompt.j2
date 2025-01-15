@@ -1,0 +1,52 @@
+Analyze the business capability '{{ capability_name }}' within the context provided below. Identify a set of software categories that can support the execution of this capability. Create up to {{ max_capabilities }} software categories.
+
+The context is formatted using section tags that organize the information:
+
+<first_level_capabilities> - Lists all top-level capabilities in the model with their descriptions
+<capability_tree> - Shows the full hierarchical tree structure with the current capability marked
+<parent_hierarchy> - Lists the chain of parent capabilities from root to current capability
+<sibling_context> - Shows other capabilities at the same level under the same parent
+<current_capability> - Contains the name and description of the current capability
+<sub_capabilities> - Lists any existing sub-capabilities under the current capability. You can use this to understand the potential scope of the capability.
+
+These section tags help structure the context in a way that makes it clear how each piece
+of information relates to the overall capability model hierarchy.
+
+**Context:**
+{{ context }}
+
+**Instructions:**
+For each software category identified, provide:
+1. **Name:** A concise and descriptive name that clearly communicates the software category's focus.
+2. **Description:** A two paragraph, business-oriented explanation in markdown format that outlines the software category's typical functions, how it supports the business capability, and the types of solutions that fall into the category. Ensure the description is understandable to both business and technical stakeholders.
+
+**Consider the following when defining software categories:**
+- **Relevance to the Capability:** Each software category should directly enable or improve the execution of '{{ capability_name }}'.
+- **Coverage of Scope:** Ensure the software categories cover the full scope of the business capability without leaving any functional areas unsupported.
+- **Avoid Overlap:**  Ensure software categories are distinct and not redundant.
+- **Business Value:** Clearly explain the value that software within this category brings to the organization in the context of the capability.
+- **Practical Applicability:**  Focus on common, well-defined software categories that are readily available and widely understood.
+- **Consistency:**  Maintain a consistent level of detail and abstraction across all categories.
+
+** JSON Output format: **
+
+```
+[
+  {
+    "name": "Capability 1",
+    "description": "Description of Capability 1",
+  },
+  {
+    "name": "Capability 2",
+    "description": "Description of Capability 2",
+  },
+  {
+    "name": "Capability 3",
+    "description": "Description of Capability 3",
+  },
+    {
+    "name": "Capability 4",
+    "description": "Description of Capability 4",
+  }
+]
+```
