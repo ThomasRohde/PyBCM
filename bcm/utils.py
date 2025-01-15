@@ -46,7 +46,6 @@ async def generate_first_level_capabilities(
 
     agent = Agent(
         model,
-        system_prompt="You are a business capability modeling expert. Generate clear, strategic first-level capabilities.",
         result_type=FirstLevelCapabilities,
     )
 
@@ -69,12 +68,12 @@ async def expand_capability_ai(
     """
     # Load and render templates
     settings = Settings()
-    system_template = jinja_env.get_template("system_prompt.j2")
     expansion_template = jinja_env.get_template(settings.get("normal_template"))
     model = settings.get("model")
 
     agent = Agent(
-        model, system_prompt=system_template.render(), result_type=CapabilityExpansion
+        model, 
+        result_type=CapabilityExpansion
     )
 
     prompt = expansion_template.render(
