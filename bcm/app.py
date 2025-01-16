@@ -263,6 +263,12 @@ class App:
 
         self._export_capability_model("Word", export_to_word, ".docx", "Word")
 
+    def _export_to_html(self):
+        """Export capabilities to HTML visualization starting from selected node."""
+        from bcm.html_export import export_to_html
+
+        self._export_capability_model("HTML", export_to_html, ".html", "HTML")
+
     def _paste_capability(self, event=None):
         """Paste sub-capabilities from clipboard JSON under selected capability."""
         selected = self.ui.tree.selection()

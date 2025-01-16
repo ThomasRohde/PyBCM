@@ -38,6 +38,9 @@ class BusinessCapabilityUI:
             label="Export to SVG...", command=self.app._export_to_svg
         )
         self.file_menu.add_command(
+            label="Export to HTML...", command=self.app._export_to_html
+        )
+        self.file_menu.add_command(
             label="Export to PowerPoint...", command=self.app._export_to_pptx
         )
         self.file_menu.add_command(
