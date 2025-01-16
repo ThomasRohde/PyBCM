@@ -24,6 +24,13 @@
 - Mermaid: Interactive mindmap visualization
   - Uses Mermaid.js for rendering
   - Hierarchical structure through indentation
+  - Node shapes vary by depth level:
+    - Root (level 0): Cloud shape using )node(
+    - Level 1: Hexagon shape using {{node}}
+    - Level 2: Rounded square using (node)
+    - Level 3+: Square shape using [node]
+  - Long labels are automatically split with <br/> tags
+  - Label formatting handled by format_long_label function with 30-char default length
 
 ## UI Components
 - Uses ttkbootstrap for modern UI elements
