@@ -269,6 +269,18 @@ class App:
 
         self._export_capability_model("HTML", export_to_html, ".html", "HTML")
 
+    def _export_to_mermaid(self):
+        """Export capabilities to Mermaid mindmap visualization starting from selected node."""
+        from bcm.mermaid_export import export_to_mermaid
+
+        self._export_capability_model("Mermaid", export_to_mermaid, ".html", "HTML")
+
+    def _copy_to_mermaid(self, event=None):
+        """Copy capabilities to clipboard in Mermaid mindmap format."""
+        from bcm.mermaid_export import export_to_mermaid
+
+        self._export_capability_model("Mermaid", export_to_mermaid, ".html", "HTML", clipboard=True)
+
     def _paste_capability(self, event=None):
         """Paste sub-capabilities from clipboard JSON under selected capability."""
         selected = self.ui.tree.selection()
