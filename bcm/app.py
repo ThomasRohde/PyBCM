@@ -275,16 +275,17 @@ class App:
 
         self._export_capability_model("Mermaid", export_to_mermaid, ".html", "HTML")
 
-    def _export_to_plantuml(self, event=None):
+    def _export_to_plantuml(self):
         """Export capabilities to PlantUML mindmap visualization starting from selected node."""
         from bcm.plantuml_export import export_to_plantuml
 
-        # If event is provided, it means this was triggered by keyboard shortcut (Ctrl+D)
-        # In that case, copy to clipboard
-        if event:
-            self._export_capability_model("PlantUML", export_to_plantuml, ".puml", "PlantUML", clipboard=True)
-        else:
-            self._export_capability_model("PlantUML", export_to_plantuml, ".puml", "PlantUML")
+        self._export_capability_model("PlantUML", export_to_plantuml, ".puml", "PlantUML")
+
+    def _copy_to_plantuml(self, event=None):
+        """Copy capabilities to clipboard in PlantUML mindmap format."""
+        from bcm.plantuml_export import export_to_plantuml
+
+        self._export_capability_model("PlantUML", export_to_plantuml, ".puml", "PlantUML", clipboard=True)
 
     def _copy_to_mermaid(self, event=None):
         """Copy capabilities to clipboard in Mermaid mindmap format."""

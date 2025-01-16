@@ -270,7 +270,7 @@ class BusinessCapabilityUI:
         self.tree.bind("<Control-c>", self.app._export_to_clipboard)
         self.tree.bind("<Control-v>", self.app._paste_capability)
         self.tree.bind("<Control-m>", self.app._copy_to_mermaid)  # Add Mermaid copy shortcut
-        self.tree.bind("<Control-d>", self.app._export_to_plantuml)  # Add PlantUML export shortcut
+        self.tree.bind("<Control-d>", self.app._copy_to_plantuml)  # Add PlantUML copy shortcut
 
     def update_font_sizes(self):
         """Update font sizes for UI elements based on current settings."""
