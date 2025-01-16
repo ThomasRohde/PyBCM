@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- Added PlantUML mindmap export functionality
+  - New export option in File menu
+  - Exports capability model as PlantUML mindmap
+  - Smart word wrapping with MaximumWidth parameter
+  - Even distribution of concepts using +/- syntax
+  - Color-coded nodes based on hierarchy level
+  - Added Ctrl+D shortcut to copy PlantUML diagram to clipboard
+  - Proper indentation with repeated +/- markers
+
 - Added Mermaid mindmap export functionality
   - New export option in File menu
   - Exports capability model as an interactive Mermaid mindmap
