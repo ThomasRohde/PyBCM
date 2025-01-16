@@ -21,6 +21,24 @@
 - Archimate: Enterprise architecture format
 - Markdown: Text-based hierarchical format
 - Word: Document format
+- PlantUML: Mindmap visualization with DOT export
+  - Uses PlantUML mindmap syntax
+  - Smart color coding based on hierarchy level:
+    - Root (level 0): Light Red (#FFCCCC)
+    - Level 1: Light Blue (#CCE5FF)
+    - Level 2: Light Green (#D5F5E3)
+    - Level 3: Light Yellow (#FCF3CF)
+    - Level 4+: Light Purple (#E8DAEF)
+  - Even distribution of nodes using side markers:
+    - First level nodes alternate between left/right
+    - Child nodes follow parent's side
+  - Word wrapping with \n for line breaks
+  - Uses +/- syntax for node distribution:
+    - + for right side nodes (repeated for depth: ++, +++)
+    - - for left side nodes (repeated for depth: --, ---)
+    - First half of children on right, second half on left
+  - MaximumWidth parameter controls layout width
+
 - Mermaid: Interactive mindmap visualization
   - Uses Mermaid.js for rendering
   - Hierarchical structure through indentation

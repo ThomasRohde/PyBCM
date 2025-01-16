@@ -55,6 +55,9 @@ class BusinessCapabilityUI:
         self.file_menu.add_command(
             label="Export to Mermaid...", command=self.app._export_to_mermaid
         )
+        self.file_menu.add_command(
+            label="Export to PlantUML...", command=self.app._export_to_plantuml
+        )
         self.file_menu.add_separator()
         self.file_menu.add_command(
             label="View Audit Logs", command=self.app._view_audit_logs
@@ -267,6 +270,7 @@ class BusinessCapabilityUI:
         self.tree.bind("<Control-c>", self.app._export_to_clipboard)
         self.tree.bind("<Control-v>", self.app._paste_capability)
         self.tree.bind("<Control-m>", self.app._copy_to_mermaid)  # Add Mermaid copy shortcut
+        self.tree.bind("<Control-d>", self.app._copy_to_plantuml)  # Add PlantUML copy shortcut
 
     def update_font_sizes(self):
         """Update font sizes for UI elements based on current settings."""
