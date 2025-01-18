@@ -14,6 +14,7 @@ class BusinessCapabilityUI:
         self.settings = app.settings
         self.root = app.root
         self.db_ops = app.db_ops
+        self.server_process = None
 
         self._create_menu()
         self._create_toolbar()
@@ -69,6 +70,19 @@ class BusinessCapabilityUI:
         self.file_menu.add_command(label="Settings", command=self.app._show_settings)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.app._on_closing)
+
+        # Server menu
+        self.server_menu = ttk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Server", menu=self.server_menu)
+        self.server_menu.add_command(
+            label="Start Server",
+            command=self._start_server
+        )
+        self.server_menu.add_command(
+            label="Stop Server",
+            command=self._stop_server,
+            state="disabled"
+        )
 
         # Edit menu
         self.edit_menu = ttk.Menu(self.menubar, tearoff=0)
@@ -461,6 +475,45 @@ class BusinessCapabilityUI:
         # Run the coroutine in the event loop with callback
         future = asyncio.run_coroutine_threadsafe(save(), self.app.loop)
         future.add_done_callback(on_save_complete)
+
+    def _start_server(self):
+        """Start the FastAPI server."""
+        if not self.server_process:
+            async def start_server():
+                from bcm.api.server import app
+                import uvicorn
+                config = uvicorn.Config(app, host="127.0.0.1", port=8080, log_level="info")
+                server = uvicorn.Server(config)
+                await server.serve()
+
+            import asyncio
+            import threading
+            
+            def run_server():
+                asyncio.run(start_server())
+            
+            self.server_process = threading.Thread(target=run_server, daemon=True)
+            self.server_process.start()
+            
+            # Update menu states
+            self.server_menu.entryconfig("Start Server", state="disabled")
+            self.server_menu.entryconfig("Stop Server", state="normal")
+            
+            # Show success message
+            create_dialog(self.root, "Success", "Server started on http://127.0.0.1:8080", ok_only=True)
+
+    def _stop_server(self):
+        """Stop the FastAPI server."""
+        if self.server_process:
+            # Since we're running the server in a daemon thread, it will be terminated when the main app exits
+            self.server_process = None
+            
+            # Update menu states
+            self.server_menu.entryconfig("Start Server", state="normal")
+            self.server_menu.entryconfig("Stop Server", state="disabled")
+            
+            # Show success message
+            create_dialog(self.root, "Success", "Server stopped", ok_only=True)
 
     def _clear_search(self):
         """Clear the search entry and restore the full tree."""
