@@ -29,24 +29,26 @@ For each software category identified, provide:
 - **Consistency:**  Maintain a consistent level of detail and abstraction across all categories.
 
 ** JSON Output format: **
+- List of JSON objects, each object having "name" and "description" attributes, like this: ```[{"name": "Software Category 1", "description": "Description of Software Category 1"}, {"name": "Software Category 2", "description": "Description of Software Category 2"}]```
+- Tags line should be include at the end of the description, prefixed with '\n\n**Tags**: '.
 
-```
+```json
 [
   {
-    "name": "Capability 1",
-    "description": "First paragraph describing Capability 1 and its core functions.\n\nSecond paragraph explaining how this capability supports business objectives and what types of solutions are included.\n\n**Tags:** automation, workflow, integration",
+    "name": "Software Category 1",
+    "description": "First paragraph describing Software Category 1 and its core functions.\n\nSecond paragraph explaining how this capability supports business objectives and what types of solutions are included.\n\n**Tags:** automation, workflow, integration"
   },
   {
-    "name": "Capability 2",
-    "description": "First paragraph outlining the main purpose and features of Capability 2.\n\nSecond paragraph detailing the business value and common implementation scenarios.\n\n**Tags:** analytics, reporting, dashboards",
+    "name": "Software Category 2",
+    "description": "First paragraph outlining the main purpose and features of Software Category 2.\n\nSecond paragraph detailing the business value and common implementation scenarios.\n\n**Tags:** analytics, reporting, dashboards"
   },
   {
-    "name": "Capability 3",
-    "description": "First paragraph introducing Capability 3 and its primary functionality.\n\nSecond paragraph describing the practical applications and benefits to stakeholders.\n\n**Tags:** collaboration, communication, sharing",
+    "name": "Software Category 3",
+    "description": "First paragraph introducing Software Category 3 and its primary functionality.\n\nSecond paragraph describing the practical applications and benefits to stakeholders.\n\n**Tags:** collaboration, communication, sharing"
   },
   {
-    "name": "Capability 4",
-    "description": "First paragraph explaining the core aspects and goals of Capability 4.\n\nSecond paragraph highlighting key features and organizational impact.\n\n**Tags:** security, compliance, governance"
+    "name": "Software Category 4",
+    "description": "First paragraph explaining the core aspects and goals of Software Category 4.\n\nSecond paragraph highlighting key features and organizational impact.\n\n**Tags:** security, compliance, governance"
   }
 ]
 ```
