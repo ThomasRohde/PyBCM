@@ -8,6 +8,7 @@ from typing import Dict
 import ttkbootstrap as ttk
 from dotenv import load_dotenv
 from sqlalchemy import select
+import json_repair
 
 from bcm.audit_view import AuditLogViewer
 from bcm.database import DatabaseOperations
@@ -306,7 +307,7 @@ class App:
         # Get clipboard content
         try:
             clipboard_text = self.root.clipboard_get()
-            subcapabilities = json.loads(clipboard_text)
+            subcapabilities = json_repair.loads(clipboard_text)
             
             if not isinstance(subcapabilities, list):
                 raise ValueError("Clipboard content must be a JSON array")
