@@ -7,8 +7,8 @@ import os
 
 class CapabilityConfirmDialog(ttk.Toplevel):
     # Window geometry constants
-    WINDOW_WIDTH = 600
-    WINDOW_HEIGHT = 500
+    WINDOW_WIDTH = 800
+    WINDOW_HEIGHT = 600
     PADDING = 10
     CONTENT_WIDTH = WINDOW_WIDTH - (2 * PADDING)  # Width minus padding
 
