@@ -315,10 +315,12 @@ class App:
             if not isinstance(subcapabilities, list):
                 raise ValueError("Clipboard content must be a JSON array")
                 
-            # Validate each item has required fields
+            # Convert to name:description dict for CapabilityConfirmDialog
+            capabilities_dict = {}
             for cap in subcapabilities:
                 if not isinstance(cap, dict) or 'name' not in cap or 'description' not in cap:
                     raise ValueError("Each capability must have 'name' and 'description' fields")
+                capabilities_dict[cap['name']] = cap['description']
 
         except json.JSONDecodeError:
             create_dialog(
@@ -337,42 +339,48 @@ class App:
             )
             return
 
-        progress = None
-        try:
-            progress = ProgressWindow(self.root)
+        # Show confirmation dialog with checkboxes
+        dialog = CapabilityConfirmDialog(self.root, capabilities_dict)
+        self.root.wait_window(dialog)
 
-            # Create sub-capabilities
-            async def create_subcapabilities():
-                for cap in subcapabilities:
-                    await self.db_ops.create_capability(
-                        CapabilityCreate(
-                            name=cap['name'],
-                            description=cap['description'],
-                            parent_id=capability_id,
+        # If user clicked OK and selected some capabilities
+        if dialog.result:
+            progress = None
+            try:
+                progress = ProgressWindow(self.root)
+
+                # Create selected sub-capabilities
+                async def create_subcapabilities():
+                    for name, description in dialog.result.items():
+                        await self.db_ops.create_capability(
+                            CapabilityCreate(
+                                name=name,
+                                description=description,
+                                parent_id=capability_id,
+                            )
                         )
-                    )
 
-            # Run creation with progress
-            progress.run_with_progress(create_subcapabilities())
-            self.ui.tree.refresh_tree()
+                # Run creation with progress
+                progress.run_with_progress(create_subcapabilities())
+                self.ui.tree.refresh_tree()
 
-            create_dialog(
-                self.root,
-                "Success",
-                f"Added {len(subcapabilities)} new sub-capabilities",
-                ok_only=True
-            )
+                create_dialog(
+                    self.root,
+                    "Success",
+                    f"Added {len(dialog.result)} new sub-capabilities",
+                    ok_only=True
+                )
 
-        except Exception as e:
-            create_dialog(
-                self.root,
-                "Error",
-                f"Failed to create sub-capabilities: {str(e)}",
-                ok_only=True
-            )
-        finally:
-            if progress:
-                progress.close()
+            except Exception as e:
+                create_dialog(
+                    self.root,
+                    "Error",
+                    f"Failed to create sub-capabilities: {str(e)}",
+                    ok_only=True
+                )
+            finally:
+                if progress:
+                    progress.close()
 
     def _export_to_clipboard(self, event=None):
         """Export capabilities to clipboard in context format."""
@@ -661,9 +669,17 @@ class App:
                 async def get_node_data():
                     return await self.db_ops.get_capability_with_children(start_node_id)
 
-                # Run get_node_data with callback
-                future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
-                future.add_done_callback(on_node_data_complete)
+                try:
+                    # Run get_node_data with callback
+                    future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
+                    future.add_done_callback(on_node_data_complete)
+                except Exception as e:
+                    create_dialog(
+                        self.root,
+                        "Error",
+                        f"Failed to start visualization: {str(e)}",
+                        ok_only=True
+                    )
             except Exception:
                 self.root.after(0, lambda: create_dialog(
                     self.root,
@@ -672,29 +688,37 @@ class App:
                     ok_only=True,
                 ))
 
-        # Get selected node or use root if none selected
-        selected = self.ui.tree.selection()
-        if selected:
-            start_node_id = int(selected[0])
-            # Get hierarchical data starting from selected node
-            async def get_node_data():
-                return await self.db_ops.get_capability_with_children(start_node_id)
+        try:
+            # Get selected node or use root if none selected
+            selected = self.ui.tree.selection()
+            if selected:
+                start_node_id = int(selected[0])
+                # Get hierarchical data starting from selected node
+                async def get_node_data():
+                    return await self.db_ops.get_capability_with_children(start_node_id)
 
-            # Run get_node_data with callback
-            future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
-            future.add_done_callback(on_node_data_complete)
-        else:
-            # Find root node - using async method properly
-            async def get_root_node():
-                capabilities = await self.db_ops.get_all_capabilities()
-                root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
-                if not root_nodes:
-                    return None
-                return root_nodes[0]["id"]
+                # Run get_node_data with callback
+                future = asyncio.run_coroutine_threadsafe(get_node_data(), self.loop)
+                future.add_done_callback(on_node_data_complete)
+            else:
+                # Find root node - using async method properly
+                async def get_root_node():
+                    capabilities = await self.db_ops.get_all_capabilities()
+                    root_nodes = [cap for cap in capabilities if not cap.get("parent_id")]
+                    if not root_nodes:
+                        return None
+                    return root_nodes[0]["id"]
 
-            # Run get_root_node with callback
-            future = asyncio.run_coroutine_threadsafe(get_root_node(), self.loop)
-            future.add_done_callback(on_root_node_complete)
+                # Run get_root_node with callback
+                future = asyncio.run_coroutine_threadsafe(get_root_node(), self.loop)
+                future.add_done_callback(on_root_node_complete)
+        except Exception as e:
+            create_dialog(
+                self.root,
+                "Error",
+                f"Failed to show visualizer: {str(e)}",
+                ok_only=True
+            )
 
     async def periodic_shutdown_check(self):
         """Periodically check if shutdown has been requested."""
