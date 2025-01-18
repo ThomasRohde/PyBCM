@@ -19,9 +19,10 @@ app = FastAPI(title="Business Capability Model API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=3600,
 )
 
 # Initialize database operations
@@ -332,20 +333,13 @@ async def get_capabilities(
             for cap in capabilities
         ]
 
-def find_available_port(start_port: int = 8080, max_tries: int = 100) -> int:
-    """Find an available port starting from start_port."""
-    import socket
-    for port in range(start_port, start_port + max_tries):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('127.0.0.1', port))
-                return port
-        except OSError:
-            continue
-    raise RuntimeError(f"Could not find an available port after {max_tries} attempts")
-
 if __name__ == "__main__":
     import uvicorn
-    port = find_available_port()
-    print(f"Starting server on port {port}")
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    try:
+        print("Starting server on port 8080")
+        uvicorn.run(app, host="127.0.0.1", port=8080)
+    except OSError as e:
+        print("ERROR: Could not start server on port 8080 - port is already in use.")
+        print("Please ensure no other instance of the server is running and try again.")
+        import sys
+        sys.exit(1)

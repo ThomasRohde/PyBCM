@@ -161,6 +161,7 @@ class DatabaseOperations:
                     "id": cap.id,
                     "name": cap.name,
                     "description": cap.description,
+                    "parent_id": cap.parent_id,
                     "order_position": cap.order_position,
                     "children": await build_hierarchy(cap.id),
                 }
@@ -180,6 +181,7 @@ class DatabaseOperations:
                     "id": cap.id,
                     "name": cap.name,
                     "description": cap.description,
+                    "parent_id": cap.parent_id,
                     "order_position": cap.order_position,
                     "children": await build_hierarchy(cap.id),
                 }
@@ -197,6 +199,7 @@ class DatabaseOperations:
                 "id": capability.id,
                 "name": capability.name,
                 "description": capability.description,
+                "parent_id": capability.parent_id,
                 "order_position": capability.order_position,
                 "children": await build_hierarchy(capability.id),
             }

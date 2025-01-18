@@ -67,8 +67,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const session = await ApiClient.createUserSession({ nickname });
       setUserSession(session);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create user session:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const axiosError = error as { 
+          response: { 
+            data: unknown; 
+            status: number; 
+            headers: unknown; 
+          } 
+        };
+        console.error('Error response:', {
+          data: axiosError.response.data,
+          status: axiosError.response.status,
+          headers: axiosError.response.headers
+        });
+      } else if (error && typeof error === 'object' && 'request' in error) {
+        // The request was made but no response was received
+        console.error('No response received:', (error as { request: unknown }).request);
+      } else if (error instanceof Error) {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', error.message);
+      }
       throw error;
     }
   };
@@ -89,9 +111,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshCapabilities = async () => {
     try {
       const caps = await ApiClient.getCapabilities(null, true);
-      setCapabilities(caps);
+      if (Array.isArray(caps)) {
+        setCapabilities(caps);
+      } else {
+        console.error('Invalid capabilities response:', caps);
+        setCapabilities([]);
+      }
     } catch (error) {
       console.error('Failed to fetch capabilities:', error);
+      setCapabilities([]);
       throw error;
     }
   };

@@ -120,8 +120,8 @@ export const ApiClient = {
     hierarchical: boolean = false
   ): Promise<Capability[]> => {
     const params = new URLSearchParams();
-    if (parentId !== undefined) {
-      params.append('parent_id', parentId?.toString() || '');
+    if (parentId !== undefined && parentId !== null) {
+      params.append('parent_id', parentId.toString());
     }
     params.append('hierarchical', hierarchical.toString());
     

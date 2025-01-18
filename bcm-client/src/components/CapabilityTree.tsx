@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -7,17 +8,26 @@ import type { Capability } from '../types/api';
 
 interface EditModalProps {
   capability?: Capability;
-  onSave: (name: string, description: string | null) => void;
+  onSave: (name: string) => void;
   onClose: () => void;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) => {
   const [name, setName] = useState(capability?.name || '');
-  const [description, setDescription] = useState(capability?.description || '');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(name, description || null);
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      await onSave(name);
+    } catch (error) {
+      console.error('Failed to save capability:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -39,17 +49,6 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              rows={3}
-            />
-          </div>
           <div className="flex justify-end space-x-2">
             <button
               type="button"
@@ -60,9 +59,10 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+              disabled={isSaving}
             >
-              Save
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -72,7 +72,7 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
 };
 
 export const CapabilityTree: React.FC = () => {
-  const { capabilities, createCapability, updateCapability, userSession } = useApp();
+  const { capabilities, createCapability, updateCapability, deleteCapability, userSession } = useApp();
   const [editingCapability, setEditingCapability] = useState<Capability | undefined>();
   const [showNewModal, setShowNewModal] = useState(false);
 
@@ -80,13 +80,19 @@ export const CapabilityTree: React.FC = () => {
     setEditingCapability(capability);
   };
 
-  const handleSave = async (name: string, description: string | null) => {
-    if (editingCapability) {
-      await updateCapability(editingCapability.id, name, description);
-      setEditingCapability(undefined);
-    } else {
-      await createCapability(name);
-      setShowNewModal(false);
+  const handleSave = async (name: string) => {
+    try {
+      if (editingCapability) {
+        await updateCapability(editingCapability.id, name);
+        setEditingCapability(undefined);
+      } else {
+        await createCapability(name);
+        setShowNewModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to save capability:', error);
+      // Keep modal open if there's an error
+      return;
     }
   };
 
@@ -119,6 +125,11 @@ export const CapabilityTree: React.FC = () => {
               index={index}
               parentId={null}
               onEdit={handleEdit}
+              onDelete={async (cap) => {
+                if (window.confirm('Are you sure you want to delete this capability?')) {
+                  await deleteCapability(cap.id);
+                }
+              }}
             />
           ))}
         </div>
