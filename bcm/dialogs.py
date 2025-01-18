@@ -14,6 +14,7 @@ class CapabilityConfirmDialog(ttk.Toplevel):
 
     def __init__(self, parent, capabilities: Dict[str, str]):
         super().__init__(parent)
+        self.withdraw()  # Hide the window initially
         self.iconbitmap(os.path.join(os.path.dirname(__file__), "business_capability_model.ico"))
         self.capabilities = capabilities
         self.result = {}
@@ -34,6 +35,8 @@ class CapabilityConfirmDialog(ttk.Toplevel):
         # Initialize all checkboxes to checked
         for name in capabilities:
             self.checkbox_vars[name].set(True)
+
+        self.deiconify()  # Show the window
 
     def _create_widgets(self):
         # Create a frame for the message
