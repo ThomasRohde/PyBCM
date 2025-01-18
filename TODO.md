@@ -11,7 +11,7 @@
 + Prompt for capabilities with existing children
 - Accept when pasting
 - Fix example JSON in sw prompt
-- Fix the JSON. It is not valid. Look for unescaped whitespace
++ Fix the JSON. It is not valid. Look for unescaped whitespace
 - Format markdown in HTML export tooltips
 
 
