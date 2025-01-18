@@ -8,7 +8,7 @@
 + Fix tree output in context
 + Create pybcm-noai branch
 + Modal dialogs
-- Prompt for capabilities with existing children
++ Prompt for capabilities with existing children
 - Accept when pasting
 - Fix example JSON in sw prompt
 - Fix the JSON. It is not valid. Look for unescaped whitespace
