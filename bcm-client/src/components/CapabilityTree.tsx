@@ -32,8 +32,8 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white/90 backdrop-blur-sm shadow-xl rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-4">
           {capability ? 'Edit Capability' : 'New Capability'}
         </h2>
