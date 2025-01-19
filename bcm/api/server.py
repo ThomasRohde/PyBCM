@@ -389,7 +389,7 @@ if __name__ == "__main__":
     import uvicorn
     try:
         print("Starting server on port 8080")
-        uvicorn.run(app, host="127.0.0.1", port=8080)
+        uvicorn.run(app, host="0.0.0.0", port=8080)
     except OSError as e:
         print("ERROR: Could not start server on port 8080 - port is already in use.")
         print("Please ensure no other instance of the server is running and try again.")
