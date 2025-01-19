@@ -87,7 +87,7 @@ export const DraggableCapability: React.FC<Props> = ({
       isDragging: monitor.isDragging(),
     }),
     canDrag: !isLocked,
-    end: (item, monitor) => {
+    end: (_, monitor) => {
       if (!monitor.didDrop()) {
         if (isLocked) {
           const element = ref.current;
