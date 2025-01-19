@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppProvider } from './contexts/AppContext';
 import { useApp } from './contexts/AppContext';
 import { CapabilityTree } from './components/CapabilityTree';
+import { Toaster } from 'react-hot-toast';
 
 const LoginScreen: React.FC = () => {
   const { login } = useApp();
@@ -100,6 +101,7 @@ const App: React.FC = () => {
   return (
     <AppProvider>
       <MainApp />
+      <Toaster />
     </AppProvider>
   );
 };

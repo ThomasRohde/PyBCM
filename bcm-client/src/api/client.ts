@@ -23,7 +23,7 @@ const api = axios.create({
 // WebSocket connection manager
 class WebSocketManager {
   private ws: WebSocket | null = null;
-  private onModelChangeCallbacks: Set<() => void> = new Set();
+  private onModelChangeCallbacks: Set<(user: string, action: string) => void> = new Set();
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN) return;
@@ -33,7 +33,7 @@ class WebSocketManager {
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'model_changed') {
-        this.notifyModelChange();
+        this.notifyModelChange(data.user, data.action);
       }
     };
 
@@ -57,13 +57,13 @@ class WebSocketManager {
     }
   }
 
-  onModelChange(callback: () => void) {
+  onModelChange(callback: (user: string, action: string) => void) {
     this.onModelChangeCallbacks.add(callback);
     return () => this.onModelChangeCallbacks.delete(callback);
   }
 
-  private notifyModelChange() {
-    this.onModelChangeCallbacks.forEach(callback => callback());
+  private notifyModelChange(user: string, action: string) {
+    this.onModelChangeCallbacks.forEach(callback => callback(user, action));
   }
 }
 

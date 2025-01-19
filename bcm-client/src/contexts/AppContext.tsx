@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ApiClient, wsManager } from '../api/client';
 import type { UserSession, Capability } from '../types/api';
+import toast from 'react-hot-toast';
 
 interface DropTarget {
   capabilityId: number;
@@ -72,8 +73,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       wsManager.connect();
       
       // Set up model change handler
-      const unsubscribe = wsManager.onModelChange(() => {
+      const unsubscribe = wsManager.onModelChange((user, action) => {
         refreshCapabilities();
+        // Don't show toast for own actions
+        if (user !== userSession.nickname) {
+          toast(`${user} ${action}`, {
+            duration: 3000,
+            position: 'bottom-right',
+            style: {
+              background: '#4B5563',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: '8px',
+            },
+          });
+        }
       });
 
       // Initial capabilities fetch

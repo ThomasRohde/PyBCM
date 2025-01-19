@@ -28,10 +28,14 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def broadcast_model_change(self):
+    async def broadcast_model_change(self, user_nickname: str, action: str):
         for connection in self.active_connections:
             try:
-                await connection.send_json({"type": "model_changed"})
+                await connection.send_json({
+                    "type": "model_changed",
+                    "user": user_nickname,
+                    "action": action
+                })
             except WebSocketDisconnect:
                 self.disconnect(connection)
 
@@ -147,7 +151,10 @@ async def create_capability(
     
     result = await db_ops.create_capability(capability, db)
     # Notify all clients about model change
-    await manager.broadcast_model_change()
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"created capability '{result.name}'"
+    )
     return {
         "id": result.id,
         "name": result.name,
@@ -202,7 +209,10 @@ async def update_capability(
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
     # Notify all clients about model change
-    await manager.broadcast_model_change()
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"updated capability '{result.name}'"
+    )
     return {
         "id": result.id,
         "name": result.name,
@@ -225,11 +235,19 @@ async def delete_capability(
         if capability_id in user["locked_capabilities"] and user_id != session_id:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
+    # Get capability name before deletion
+    capability = await db_ops.get_capability(capability_id, db)
+    if not capability:
+        raise HTTPException(status_code=404, detail="Capability not found")
+    
     result = await db_ops.delete_capability(capability_id, db)
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
     # Notify all clients about model change
-    await manager.broadcast_model_change()
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"deleted capability '{capability.name}'"
+    )
     return {"message": "Capability deleted"}
 
 @app.post("/capabilities/{capability_id}/move")
@@ -248,6 +266,11 @@ async def move_capability(
         if capability_id in user["locked_capabilities"] and user_id != session_id:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
+    # Get capability name before move
+    capability = await db_ops.get_capability(capability_id, db)
+    if not capability:
+        raise HTTPException(status_code=404, detail="Capability not found")
+    
     result = await db_ops.update_capability_order(
         capability_id,
         move.new_parent_id,
@@ -256,7 +279,10 @@ async def move_capability(
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
     # Notify all clients about model change
-    await manager.broadcast_model_change()
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"moved capability '{capability.name}'"
+    )
     return {"message": "Capability moved successfully"}
 
 @app.post("/capabilities/paste")
@@ -298,7 +324,10 @@ async def paste_capability(
         await paste_children(source["children"], result.id)
     
     # Notify all clients about model change
-    await manager.broadcast_model_change()
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"pasted capability '{result.name}'"
+    )
     return {"message": "Capability pasted successfully", "new_id": result.id}
 
 @app.put("/capabilities/{capability_id}/description")
