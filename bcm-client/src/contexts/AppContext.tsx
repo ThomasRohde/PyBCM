@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ApiClient } from '../api/client';
+import { ApiClient, wsManager } from '../api/client';
 import type { UserSession, Capability } from '../types/api';
 
 interface DropTarget {
@@ -65,10 +65,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch capabilities when user session changes
+  // Set up WebSocket connection and capabilities refresh when user session changes
   useEffect(() => {
     if (userSession) {
+      // Connect WebSocket
+      wsManager.connect();
+      
+      // Set up model change handler
+      const unsubscribe = wsManager.onModelChange(() => {
+        refreshCapabilities();
+      });
+
+      // Initial capabilities fetch
       refreshCapabilities();
+
+      // Cleanup
+      return () => {
+        unsubscribe();
+        wsManager.disconnect();
+      };
     }
   }, [userSession]);
 
@@ -108,6 +123,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (userSession) {
       try {
         await ApiClient.removeUserSession(userSession.session_id);
+        wsManager.disconnect();
         setUserSession(null);
         setCapabilities([]);
       } catch (error) {

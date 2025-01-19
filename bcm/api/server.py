@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Set
 from bcm.models import (
     CapabilityCreate,
     CapabilityUpdate,
@@ -14,6 +15,36 @@ import uuid
 
 # Initialize FastAPI app
 app = FastAPI(title="Business Capability Model API")
+
+# WebSocket connections manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.add(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast_model_change(self):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json({"type": "model_changed"})
+            except WebSocketDisconnect:
+                self.disconnect(connection)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep connection alive
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 # Add CORS middleware
 app.add_middleware(
@@ -115,6 +146,8 @@ async def create_capability(
         raise HTTPException(status_code=404, detail="Session not found")
     
     result = await db_ops.create_capability(capability, db)
+    # Notify all clients about model change
+    await manager.broadcast_model_change()
     return {
         "id": result.id,
         "name": result.name,
@@ -168,6 +201,8 @@ async def update_capability(
     result = await db_ops.update_capability(capability_id, capability, db)
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
+    # Notify all clients about model change
+    await manager.broadcast_model_change()
     return {
         "id": result.id,
         "name": result.name,
@@ -193,6 +228,8 @@ async def delete_capability(
     result = await db_ops.delete_capability(capability_id, db)
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
+    # Notify all clients about model change
+    await manager.broadcast_model_change()
     return {"message": "Capability deleted"}
 
 @app.post("/capabilities/{capability_id}/move")
@@ -218,6 +255,8 @@ async def move_capability(
     )
     if not result:
         raise HTTPException(status_code=404, detail="Capability not found")
+    # Notify all clients about model change
+    await manager.broadcast_model_change()
     return {"message": "Capability moved successfully"}
 
 @app.post("/capabilities/paste")
@@ -258,6 +297,8 @@ async def paste_capability(
     if source["children"]:
         await paste_children(source["children"], result.id)
     
+    # Notify all clients about model change
+    await manager.broadcast_model_change()
     return {"message": "Capability pasted successfully", "new_id": result.id}
 
 @app.put("/capabilities/{capability_id}/description")

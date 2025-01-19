@@ -11,6 +11,7 @@ import type {
 } from '../types/api';
 
 const BASE_URL = 'http://127.0.0.1:8080'; // We'll make this configurable later
+const WS_URL = 'ws://127.0.0.1:8080/ws';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -18,6 +19,55 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// WebSocket connection manager
+class WebSocketManager {
+  private ws: WebSocket | null = null;
+  private onModelChangeCallbacks: Set<() => void> = new Set();
+
+  connect() {
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+
+    this.ws = new WebSocket(WS_URL);
+    
+    this.ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'model_changed') {
+        this.notifyModelChange();
+      }
+    };
+
+    this.ws.onclose = () => {
+      // Attempt to reconnect after a delay
+      setTimeout(() => this.connect(), 5000);
+    };
+
+    // Send periodic ping to keep connection alive
+    setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send('ping');
+      }
+    }, 30000);
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  onModelChange(callback: () => void) {
+    this.onModelChangeCallbacks.add(callback);
+    return () => this.onModelChangeCallbacks.delete(callback);
+  }
+
+  private notifyModelChange() {
+    this.onModelChangeCallbacks.forEach(callback => callback());
+  }
+}
+
+export const wsManager = new WebSocketManager();
 
 export const ApiClient = {
   // User session management
