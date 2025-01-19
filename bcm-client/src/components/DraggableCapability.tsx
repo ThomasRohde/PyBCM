@@ -43,10 +43,16 @@ export const DraggableCapability: React.FC<Props> = ({
   onEdit,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { userSession, moveCapability, activeUsers, createCapability, deleteCapability } = useApp();
-  const [dropTarget, setDropTarget] = useState<'sibling' | 'child' | 'between' | null>(null);
+  const { 
+    userSession, 
+    moveCapability, 
+    activeUsers, 
+    createCapability, 
+    deleteCapability,
+    currentDropTarget,
+    setCurrentDropTarget 
+  } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [dropPosition, setDropPosition] = useState<{ targetIndex: number; targetParentId: number | null } | null>(null);
 
   const isLocked = activeUsers.some(user => 
     user.locked_capabilities.includes(capability.id) && 
@@ -92,8 +98,7 @@ export const DraggableCapability: React.FC<Props> = ({
           }
         }
       }
-      setDropTarget(null);
-      setDropPosition(null);
+      setCurrentDropTarget(null);
     },
   });
 
@@ -121,36 +126,59 @@ export const DraggableCapability: React.FC<Props> = ({
       const width = hoverBoundingRect.right - hoverBoundingRect.left;
       
       // Define drop zones with clear boundaries
-      const isTopThird = hoverClientY < height * 0.33;
-      const isBottomThird = hoverClientY > height * 0.66;
-      const isLeftQuarter = hoverClientX < width * 0.25;
-      const isMiddleWidth = hoverClientX >= width * 0.25;
+      const isTopEdge = hoverClientY < height * 0.15; // Reduced top edge
+      const isBottomEdge = hoverClientY > height * 0.85; // Reduced bottom edge
+      const isLeftEdge = hoverClientX < width * 0.15; // Reduced left edge
 
-      // Determine drop target and position
-      if (isLeftQuarter) {
-        // Drop as sibling at same level
-        setDropTarget('sibling');
-        setDropPosition({ targetIndex: index, targetParentId: parentId });
-      } else if (isMiddleWidth) {
-        if (isTopThird && index > 0) {
-          // Drop between items, before current
-          setDropTarget('between');
-          setDropPosition({ targetIndex: index, targetParentId: parentId });
-        } else if (isBottomThird) {
-          // Drop between items, after current
-          setDropTarget('between');
-          setDropPosition({ targetIndex: index + 1, targetParentId: parentId });
-        } else {
-          // Drop as child
-          setDropTarget('child');
-          const childrenCount = capability.children?.length || 0;
-          setDropPosition({ targetIndex: childrenCount, targetParentId: capability.id });
-        }
+      // Determine drop target
+      let newDropTarget = null;
+
+      // By default, dropping on a capability makes it a child
+      if (!isTopEdge && !isBottomEdge && !isLeftEdge) {
+        // Drop as child - this is the primary target that should be green
+        newDropTarget = {
+          capabilityId: capability.id,
+          type: 'child' as const
+        };
+      } else if (isLeftEdge && !isTopEdge && !isBottomEdge) {
+        // Drop as sibling only when precisely on the left edge
+        newDropTarget = {
+          capabilityId: capability.id,
+          type: 'sibling' as const,
+          position: index
+        };
+      } else if (isTopEdge && index > 0) {
+        // Drop between items, before current
+        newDropTarget = {
+          capabilityId: capability.id,
+          type: 'between' as const,
+          position: index
+        };
+      } else if (isBottomEdge) {
+        // Drop between items, after current
+        newDropTarget = {
+          capabilityId: capability.id,
+          type: 'between' as const,
+          position: index + 1
+        };
+      }
+
+      // Only update if there's a change to avoid unnecessary re-renders
+      if (newDropTarget && 
+          (!currentDropTarget || 
+           currentDropTarget.capabilityId !== newDropTarget.capabilityId ||
+           currentDropTarget.type !== newDropTarget.type ||
+           currentDropTarget.position !== newDropTarget.position)) {
+        setCurrentDropTarget(newDropTarget);
       }
     },
     drop: (item: DragItem) => {
-      if (dropPosition) {
-        moveCapability(item.id, dropPosition.targetParentId, dropPosition.targetIndex)
+      if (currentDropTarget) {
+        const targetPosition = currentDropTarget.type === 'child' 
+          ? { targetIndex: capability.children?.length || 0, targetParentId: capability.id }
+          : { targetIndex: currentDropTarget.position || 0, targetParentId: parentId };
+          
+        moveCapability(item.id, targetPosition.targetParentId, targetPosition.targetIndex)
           .catch(error => console.error('Failed to move capability:', error));
       }
       return { moved: true };
@@ -172,12 +200,12 @@ export const DraggableCapability: React.FC<Props> = ({
         ${isLocked ? 'border-red-300 bg-red-50 cursor-not-allowed' : 'border-gray-200 bg-white cursor-grab active:cursor-grabbing hover:border-blue-300'}
         transition-all duration-200 ease-in-out
         ${isLocked ? 'shake-animation' : ''}
-        ${isOver && canDrop ? 'ring-2 ring-offset-2' : ''}
-        ${isOver && canDrop && dropTarget === 'sibling' ? 'ring-blue-400 before:absolute before:left-0 before:w-1 before:h-full before:bg-blue-400 before:-ml-2' : ''}
-        ${isOver && canDrop && dropTarget === 'child' ? 'ring-green-400 bg-green-50' : ''}
-        ${isOver && canDrop && dropTarget === 'between' ? 'ring-purple-400' : ''}
-        ${isOver && canDrop && dropTarget === 'between' && dropPosition?.targetIndex === index ? 'before:absolute before:left-0 before:w-full before:h-1 before:bg-purple-400 before:-mt-2' : ''}
-        ${isOver && canDrop && dropTarget === 'between' && dropPosition?.targetIndex === index + 1 ? 'after:absolute after:left-0 after:bottom-0 after:w-full after:h-1 after:bg-purple-400 after:-mb-2' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id ? 'ring-2 ring-offset-1' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'sibling' ? 'ring-blue-300 before:absolute before:left-0 before:w-0.5 before:h-full before:bg-blue-300 before:-ml-1.5' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'child' ? 'ring-green-500 bg-green-50 scale-[1.02] shadow-lg' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' ? 'ring-purple-300' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' && currentDropTarget.position === index ? 'before:absolute before:left-0 before:w-full before:h-0.5 before:bg-purple-300 before:-mt-1' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' && currentDropTarget.position === index + 1 ? 'after:absolute after:left-0 after:bottom-0 after:w-full after:h-0.5 after:bg-purple-300 after:-mb-1' : ''}
       `}
       style={{
         willChange: 'transform, opacity, border-color',

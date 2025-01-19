@@ -2,10 +2,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import type { UserSession, Capability } from '../types/api';
 
+interface DropTarget {
+  capabilityId: number;
+  type: 'sibling' | 'child' | 'between';
+  position?: number;
+}
+
 interface AppContextType {
   userSession: UserSession | null;
   capabilities: Capability[];
   activeUsers: UserSession[];
+  currentDropTarget: DropTarget | null;
+  setCurrentDropTarget: (target: DropTarget | null) => void;
   login: (nickname: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshCapabilities: () => Promise<void>;
@@ -40,6 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userSession, setUserSession] = useState<UserSession | null>(null);
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
   const [activeUsers, setActiveUsers] = useState<UserSession[]>([]);
+  const [currentDropTarget, setCurrentDropTarget] = useState<DropTarget | null>(null);
 
   // Fetch active users periodically
   useEffect(() => {
@@ -195,6 +204,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     userSession,
     capabilities,
     activeUsers,
+    currentDropTarget,
+    setCurrentDropTarget,
     login,
     logout,
     refreshCapabilities,
