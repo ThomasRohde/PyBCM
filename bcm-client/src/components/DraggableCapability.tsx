@@ -38,6 +38,31 @@ const isDescendantOf = (capability: Capability, potentialAncestorId: number): bo
   );
 };
 
+// Helper function to find the nearest locked ancestor by another user
+const findLockedAncestor = (
+  capabilities: Capability[], 
+  parentId: number | null, 
+  activeUsers: { session_id: string; nickname: string; locked_capabilities: number[]; }[],
+  currentUserId?: string
+): { userId: string; nickname: string } | null => {
+  if (!parentId) return null;
+  
+  const parent = capabilities.find(c => c.id === parentId);
+  if (!parent) return null;
+
+  // Check if parent is locked by another user
+  const lockingUser = activeUsers.find(user => 
+    user.locked_capabilities.includes(parent.id) && 
+    user.session_id !== currentUserId
+  );
+  if (lockingUser) {
+    return { userId: lockingUser.session_id, nickname: lockingUser.nickname };
+  }
+
+  // Recursively check parent's parent
+  return findLockedAncestor(capabilities, parent.parent_id, activeUsers, currentUserId);
+};
+
 export const DraggableCapability: React.FC<Props> = ({
   capability,
   index,
@@ -55,20 +80,21 @@ export const DraggableCapability: React.FC<Props> = ({
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const isLockedByMe = userSession && activeUsers.some(user => 
-    user.locked_capabilities.includes(capability.id) && 
-    user.session_id === userSession.session_id
-  );
+  const { capabilities } = useApp();
 
-  const isLockedByOthers = activeUsers.some(user => 
-    (user.locked_capabilities.includes(capability.id) || 
-     (parentId && user.locked_capabilities.includes(parentId))) && 
-    user.session_id !== userSession?.session_id
+  const directLockingUser = activeUsers.find(u => 
+    u.locked_capabilities.includes(capability.id)
   );
+  const ancestorLock = findLockedAncestor(capabilities, parentId, activeUsers, userSession?.session_id);
+
+  const isLockedByMe = userSession && directLockingUser?.session_id === userSession.session_id;
+  const isLockedByOthers = (directLockingUser && directLockingUser.session_id !== userSession?.session_id) || 
+    ancestorLock !== null;
 
   const isLocked = isLockedByMe || isLockedByOthers;
 
-  const lockingUser = activeUsers.find(u => u.locked_capabilities.includes(capability.id));
+  const effectiveLockingUser = directLockingUser || 
+    (ancestorLock ? { nickname: ancestorLock.nickname } : null);
 
   const [{ isDragging }, drag] = useDrag({
     type: 'CAPABILITY',
@@ -249,7 +275,9 @@ export const DraggableCapability: React.FC<Props> = ({
             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {isLocked && (
                 <span className="text-xs text-red-500">
-                  Locked by {lockingUser?.nickname}
+                  {directLockingUser ? 
+                    `Locked by ${directLockingUser.nickname}` : 
+                    `Locked by ancestor (${effectiveLockingUser?.nickname})`}
                 </span>
               )}
               <button
@@ -267,8 +295,8 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className={`p-0.5 ${isLockedByOthers ? 'text-red-500' : isLockedByMe ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
-                disabled={isLockedByOthers}
-                title={isLockedByOthers ? `Locked by ${lockingUser?.nickname}` : isLockedByMe ? 'Unlock' : 'Lock'}
+                disabled={Boolean(isLockedByOthers)}
+                title={isLockedByOthers ? `Locked by ${effectiveLockingUser?.nickname}` : isLockedByMe ? 'Unlock' : 'Lock'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -282,7 +310,7 @@ export const DraggableCapability: React.FC<Props> = ({
               <button
                 onClick={() => onEdit(capability)}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLockedByOthers}
+                disabled={Boolean(isLockedByOthers)}
                 title="Edit"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,7 +335,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLocked}
+                disabled={Boolean(isLocked)}
                 title="Copy"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,7 +398,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLocked}
+                disabled={Boolean(isLocked)}
                 title="Paste JSON from clipboard"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +412,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLocked}
+                disabled={Boolean(isLocked)}
                 title="Delete"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
