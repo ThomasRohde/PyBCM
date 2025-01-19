@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+import socket
+import pyperclip
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Set
@@ -19,6 +21,23 @@ import uuid
 # Initialize FastAPI app
 app = FastAPI(title="Business Capability Model API")
 api_app = FastAPI(title="Business Capability Model API")
+
+@app.on_event("startup")
+async def startup_event():
+    """Handle startup tasks like displaying and copying the network URL."""
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    port = 8080
+    
+    # Create the full HTTP URL
+    url = f"http://{local_ip}:{port}"
+    
+    print(f"\nLocal network URL: {url}")
+    print("Share this URL with other users on your local network to access the application")
+    
+    # Copy URL to clipboard
+    pyperclip.copy(url)
+    print("URL copied to clipboard!")
 
 # Add CORS middleware
 api_app.add_middleware(
@@ -364,6 +383,7 @@ async def update_description(
     session_id: str,
     db: AsyncSession = Depends(get_db)
 ):
+  
     """Update a capability's description."""
     if session_id not in active_users:
         raise HTTPException(status_code=404, detail="Session not found")
