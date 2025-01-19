@@ -1,6 +1,9 @@
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Set
@@ -15,6 +18,34 @@ import uuid
 
 # Initialize FastAPI app
 app = FastAPI(title="Business Capability Model API")
+api_app = FastAPI(title="Business Capability Model API")
+
+# Add CORS middleware
+api_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=3600,
+)
+
+# Mount API routes
+app.mount("/api", api_app)
+
+# Mount static files
+static_client_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "client")
+app.mount("/assets", StaticFiles(directory=os.path.join(static_client_dir, "assets")), name="assets")
+
+@app.get("/")
+async def serve_spa():
+    return FileResponse(os.path.join(static_client_dir, "index.html"))
+
+@app.get("/{full_path:path}")
+async def serve_spa_routes(full_path: str):
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(os.path.join(static_client_dir, "index.html"))
 
 # WebSocket connections manager
 class ConnectionManager:
@@ -41,7 +72,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.websocket("/ws")
+@api_app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
@@ -50,15 +81,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    max_age=3600,
-)
 
 # Initialize database operations
 db_ops = DatabaseOperations(AsyncSessionLocal)
@@ -83,7 +105,7 @@ class PromptUpdate(BaseModel):
     capability_id: int
     prompt_type: str = Field(..., pattern="^(first-level|expansion)$")
 
-@app.post("/users", response_model=UserSession)
+@api_app.post("/users", response_model=UserSession)
 async def create_user_session(user: User):
     """Create a new user session."""
     session_id = str(uuid.uuid4())
@@ -95,12 +117,12 @@ async def create_user_session(user: User):
     active_users[session_id] = session
     return UserSession(**session)
 
-@app.get("/users", response_model=List[UserSession])
+@api_app.get("/users", response_model=List[UserSession])
 async def get_active_users():
     """Get all active users and their locked capabilities."""
     return [UserSession(**session) for session in active_users.values()]
 
-@app.delete("/users/{session_id}")
+@api_app.delete("/users/{session_id}")
 async def remove_user_session(session_id: str):
     """Remove a user session."""
     if session_id not in active_users:
@@ -108,7 +130,7 @@ async def remove_user_session(session_id: str):
     del active_users[session_id]
     return {"message": "Session removed"}
 
-@app.post("/capabilities/lock/{capability_id}")
+@api_app.post("/capabilities/lock/{capability_id}")
 async def lock_capability(capability_id: int, session_id: str):
     """Lock a capability for editing."""
     if session_id not in active_users:
@@ -122,7 +144,7 @@ async def lock_capability(capability_id: int, session_id: str):
     active_users[session_id]["locked_capabilities"].append(capability_id)
     return {"message": "Capability locked"}
 
-@app.post("/capabilities/unlock/{capability_id}")
+@api_app.post("/capabilities/unlock/{capability_id}")
 async def unlock_capability(capability_id: int, session_id: str):
     """Unlock a capability."""
     if session_id not in active_users:
@@ -134,7 +156,7 @@ async def unlock_capability(capability_id: int, session_id: str):
     
     raise HTTPException(status_code=404, detail="Capability not locked by this session")
 
-@app.post("/capabilities", response_model=dict)
+@api_app.post("/capabilities", response_model=dict)
 async def create_capability(
     capability: CapabilityCreate,
     session_id: str,
@@ -157,7 +179,7 @@ async def create_capability(
         "parent_id": result.parent_id
     }
 
-@app.get("/capabilities/{capability_id}", response_model=dict)
+@api_app.get("/capabilities/{capability_id}", response_model=dict)
 async def get_capability(
     capability_id: int,
     db: AsyncSession = Depends(get_db)
@@ -173,7 +195,7 @@ async def get_capability(
         "parent_id": result.parent_id
     }
 
-@app.get("/capabilities/{capability_id}/context")
+@api_app.get("/capabilities/{capability_id}/context")
 async def get_capability_context_endpoint(
     capability_id: int,
     db: AsyncSession = Depends(get_db)
@@ -216,7 +238,7 @@ async def get_capability_context_endpoint(
 
     return {"rendered_context": rendered_context}
 
-@app.put("/capabilities/{capability_id}", response_model=dict)
+@api_app.put("/capabilities/{capability_id}", response_model=dict)
 async def update_capability(
     capability_id: int,
     capability: CapabilityUpdate,
@@ -247,7 +269,7 @@ async def update_capability(
         "parent_id": result.parent_id
     }
 
-@app.delete("/capabilities/{capability_id}")
+@api_app.delete("/capabilities/{capability_id}")
 async def delete_capability(
     capability_id: int,
     session_id: str,
@@ -277,7 +299,7 @@ async def delete_capability(
     )
     return {"message": "Capability deleted"}
 
-@app.post("/capabilities/{capability_id}/move")
+@api_app.post("/capabilities/{capability_id}/move")
 async def move_capability(
     capability_id: int,
     move: CapabilityMove,
@@ -312,7 +334,7 @@ async def move_capability(
     )
     return {"message": "Capability moved successfully"}
 
-@app.put("/capabilities/{capability_id}/description")
+@api_app.put("/capabilities/{capability_id}/description")
 async def update_description(
     capability_id: int,
     description: str,
@@ -333,7 +355,7 @@ async def update_description(
         raise HTTPException(status_code=404, detail="Capability not found")
     return {"message": "Description updated successfully"}
 
-@app.put("/capabilities/{capability_id}/prompt")
+@api_app.put("/capabilities/{capability_id}/prompt")
 async def update_prompt(
     capability_id: int,
     prompt_update: PromptUpdate,
@@ -352,7 +374,7 @@ async def update_prompt(
     # For now, we'll just return success
     return {"message": f"{prompt_update.prompt_type} prompt updated successfully"}
 
-@app.get("/capabilities", response_model=List[dict])
+@api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
     parent_id: Optional[int] = None,
     hierarchical: bool = False,

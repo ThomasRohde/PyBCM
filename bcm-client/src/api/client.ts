@@ -10,14 +10,17 @@ import type {
   CapabilityContextResponse
 } from '../types/api';
 
-const BASE_URL = 'http://127.0.0.1:8080'; // We'll make this configurable later
-const WS_URL = 'ws://127.0.0.1:8080/ws';
+// In development, use the Vite dev server port
+const isDev = import.meta.env.DEV;
+const WS_URL = isDev 
+  ? 'ws://127.0.0.1:8080/api/ws'
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`;
 
 const api = axios.create({
-  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  baseURL: isDev ? 'http://127.0.0.1:8080' : undefined,
 });
 
 // WebSocket connection manager
@@ -60,11 +63,6 @@ class WebSocketManager {
   onModelChange(callback: (user: string, action: string) => void) {
     this.onModelChangeCallbacks.add(callback);
     return () => this.onModelChangeCallbacks.delete(callback);
-  }
-
-  private notifyModelChange(user: string, action: string) {
-    this.onModelChangeCallbacks.forEach(callback => callback(user, action));
-  }
 }
 
 export const wsManager = new WebSocketManager();
@@ -72,41 +70,41 @@ export const wsManager = new WebSocketManager();
 export const ApiClient = {
   // User session management
   createUserSession: async (user: User): Promise<UserSession> => {
-    const response = await api.post<UserSession>('/users', user);
+    const response = await api.post<UserSession>('/api/users', user);
     return response.data;
   },
 
   getActiveUsers: async (): Promise<UserSession[]> => {
-    const response = await api.get<UserSession[]>('/users');
+    const response = await api.get<UserSession[]>('/api/users');
     return response.data;
   },
 
   removeUserSession: async (sessionId: string): Promise<void> => {
-    await api.delete(`/users/${sessionId}`);
+    await api.delete(`/api/users/${sessionId}`);
   },
 
   // Capability locking
   lockCapability: async (capabilityId: number, sessionId: string): Promise<void> => {
-    await api.post(`/capabilities/lock/${capabilityId}?session_id=${sessionId}`);
+    await api.post(`/api/capabilities/lock/${capabilityId}?session_id=${sessionId}`);
   },
 
   unlockCapability: async (capabilityId: number, sessionId: string): Promise<void> => {
-    await api.post(`/capabilities/unlock/${capabilityId}?session_id=${sessionId}`);
+    await api.post(`/api/capabilities/unlock/${capabilityId}?session_id=${sessionId}`);
   },
 
   // Capability CRUD operations
   createCapability: async (capability: CapabilityCreate, sessionId: string): Promise<Capability> => {
-    const response = await api.post<Capability>(`/capabilities?session_id=${sessionId}`, capability);
+    const response = await api.post<Capability>(`/api/capabilities?session_id=${sessionId}`, capability);
     return response.data;
   },
 
   getCapability: async (capabilityId: number): Promise<Capability> => {
-    const response = await api.get<Capability>(`/capabilities/${capabilityId}`);
+    const response = await api.get<Capability>(`/api/capabilities/${capabilityId}`);
     return response.data;
   },
 
   getCapabilityContext: async (capabilityId: number): Promise<CapabilityContextResponse> => {
-    const response = await api.get<CapabilityContextResponse>(`/capabilities/${capabilityId}/context`);
+    const response = await api.get<CapabilityContextResponse>(`/api/capabilities/${capabilityId}/context`);
     return response.data;
   },
 
@@ -116,14 +114,14 @@ export const ApiClient = {
     sessionId: string
   ): Promise<Capability> => {
     const response = await api.put<Capability>(
-      `/capabilities/${capabilityId}?session_id=${sessionId}`, 
+      `/api/capabilities/${capabilityId}?session_id=${sessionId}`, 
       capability
     );
     return response.data;
   },
 
   deleteCapability: async (capabilityId: number, sessionId: string): Promise<void> => {
-    await api.delete(`/capabilities/${capabilityId}?session_id=${sessionId}`);
+    await api.delete(`/api/capabilities/${capabilityId}?session_id=${sessionId}`);
   },
 
   // Capability movement and organization
@@ -133,7 +131,7 @@ export const ApiClient = {
     sessionId: string
   ): Promise<void> => {
     await api.post(
-      `/capabilities/${capabilityId}/move?session_id=${sessionId}`, 
+      `/api/capabilities/${capabilityId}/move?session_id=${sessionId}`, 
       move
     );
   },
@@ -145,7 +143,7 @@ export const ApiClient = {
     sessionId: string
   ): Promise<void> => {
     await api.put(
-      `/capabilities/${capabilityId}/description?session_id=${sessionId}&description=${encodeURIComponent(description)}`
+      `/api/capabilities/${capabilityId}/description?session_id=${sessionId}&description=${encodeURIComponent(description)}`
     );
   },
 
@@ -155,7 +153,7 @@ export const ApiClient = {
     sessionId: string
   ): Promise<void> => {
     await api.put(
-      `/capabilities/${capabilityId}/prompt?session_id=${sessionId}`, 
+      `/api/capabilities/${capabilityId}/prompt?session_id=${sessionId}`, 
       promptUpdate
     );
   },
@@ -171,7 +169,7 @@ export const ApiClient = {
     }
     params.append('hierarchical', hierarchical.toString());
     
-    const response = await api.get<Capability[]>(`/capabilities?${params.toString()}`);
+    const response = await api.get<Capability[]>(`/api/capabilities?${params.toString()}`);
     return response.data;
   },
 };
