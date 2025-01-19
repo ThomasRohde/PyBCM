@@ -6,7 +6,6 @@ import type {
   CapabilityCreate, 
   CapabilityUpdate,
   CapabilityMove,
-  CapabilityPaste,
   PromptUpdate,
   CapabilityContextResponse
 } from '../types/api';
@@ -137,10 +136,6 @@ export const ApiClient = {
       `/capabilities/${capabilityId}/move?session_id=${sessionId}`, 
       move
     );
-  },
-
-  pasteCapability: async (paste: CapabilityPaste, sessionId: string): Promise<void> => {
-    await api.post(`/capabilities/paste?session_id=${sessionId}`, paste);
   },
 
   // Capability description and prompts

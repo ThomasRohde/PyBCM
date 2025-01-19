@@ -34,12 +34,6 @@ export interface CapabilityMove {
   new_order: number;
 }
 
-export interface CapabilityPaste {
-  source_id: number;
-  target_id?: number | null;
-  position?: number | null;
-}
-
 export interface PromptUpdate {
   prompt: string;
   capability_id: number;

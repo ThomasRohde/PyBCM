@@ -33,10 +33,6 @@ interface AppContextType {
     name: string,
     description?: string | null
   ) => Promise<void>;
-  pasteCapability: (
-    sourceId: number,
-    targetId?: number | null
-  ) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -234,21 +230,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const pasteCapability = async (sourceId: number, targetId?: number | null) => {
-    if (!userSession) return;
-
-    try {
-      await ApiClient.pasteCapability(
-        { source_id: sourceId, target_id: targetId },
-        userSession.session_id
-      );
-      await refreshCapabilities();
-    } catch (error) {
-      console.error('Failed to paste capability:', error);
-      throw error;
-    }
-  };
-
   const value = {
     userSession,
     capabilities,
@@ -262,7 +243,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     createCapability,
     deleteCapability,
     updateCapability,
-    pasteCapability,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

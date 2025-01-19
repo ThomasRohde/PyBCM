@@ -139,6 +139,51 @@ async def unlock_capability(capability_id: int, session_id: str):
     
     raise HTTPException(status_code=404, detail="Capability not locked by this session")
 
+@app.post("/capabilities/paste")
+async def paste_capability(
+    paste: CapabilityPaste,
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Paste a capability and its children to a new location."""
+    if session_id not in active_users:
+        raise HTTPException(status_code=404, detail="Session not found")
+    print("Hello ", paste)
+    # Get source capability with children
+    source = await db_ops.get_capability_with_children(paste.source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source capability not found")
+    
+    # Create new capability at target location
+    new_cap = CapabilityCreate(
+        name=source["name"],
+        description=source["description"],
+        parent_id=paste.target_id
+    )
+    result = await db_ops.create_capability(new_cap, db)
+    
+    # Recursively create children
+    async def paste_children(children: List[dict], parent_id: int):
+        for child in children:
+            new_child = CapabilityCreate(
+                name=child["name"],
+                description=child["description"],
+                parent_id=parent_id
+            )
+            child_result = await db_ops.create_capability(new_child, db)
+            if child["children"]:
+                await paste_children(child["children"], child_result.id)
+    
+    if source["children"]:
+        await paste_children(source["children"], result.id)
+    
+    # Notify all clients about model change
+    await manager.broadcast_model_change(
+        active_users[session_id]["nickname"],
+        f"pasted capability '{result.name}'"
+    )
+    return {"message": "Capability pasted successfully", "new_id": result.id}
+
 @app.post("/capabilities", response_model=dict)
 async def create_capability(
     capability: CapabilityCreate,
@@ -316,51 +361,6 @@ async def move_capability(
         f"moved capability '{capability.name}'"
     )
     return {"message": "Capability moved successfully"}
-
-@app.post("/capabilities/paste")
-async def paste_capability(
-    paste: CapabilityPaste,
-    session_id: str,
-    db: AsyncSession = Depends(get_db)
-):
-    """Paste a capability and its children to a new location."""
-    if session_id not in active_users:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    # Get source capability with children
-    source = await db_ops.get_capability_with_children(paste.source_id)
-    if not source:
-        raise HTTPException(status_code=404, detail="Source capability not found")
-    
-    # Create new capability at target location
-    new_cap = CapabilityCreate(
-        name=source["name"],
-        description=source["description"],
-        parent_id=paste.target_id
-    )
-    result = await db_ops.create_capability(new_cap, db)
-    
-    # Recursively create children
-    async def paste_children(children: List[dict], parent_id: int):
-        for child in children:
-            new_child = CapabilityCreate(
-                name=child["name"],
-                description=child["description"],
-                parent_id=parent_id
-            )
-            child_result = await db_ops.create_capability(new_child, db)
-            if child["children"]:
-                await paste_children(child["children"], child_result.id)
-    
-    if source["children"]:
-        await paste_children(source["children"], result.id)
-    
-    # Notify all clients about model change
-    await manager.broadcast_model_change(
-        active_users[session_id]["nickname"],
-        f"pasted capability '{result.name}'"
-    )
-    return {"message": "Capability pasted successfully", "new_id": result.id}
 
 @app.put("/capabilities/{capability_id}/description")
 async def update_description(

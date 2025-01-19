@@ -52,7 +52,6 @@ export const DraggableCapability: React.FC<Props> = ({
     deleteCapability,
     currentDropTarget,
     setCurrentDropTarget,
-    pasteCapability
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -235,9 +234,11 @@ export const DraggableCapability: React.FC<Props> = ({
               <button
                 onClick={async () => {
                   try {
+                    console.log('Copying capability:', capability.id);
                     const context = await ApiClient.getCapabilityContext(capability.id);
                     await navigator.clipboard.writeText(context.rendered_context);
                     copiedCapability = capability;
+                    console.log('Capability copied:', copiedCapability);
                     toast.success('Capability context copied to clipboard');
                   } catch (error) {
                     console.error('Failed to copy capability context:', error);
@@ -254,8 +255,50 @@ export const DraggableCapability: React.FC<Props> = ({
               </button>
               <button
                 onClick={async () => {
-                  if (copiedCapability) {
-                    await pasteCapability(copiedCapability.id, capability.id);
+                  try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    let capabilities: Array<{
+                      name: string;
+                      description?: string;
+                      children?: RecursiveCapability[];
+                    }>;
+                    try {
+                      capabilities = JSON.parse(clipboardText);
+                    } catch {
+                      toast.error('Invalid clipboard content - expected JSON capabilities list');
+                      return;
+                    }
+
+                    if (!Array.isArray(capabilities)) {
+                      toast.error('Invalid clipboard content - expected array of capabilities');
+                      return;
+                    }
+
+                    // Create capabilities recursively
+                    interface RecursiveCapability {
+                      name: string;
+                      description?: string;
+                      children?: RecursiveCapability[];
+                    }
+
+                    const createCapabilityTree = async (caps: RecursiveCapability[], parentId: number | null = null) => {
+                      for (const cap of caps) {
+                        const newCap = await ApiClient.createCapability({
+                          name: cap.name,
+                          description: cap.description,
+                          parent_id: parentId
+                        }, userSession?.session_id || '');
+                        if (cap.children?.length) {
+                          await createCapabilityTree(cap.children, newCap.id);
+                        }
+                      }
+                    };
+
+                    await createCapabilityTree(capabilities, capability.id);
+                    toast.success('Capabilities pasted successfully');
+                  } catch (error) {
+                    console.error('Failed to paste capabilities:', error);
+                    toast.error('Failed to paste capabilities');
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
