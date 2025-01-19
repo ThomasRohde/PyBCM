@@ -66,40 +66,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(interval);
   }, []);
 
-  // Set up WebSocket connection and capabilities refresh when user session changes
-  useEffect(() => {
-    if (userSession) {
-      // Connect WebSocket
-      wsManager.connect();
-      
-      // Set up model change handler
-      const unsubscribe = wsManager.onModelChange((user, action) => {
-        refreshCapabilities();
-        // Don't show toast for own actions
-        if (user !== userSession.nickname) {
-          toast(`${user} ${action}`, {
-            duration: 3000,
-            position: 'bottom-right',
-            style: {
-              background: '#4B5563',
-              color: '#fff',
-              padding: '12px 24px',
-              borderRadius: '8px',
-            },
+      // Set up WebSocket connection and capabilities refresh when user session changes
+      useEffect(() => {
+        if (userSession) {
+          // Connect WebSocket
+          wsManager.connect();
+          
+          // Set up model change handler
+          const unsubscribeModel = wsManager.onModelChange((user, action) => {
+            refreshCapabilities();
+            // Don't show toast for own actions
+            if (user !== userSession.nickname) {
+              toast(`${user} ${action}`, {
+                duration: 3000,
+                position: 'bottom-right',
+                style: {
+                  background: '#4B5563',
+                  color: '#fff',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                },
+              });
+            }
           });
+
+          // Set up user event handler
+          const unsubscribeUser = wsManager.onUserEvent((user, event) => {
+            // Don't show toast for own events
+            if (user !== userSession.nickname) {
+              toast(`${user} has ${event}`, {
+                duration: 3000,
+                position: 'bottom-right',
+                style: {
+                  background: event === 'joined' ? '#10B981' : '#EF4444',
+                  color: '#fff',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                },
+              });
+            }
+          });
+
+          // Initial capabilities fetch
+          refreshCapabilities();
+
+          // Cleanup
+          return () => {
+            unsubscribeModel();
+            unsubscribeUser();
+            wsManager.disconnect();
+          };
         }
-      });
-
-      // Initial capabilities fetch
-      refreshCapabilities();
-
-      // Cleanup
-      return () => {
-        unsubscribe();
-        wsManager.disconnect();
-      };
-    }
-  }, [userSession]);
+      }, [userSession]);
 
   const login = async (nickname: string) => {
     try {

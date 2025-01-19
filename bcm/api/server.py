@@ -70,6 +70,17 @@ class ConnectionManager:
             except WebSocketDisconnect:
                 self.disconnect(connection)
 
+    async def broadcast_user_event(self, user_nickname: str, event_type: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json({
+                    "type": "user_event",
+                    "user": user_nickname,
+                    "event": event_type
+                })
+            except WebSocketDisconnect:
+                self.disconnect(connection)
+
 manager = ConnectionManager()
 
 @api_app.websocket("/ws")
@@ -115,6 +126,8 @@ async def create_user_session(user: User):
         "locked_capabilities": []
     }
     active_users[session_id] = session
+    # Broadcast user joined event
+    await manager.broadcast_user_event(user.nickname, "joined")
     return UserSession(**session)
 
 @api_app.get("/users", response_model=List[UserSession])
@@ -127,7 +140,10 @@ async def remove_user_session(session_id: str):
     """Remove a user session."""
     if session_id not in active_users:
         raise HTTPException(status_code=404, detail="Session not found")
+    nickname = active_users[session_id]["nickname"]
     del active_users[session_id]
+    # Broadcast user left event
+    await manager.broadcast_user_event(nickname, "left")
     return {"message": "Session removed"}
 
 @api_app.post("/capabilities/lock/{capability_id}")
