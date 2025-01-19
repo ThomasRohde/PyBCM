@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider } from './contexts/AppContext';
 import { useApp } from './contexts/AppContext';
 import { CapabilityTree } from './components/CapabilityTree';
@@ -98,6 +98,24 @@ const MainApp: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    const requestClipboardPermission = async () => {
+      try {
+        const result = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+        if (result.state === 'prompt') {
+          // This will trigger the permission prompt
+          await navigator.clipboard.readText().catch(() => {
+            // Ignore error if user denies permission
+          });
+        }
+      } catch (error) {
+        console.warn('Clipboard permission request failed:', error);
+      }
+    };
+
+    requestClipboardPermission();
+  }, []);
+
   return (
     <AppProvider>
       <MainApp />
