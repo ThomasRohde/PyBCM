@@ -255,8 +255,10 @@ export const DraggableCapability: React.FC<Props> = ({
               </button>
               <button
                 onClick={async () => {
+                  console.log('Paste button clicked');
                   try {
                     const clipboardText = await navigator.clipboard.readText();
+                    console.log('Clipboard content:', clipboardText);
                     let capabilities: Array<{
                       name: string;
                       description?: string;
@@ -302,8 +304,8 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLocked || !copiedCapability}
-                title="Paste"
+                disabled={isLocked}
+                title="Paste JSON from clipboard"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
