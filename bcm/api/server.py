@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from contextlib import asynccontextmanager
 import os
 import socket
 import pyperclip
@@ -18,13 +19,10 @@ from bcm.models import (
 from bcm.database import DatabaseOperations
 import uuid
 
-# Initialize FastAPI app
-app = FastAPI(title="Business Capability Model API")
-api_app = FastAPI(title="Business Capability Model API")
-
-@app.on_event("startup")
-async def startup_event():
-    """Handle startup tasks like displaying and copying the network URL."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    # Startup: Display and copy network URL
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     port = 8080
@@ -38,6 +36,13 @@ async def startup_event():
     # Copy URL to clipboard
     pyperclip.copy(url)
     print("URL copied to clipboard!")
+    
+    yield  # Server is running
+    # Shutdown: Nothing to clean up
+
+# Initialize FastAPI app
+app = FastAPI(title="Business Capability Model API", lifespan=lifespan)
+api_app = FastAPI(title="Business Capability Model API")
 
 # Add CORS middleware
 api_app.add_middleware(
