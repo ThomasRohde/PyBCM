@@ -549,54 +549,6 @@
                 }
             }
         },
-        "/capabilities/paste": {
-            "post": {
-                "summary": "Paste Capability",
-                "description": "Paste a capability and its children to a new location.",
-                "operationId": "paste_capability_capabilities_paste_post",
-                "parameters": [
-                    {
-                        "name": "session_id",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "title": "Session Id"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CapabilityPaste"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/capabilities/{capability_id}/description": {
             "put": {
                 "summary": "Update Description",
@@ -774,41 +726,6 @@
                     "new_order"
                 ],
                 "title": "CapabilityMove"
-            },
-            "CapabilityPaste": {
-                "properties": {
-                    "source_id": {
-                        "type": "integer",
-                        "title": "Source Id"
-                    },
-                    "target_id": {
-                        "anyOf": [
-                            {
-                                "type": "integer"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Target Id"
-                    },
-                    "position": {
-                        "anyOf": [
-                            {
-                                "type": "integer"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Position"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "source_id"
-                ],
-                "title": "CapabilityPaste"
             },
             "CapabilityUpdate": {
                 "properties": {
