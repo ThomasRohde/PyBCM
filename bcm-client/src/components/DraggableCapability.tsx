@@ -115,11 +115,13 @@ export const DraggableCapability: React.FC<Props> = ({
       if (!ref.current || item.id === capability.id) return;
       if (isDescendantOf(item.capability, capability.id)) return;
 
+      // Always treat drops as child operations
       const newDropTarget = {
         capabilityId: capability.id,
         type: 'child' as const
       };
 
+      // Only set if changed (prevents spamming state updates)
       if (!currentDropTarget || currentDropTarget.capabilityId !== newDropTarget.capabilityId) {
         setCurrentDropTarget(newDropTarget);
       }
@@ -159,7 +161,7 @@ export const DraggableCapability: React.FC<Props> = ({
       {isOver && canDrop && currentDropTarget?.capabilityId === capability.id && (
         <div className="absolute top-0 left-0 w-full flex items-center justify-center pointer-events-none z-10">
           <span className="text-sm font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded">
-            {currentDropTarget.type === 'child' ? 'Drop as Child' : 'Drop as Sibling'}
+            Drop as Child
           </span>
         </div>
       )}
