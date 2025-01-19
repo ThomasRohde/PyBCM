@@ -122,10 +122,10 @@ export const DraggableCapability: React.FC<Props> = ({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    canDrag: !isLockedByMe && !isLockedByOthers,
+    canDrag: !isLockedByOthers,
     end: (_, monitor) => {
       if (!monitor.didDrop()) {
-        if (isLocked) {
+        if (isLockedByOthers) {
           const element = ref.current;
           if (element) {
             element.classList.add('shake-animation');
@@ -152,8 +152,8 @@ export const DraggableCapability: React.FC<Props> = ({
       );
       if (isDraggedItemLocked) return false;
       
-      // Check if this capability is locked
-      if (isLocked) return false;
+      // Check if this capability is locked by someone else
+      if (isLockedByOthers) return false;
       
       return true;
     },
@@ -161,7 +161,7 @@ export const DraggableCapability: React.FC<Props> = ({
       if (!monitor.isOver({ shallow: true })) return;
       if (!ref.current || item.id === capability.id) return;
       if (isDescendantOf(item.capability, capability.id)) return;
-      if (isLocked) return;
+      if (isLockedByOthers) return;
 
       // Always treat drops as child operations
       const newDropTarget = {
@@ -181,8 +181,8 @@ export const DraggableCapability: React.FC<Props> = ({
       const isDraggedItemLocked = activeUsers.some(user => 
         user.locked_capabilities.includes(item.id)
       );
-      if (isDraggedItemLocked || isLocked) {
-        toast.error('Cannot move locked capabilities');
+      if (isDraggedItemLocked || isLockedByOthers) {
+        toast.error('Cannot move locked capabilities - locked by another user');
         return { moved: false };
       }
 
@@ -227,7 +227,7 @@ export const DraggableCapability: React.FC<Props> = ({
       )}
       <div className={`
         py-1.5 px-2 mb-1 rounded-lg border relative capability-container capability-transition
-        ${isLocked ? 'border-red-300' : 'border-gray-200'}
+        ${isLockedByOthers ? 'border-red-300' : isLockedByMe ? 'border-blue-300' : 'border-gray-200'}
       `}>
         {/* Header section with drag and drop functionality */}
         <div
@@ -235,8 +235,8 @@ export const DraggableCapability: React.FC<Props> = ({
           className={`
             relative rounded
             ${isDragging ? 'opacity-50 dragging' : 'opacity-100'}
-            ${isLocked ? 'bg-red-50 cursor-not-allowed' : 'bg-white cursor-grab hover:bg-gray-50'}
-            ${isLocked ? 'shake-animation' : ''}
+            ${isLockedByOthers ? 'bg-red-50 cursor-not-allowed' : isLockedByMe ? 'bg-blue-50 cursor-grab hover:bg-blue-100' : 'bg-white cursor-grab hover:bg-gray-50'}
+            ${isLockedByOthers ? 'shake-animation' : ''}
             ${isOver && currentDropTarget?.capabilityId === capability.id ? 
               canDrop ? `drop-target-${currentDropTarget.type} active` : 'drop-target-locked' : ''}
           `}
@@ -261,7 +261,7 @@ export const DraggableCapability: React.FC<Props> = ({
                 />
               </svg>
             </button>
-            <div className={`text-gray-400 ml-0.5 ${isLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}>
+            <div className={`text-gray-400 ml-0.5 ${isLockedByOthers ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
               </svg>
@@ -273,8 +273,8 @@ export const DraggableCapability: React.FC<Props> = ({
               {capability.name}
             </h3>
             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              {isLocked && (
-                <span className="text-xs text-red-500">
+              {(isLockedByMe || isLockedByOthers) && (
+                <span className={`text-xs ${isLockedByOthers ? 'text-red-500' : 'text-blue-500'}`}>
                   {directLockingUser ? 
                     `Locked by ${directLockingUser.nickname}` : 
                     `Locked by ancestor (${effectiveLockingUser?.nickname})`}
@@ -335,7 +335,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={Boolean(isLocked)}
+                disabled={Boolean(isLockedByOthers)}
                 title="Copy"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
