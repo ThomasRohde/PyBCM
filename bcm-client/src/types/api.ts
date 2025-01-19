@@ -45,3 +45,7 @@ export interface PromptUpdate {
   capability_id: number;
   prompt_type: 'first-level' | 'expansion';
 }
+
+export interface CapabilityContextResponse {
+  rendered_context: string;
+}

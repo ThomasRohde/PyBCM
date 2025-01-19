@@ -178,16 +178,48 @@ async def get_capability(
         "parent_id": result.parent_id
     }
 
-@app.get("/capabilities/{capability_id}/context", response_model=dict)
-async def get_capability_context(
+@app.get("/capabilities/{capability_id}/context")
+async def get_capability_context_endpoint(
     capability_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a capability's context (parent and children)."""
-    result = await db_ops.get_capability_with_children(capability_id)
-    if not result:
+    """Get a capability's context rendered in template format for clipboard."""
+    from bcm.utils import get_capability_context, jinja_env
+    from bcm.settings import Settings
+
+    # Get capability info
+    capability = await db_ops.get_capability(capability_id, db)
+    if not capability:
         raise HTTPException(status_code=404, detail="Capability not found")
-    return result
+
+    # Get context
+    context = await get_capability_context(db_ops, capability_id)
+    if not context:
+        raise HTTPException(status_code=404, detail="Context not found")
+
+    # Get settings
+    settings = Settings()
+
+    # Determine if this is a first-level capability
+    is_first_level = not capability.parent_id
+
+    # Render appropriate template
+    if is_first_level:
+        template = jinja_env.get_template(settings.get("first_level_template"))
+        rendered_context = template.render(
+            organisation_name=capability.name,
+            organisation_description=capability.description or f"An organization focused on {capability.name}",
+            first_level=settings.get("first_level_range")
+        )
+    else:
+        template = jinja_env.get_template(settings.get("normal_template"))
+        rendered_context = template.render(
+            capability_name=capability.name,
+            context=context,
+            max_capabilities=settings.get("max_ai_capabilities")
+        )
+
+    return {"rendered_context": rendered_context}
 
 @app.put("/capabilities/{capability_id}", response_model=dict)
 async def update_capability(

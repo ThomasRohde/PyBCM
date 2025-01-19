@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { ApiClient } from '../api/client';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { useApp } from '../contexts/AppContext';
 import type { Capability } from '../types/api';
@@ -47,10 +49,10 @@ export const DraggableCapability: React.FC<Props> = ({
     userSession, 
     moveCapability, 
     activeUsers, 
-    createCapability, 
     deleteCapability,
     currentDropTarget,
-    setCurrentDropTarget 
+    setCurrentDropTarget,
+    pasteCapability
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -231,8 +233,16 @@ export const DraggableCapability: React.FC<Props> = ({
                 </svg>
               </button>
               <button
-                onClick={() => {
-                  copiedCapability = capability;
+                onClick={async () => {
+                  try {
+                    const context = await ApiClient.getCapabilityContext(capability.id);
+                    await navigator.clipboard.writeText(context.rendered_context);
+                    copiedCapability = capability;
+                    toast.success('Capability context copied to clipboard');
+                  } catch (error) {
+                    console.error('Failed to copy capability context:', error);
+                    toast.error('Failed to copy capability context');
+                  }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
                 disabled={isLocked}
@@ -245,7 +255,7 @@ export const DraggableCapability: React.FC<Props> = ({
               <button
                 onClick={async () => {
                   if (copiedCapability) {
-                    await createCapability(copiedCapability.name, capability.id);
+                    await pasteCapability(copiedCapability.id, capability.id);
                   }
                 }}
                 className="p-0.5 text-gray-400 hover:text-gray-600"

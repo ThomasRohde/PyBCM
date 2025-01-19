@@ -7,7 +7,8 @@ import type {
   CapabilityUpdate,
   CapabilityMove,
   CapabilityPaste,
-  PromptUpdate 
+  PromptUpdate,
+  CapabilityContextResponse
 } from '../types/api';
 
 const BASE_URL = 'http://127.0.0.1:8080'; // We'll make this configurable later
@@ -105,8 +106,8 @@ export const ApiClient = {
     return response.data;
   },
 
-  getCapabilityContext: async (capabilityId: number): Promise<Capability> => {
-    const response = await api.get<Capability>(`/capabilities/${capabilityId}/context`);
+  getCapabilityContext: async (capabilityId: number): Promise<CapabilityContextResponse> => {
+    const response = await api.get<CapabilityContextResponse>(`/capabilities/${capabilityId}/context`);
     return response.data;
   },
 
