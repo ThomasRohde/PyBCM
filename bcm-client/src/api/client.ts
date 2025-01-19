@@ -63,6 +63,11 @@ class WebSocketManager {
   onModelChange(callback: (user: string, action: string) => void) {
     this.onModelChangeCallbacks.add(callback);
     return () => this.onModelChangeCallbacks.delete(callback);
+  }
+
+  private notifyModelChange(user: string, action: string) {
+    this.onModelChangeCallbacks.forEach(callback => callback(user, action));
+  }
 }
 
 export const wsManager = new WebSocketManager();
@@ -171,5 +176,5 @@ export const ApiClient = {
     
     const response = await api.get<Capability[]>(`/api/capabilities?${params.toString()}`);
     return response.data;
-  },
+  }
 };
