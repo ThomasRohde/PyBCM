@@ -43,8 +43,8 @@ const findLockedAncestor = (
   capabilities: Capability[], 
   parentId: number | null, 
   activeUsers: { session_id: string; nickname: string; locked_capabilities: number[]; }[],
-  currentUserId?: string
-): { userId: string; nickname: string } | null => {
+  currentUserNickname?: string
+): { nickname: string } | null => {
   if (!parentId) return null;
   
   const parent = capabilities.find(c => c.id === parentId);
@@ -53,14 +53,14 @@ const findLockedAncestor = (
   // Check if parent is locked by another user
   const lockingUser = activeUsers.find(user => 
     user.locked_capabilities.includes(parent.id) && 
-    user.session_id !== currentUserId
+    user.nickname !== currentUserNickname
   );
   if (lockingUser) {
-    return { userId: lockingUser.session_id, nickname: lockingUser.nickname };
+    return { nickname: lockingUser.nickname };
   }
 
   // Recursively check parent's parent
-  return findLockedAncestor(capabilities, parent.parent_id, activeUsers, currentUserId);
+  return findLockedAncestor(capabilities, parent.parent_id, activeUsers, currentUserNickname);
 };
 
 export const DraggableCapability: React.FC<Props> = ({
@@ -85,10 +85,10 @@ export const DraggableCapability: React.FC<Props> = ({
   const directLockingUser = activeUsers.find(u => 
     u.locked_capabilities.includes(capability.id)
   );
-  const ancestorLock = findLockedAncestor(capabilities, parentId, activeUsers, userSession?.session_id);
+  const ancestorLock = findLockedAncestor(capabilities, parentId, activeUsers, userSession?.nickname);
 
-  const isLockedByMe = userSession && directLockingUser?.session_id === userSession.session_id;
-  const isLockedByOthers = (directLockingUser && directLockingUser.session_id !== userSession?.session_id) || 
+  const isLockedByMe = userSession && directLockingUser?.nickname === userSession.nickname;
+  const isLockedByOthers = (directLockingUser && directLockingUser.nickname !== userSession?.nickname) || 
     ancestorLock !== null;
 
   const isLocked = isLockedByMe || isLockedByOthers;
@@ -285,9 +285,9 @@ export const DraggableCapability: React.FC<Props> = ({
                   if (!userSession) return;
                   try {
                     if (isLockedByMe) {
-                      await ApiClient.unlockCapability(capability.id, userSession.session_id);
+                      await ApiClient.unlockCapability(capability.id, userSession.nickname);
                     } else {
-                      await ApiClient.lockCapability(capability.id, userSession.session_id);
+                      await ApiClient.lockCapability(capability.id, userSession.nickname);
                     }
                   } catch (error) {
                     console.error('Failed to toggle lock:', error);
@@ -323,7 +323,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   try {
                     console.log('Copying capability:', capability.id);
                     // Lock the capability before copying
-                    await ApiClient.lockCapability(capability.id, userSession.session_id);
+                    await ApiClient.lockCapability(capability.id, userSession.nickname);
                     const context = await ApiClient.getCapabilityContext(capability.id);
                     await navigator.clipboard.writeText(context.rendered_context);
                     copiedCapability = capability;
@@ -349,7 +349,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   try {
                     // Unlock the capability before pasting
                     if (isLockedByMe) {
-                      await ApiClient.unlockCapability(capability.id, userSession.session_id);
+                      await ApiClient.unlockCapability(capability.id, userSession.nickname);
                     }
                     const clipboardText = await navigator.clipboard.readText();
                     console.log('Clipboard content:', clipboardText);
@@ -383,7 +383,7 @@ export const DraggableCapability: React.FC<Props> = ({
                           name: cap.name,
                           description: cap.description,
                           parent_id: parentId
-                        }, userSession?.session_id || '');
+                        }, userSession?.nickname || '');
                         if (cap.children?.length) {
                           await createCapabilityTree(cap.children, newCap.id);
                         }

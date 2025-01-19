@@ -89,12 +89,12 @@ export const ApiClient = {
   },
 
   // Capability locking
-  lockCapability: async (capabilityId: number, sessionId: string): Promise<void> => {
-    await api.post(`/api/capabilities/lock/${capabilityId}?session_id=${sessionId}`);
+  lockCapability: async (capabilityId: number, nickname: string): Promise<void> => {
+    await api.post(`/api/capabilities/lock/${capabilityId}?nickname=${nickname}`);
   },
 
-  unlockCapability: async (capabilityId: number, sessionId: string): Promise<void> => {
-    await api.post(`/api/capabilities/unlock/${capabilityId}?session_id=${sessionId}`);
+  unlockCapability: async (capabilityId: number, nickname: string): Promise<void> => {
+    await api.post(`/api/capabilities/unlock/${capabilityId}?nickname=${nickname}`);
   },
 
   // Capability CRUD operations

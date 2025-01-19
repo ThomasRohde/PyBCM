@@ -131,30 +131,34 @@ async def remove_user_session(session_id: str):
     return {"message": "Session removed"}
 
 @api_app.post("/capabilities/lock/{capability_id}")
-async def lock_capability(capability_id: int, session_id: str):
+async def lock_capability(capability_id: int, nickname: str):
     """Lock a capability for editing."""
-    if session_id not in active_users:
-        raise HTTPException(status_code=404, detail="Session not found")
+    # Find user by nickname
+    user_session = next((session for session in active_users.values() if session["nickname"] == nickname), None)
+    if not user_session:
+        raise HTTPException(status_code=404, detail="User not found")
     
     # Check if capability is already locked
     for user in active_users.values():
         if capability_id in user["locked_capabilities"]:
             raise HTTPException(status_code=409, detail="Capability is already locked")
     
-    active_users[session_id]["locked_capabilities"].append(capability_id)
+    user_session["locked_capabilities"].append(capability_id)
     return {"message": "Capability locked"}
 
 @api_app.post("/capabilities/unlock/{capability_id}")
-async def unlock_capability(capability_id: int, session_id: str):
+async def unlock_capability(capability_id: int, nickname: str):
     """Unlock a capability."""
-    if session_id not in active_users:
-        raise HTTPException(status_code=404, detail="Session not found")
+    # Find user by nickname
+    user_session = next((session for session in active_users.values() if session["nickname"] == nickname), None)
+    if not user_session:
+        raise HTTPException(status_code=404, detail="User not found")
     
-    if capability_id in active_users[session_id]["locked_capabilities"]:
-        active_users[session_id]["locked_capabilities"].remove(capability_id)
+    if capability_id in user_session["locked_capabilities"]:
+        user_session["locked_capabilities"].remove(capability_id)
         return {"message": "Capability unlocked"}
     
-    raise HTTPException(status_code=404, detail="Capability not locked by this session")
+    raise HTTPException(status_code=404, detail="Capability not locked by this user")
 
 @api_app.post("/capabilities", response_model=dict)
 async def create_capability(
@@ -250,8 +254,9 @@ async def update_capability(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Check if capability is locked by another user
-    for user_id, user in active_users.items():
-        if capability_id in user["locked_capabilities"] and user_id != session_id:
+    current_user = active_users[session_id]
+    for user in active_users.values():
+        if capability_id in user["locked_capabilities"] and user["nickname"] != current_user["nickname"]:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
     result = await db_ops.update_capability(capability_id, capability, db)
@@ -280,8 +285,9 @@ async def delete_capability(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Check if capability is locked by another user
-    for user_id, user in active_users.items():
-        if capability_id in user["locked_capabilities"] and user_id != session_id:
+    current_user = active_users[session_id]
+    for user in active_users.values():
+        if capability_id in user["locked_capabilities"] and user["nickname"] != current_user["nickname"]:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
     # Get capability name before deletion
@@ -311,8 +317,9 @@ async def move_capability(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Check if capability is locked by another user
-    for user_id, user in active_users.items():
-        if capability_id in user["locked_capabilities"] and user_id != session_id:
+    current_user = active_users[session_id]
+    for user in active_users.values():
+        if capability_id in user["locked_capabilities"] and user["nickname"] != current_user["nickname"]:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
     # Get capability name before move
@@ -346,8 +353,9 @@ async def update_description(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Check if capability is locked by another user
-    for user_id, user in active_users.items():
-        if capability_id in user["locked_capabilities"] and user_id != session_id:
+    current_user = active_users[session_id]
+    for user in active_users.values():
+        if capability_id in user["locked_capabilities"] and user["nickname"] != current_user["nickname"]:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
     result = await db_ops.save_description(capability_id, description)
@@ -366,8 +374,9 @@ async def update_prompt(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Check if capability is locked by another user
-    for user_id, user in active_users.items():
-        if capability_id in user["locked_capabilities"] and user_id != session_id:
+    current_user = active_users[session_id]
+    for user in active_users.values():
+        if capability_id in user["locked_capabilities"] and user["nickname"] != current_user["nickname"]:
             raise HTTPException(status_code=409, detail="Capability is locked by another user")
     
     # In a real implementation, this would update the prompt in a database
