@@ -8,12 +8,13 @@ import type { Capability } from '../types/api';
 
 interface EditModalProps {
   capability?: Capability;
-  onSave: (name: string) => void;
+  onSave: (name: string, description: string | null) => void;
   onClose: () => void;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) => {
   const [name, setName] = useState(capability?.name || '');
+  const [description, setDescription] = useState(capability?.description || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +23,7 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
     
     setIsSaving(true);
     try {
-      await onSave(name);
+      await onSave(name, description || null);
     } catch (error) {
       console.error('Failed to save capability:', error);
     } finally {
@@ -37,17 +38,30 @@ const EditModal: React.FC<EditModalProps> = ({ capability, onSave, onClose }) =>
           {capability ? 'Edit Capability' : 'New Capability'}
         </h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                rows={3}
+              />
+            </div>
           </div>
           <div className="flex justify-end space-x-2">
             <button
@@ -80,10 +94,10 @@ export const CapabilityTree: React.FC = () => {
     setEditingCapability(capability);
   };
 
-  const handleSave = async (name: string) => {
+  const handleSave = async (name: string, description: string | null) => {
     try {
       if (editingCapability) {
-        await updateCapability(editingCapability.id, name);
+        await updateCapability(editingCapability.id, name, description);
         setEditingCapability(undefined);
       } else {
         await createCapability(name);

@@ -206,8 +206,13 @@ export const DraggableCapability: React.FC<Props> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
               </svg>
             </div>
-            <h3 className="font-medium text-gray-900 ml-2">{capability.name}</h3>
-            <div className="flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <h3 
+              className="flex-1 font-medium text-gray-900 ml-2" 
+              title={!isDragging && capability.description ? capability.description : undefined}
+            >
+              {capability.name}
+            </h3>
+            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {isLocked && (
                 <span className="text-xs text-red-500">
                   Locked by {activeUsers.find(u => 
