@@ -55,10 +55,20 @@ export const DraggableCapability: React.FC<Props> = ({
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const isLocked = activeUsers.some(user => 
+  const isLockedByMe = userSession && activeUsers.some(user => 
     user.locked_capabilities.includes(capability.id) && 
+    user.session_id === userSession.session_id
+  );
+
+  const isLockedByOthers = activeUsers.some(user => 
+    (user.locked_capabilities.includes(capability.id) || 
+     (parentId && user.locked_capabilities.includes(parentId))) && 
     user.session_id !== userSession?.session_id
   );
+
+  const isLocked = isLockedByMe || isLockedByOthers;
+
+  const lockingUser = activeUsers.find(u => u.locked_capabilities.includes(capability.id));
 
   const [{ isDragging }, drag] = useDrag({
     type: 'CAPABILITY',
@@ -86,7 +96,7 @@ export const DraggableCapability: React.FC<Props> = ({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    canDrag: !isLocked,
+    canDrag: !isLockedByMe && !isLockedByOthers,
     end: (_, monitor) => {
       if (!monitor.didDrop()) {
         if (isLocked) {
@@ -109,12 +119,23 @@ export const DraggableCapability: React.FC<Props> = ({
       // Prevent dropping on self or descendants
       if (item.id === capability.id) return false;
       if (isDescendantOf(item.capability, capability.id)) return false;
+      
+      // Check if the dragged item is locked or its parent is locked
+      const isDraggedItemLocked = activeUsers.some(user => 
+        user.locked_capabilities.includes(item.id)
+      );
+      if (isDraggedItemLocked) return false;
+      
+      // Check if this capability is locked
+      if (isLocked) return false;
+      
       return true;
     },
     hover: (item: DragItem, monitor: DropTargetMonitor) => {
       if (!monitor.isOver({ shallow: true })) return;
       if (!ref.current || item.id === capability.id) return;
       if (isDescendantOf(item.capability, capability.id)) return;
+      if (isLocked) return;
 
       // Always treat drops as child operations
       const newDropTarget = {
@@ -129,6 +150,15 @@ export const DraggableCapability: React.FC<Props> = ({
     },
     drop: (item: DragItem) => {
       if (!currentDropTarget) return { moved: false };
+      
+      // Check if either item is locked
+      const isDraggedItemLocked = activeUsers.some(user => 
+        user.locked_capabilities.includes(item.id)
+      );
+      if (isDraggedItemLocked || isLocked) {
+        toast.error('Cannot move locked capabilities');
+        return { moved: false };
+      }
 
       // Always make the dropped item a child of the target
       const targetPosition = {
@@ -144,6 +174,7 @@ export const DraggableCapability: React.FC<Props> = ({
         })
         .catch(error => {
           console.error('Failed to move capability:', error);
+          toast.error('Cannot move capability - target is locked');
         });
 
       // Return synchronously - the actual move will happen asynchronously
@@ -159,10 +190,12 @@ export const DraggableCapability: React.FC<Props> = ({
 
   return (
     <div className="relative">
-      {isOver && canDrop && currentDropTarget?.capabilityId === capability.id && (
+      {isOver && currentDropTarget?.capabilityId === capability.id && (
         <div className="absolute top-0 left-0 w-full flex items-center justify-center pointer-events-none z-10">
-          <span className="text-sm font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded">
-            Drop as Child
+          <span className={`text-sm font-bold px-2 py-1 rounded ${canDrop ? 
+            'text-gray-700 bg-gray-200' : 
+            'text-red-700 bg-red-100'}`}>
+            {canDrop ? 'Drop as Child' : 'Cannot Drop - Locked'}
           </span>
         </div>
       )}
@@ -178,8 +211,8 @@ export const DraggableCapability: React.FC<Props> = ({
             ${isDragging ? 'opacity-50 dragging' : 'opacity-100'}
             ${isLocked ? 'bg-red-50 cursor-not-allowed' : 'bg-white cursor-grab hover:bg-gray-50'}
             ${isLocked ? 'shake-animation' : ''}
-            ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id ? 
-              `drop-target-${currentDropTarget.type} active` : ''}
+            ${isOver && currentDropTarget?.capabilityId === capability.id ? 
+              canDrop ? `drop-target-${currentDropTarget.type} active` : 'drop-target-locked' : ''}
           `}
           style={{
             willChange: isDragging ? 'transform, opacity' : undefined,
@@ -216,15 +249,40 @@ export const DraggableCapability: React.FC<Props> = ({
             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {isLocked && (
                 <span className="text-xs text-red-500">
-                  Locked by {activeUsers.find(u => 
-                    u.locked_capabilities.includes(capability.id)
-                  )?.nickname}
+                  Locked by {lockingUser?.nickname}
                 </span>
               )}
               <button
+                onClick={async () => {
+                  if (!userSession) return;
+                  try {
+                    if (isLockedByMe) {
+                      await ApiClient.unlockCapability(capability.id, userSession.session_id);
+                    } else {
+                      await ApiClient.lockCapability(capability.id, userSession.session_id);
+                    }
+                  } catch (error) {
+                    console.error('Failed to toggle lock:', error);
+                    toast.error('Failed to toggle lock');
+                  }
+                }}
+                className={`p-0.5 ${isLockedByOthers ? 'text-red-500' : isLockedByMe ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+                disabled={isLockedByOthers}
+                title={isLockedByOthers ? `Locked by ${lockingUser?.nickname}` : isLockedByMe ? 'Unlock' : 'Lock'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d={isLockedByMe || isLockedByOthers ? 
+                      "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" : 
+                      "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                    }
+                  />
+                </svg>
+              </button>
+              <button
                 onClick={() => onEdit(capability)}
                 className="p-0.5 text-gray-400 hover:text-gray-600"
-                disabled={isLocked}
+                disabled={isLockedByOthers}
                 title="Edit"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -233,8 +291,11 @@ export const DraggableCapability: React.FC<Props> = ({
               </button>
               <button
                 onClick={async () => {
+                  if (!userSession) return;
                   try {
                     console.log('Copying capability:', capability.id);
+                    // Lock the capability before copying
+                    await ApiClient.lockCapability(capability.id, userSession.session_id);
                     const context = await ApiClient.getCapabilityContext(capability.id);
                     await navigator.clipboard.writeText(context.rendered_context);
                     copiedCapability = capability;
@@ -255,8 +316,13 @@ export const DraggableCapability: React.FC<Props> = ({
               </button>
               <button
                 onClick={async () => {
+                  if (!userSession) return;
                   console.log('Paste button clicked');
                   try {
+                    // Unlock the capability before pasting
+                    if (isLockedByMe) {
+                      await ApiClient.unlockCapability(capability.id, userSession.session_id);
+                    }
                     const clipboardText = await navigator.clipboard.readText();
                     console.log('Clipboard content:', clipboardText);
                     let capabilities: Array<{

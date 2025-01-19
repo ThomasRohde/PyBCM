@@ -15,6 +15,8 @@ export interface Capability {
   parent_id: number | null;
   order_position?: number;
   children?: Capability[];
+  locked_by?: string | null;  // Nickname of user who locked the capability
+  is_locked?: boolean;        // Whether the capability is locked
 }
 
 export interface CapabilityCreate {
