@@ -111,76 +111,39 @@ export const DraggableCapability: React.FC<Props> = ({
       return true;
     },
   hover: (item: DragItem, monitor: DropTargetMonitor) => {
+      if (!monitor.isOver({ shallow: true })) return;
       if (!ref.current || item.id === capability.id) return;
       if (isDescendantOf(item.capability, capability.id)) return;
-      
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const clientOffset = monitor.getClientOffset();
-      if (!clientOffset) return;
 
-      // Calculate position relative to the container
-      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-      const hoverClientX = clientOffset.x - hoverBoundingRect.left;
-      
-      const height = hoverBoundingRect.bottom - hoverBoundingRect.top;
-      const width = hoverBoundingRect.right - hoverBoundingRect.left;
-      
-      // Define drop zones with clear boundaries
-      const isTopEdge = hoverClientY < height * 0.15; // Reduced top edge
-      const isBottomEdge = hoverClientY > height * 0.85; // Reduced bottom edge
-      const isLeftEdge = hoverClientX < width * 0.15; // Reduced left edge
+      const newDropTarget = {
+        capabilityId: capability.id,
+        type: 'child' as const
+      };
 
-      // Determine drop target
-      let newDropTarget = null;
-
-      // By default, dropping on a capability makes it a child
-      if (!isTopEdge && !isBottomEdge && !isLeftEdge) {
-        // Drop as child - this is the primary target that should be green
-        newDropTarget = {
-          capabilityId: capability.id,
-          type: 'child' as const
-        };
-      } else if (isLeftEdge && !isTopEdge && !isBottomEdge) {
-        // Drop as sibling only when precisely on the left edge
-        newDropTarget = {
-          capabilityId: capability.id,
-          type: 'sibling' as const,
-          position: index
-        };
-      } else if (isTopEdge && index > 0) {
-        // Drop between items, before current
-        newDropTarget = {
-          capabilityId: capability.id,
-          type: 'between' as const,
-          position: index
-        };
-      } else if (isBottomEdge) {
-        // Drop between items, after current
-        newDropTarget = {
-          capabilityId: capability.id,
-          type: 'between' as const,
-          position: index + 1
-        };
-      }
-
-      // Only update if there's a change to avoid unnecessary re-renders
-      if (newDropTarget && 
-          (!currentDropTarget || 
-           currentDropTarget.capabilityId !== newDropTarget.capabilityId ||
-           currentDropTarget.type !== newDropTarget.type ||
-           currentDropTarget.position !== newDropTarget.position)) {
+      if (!currentDropTarget || currentDropTarget.capabilityId !== newDropTarget.capabilityId) {
         setCurrentDropTarget(newDropTarget);
       }
     },
-    drop: (item: DragItem) => {
-      if (currentDropTarget) {
-        const targetPosition = currentDropTarget.type === 'child' 
-          ? { targetIndex: capability.children?.length || 0, targetParentId: capability.id }
-          : { targetIndex: currentDropTarget.position || 0, targetParentId: parentId };
-          
-        moveCapability(item.id, targetPosition.targetParentId, targetPosition.targetIndex)
-          .catch(error => console.error('Failed to move capability:', error));
-      }
+  drop: (item: DragItem) => {
+      if (!currentDropTarget) return { moved: false };
+
+      // Always make the dropped item a child of the target
+      const targetPosition = {
+        targetParentId: capability.id,
+        targetIndex: capability.children?.length || 0
+      };
+
+      // If dropping on same parent, still allow it but place at end
+      // This enables re-attaching to same parent if desired
+      moveCapability(item.id, targetPosition.targetParentId, targetPosition.targetIndex)
+        .then(() => {
+          // Success is handled by the context refreshing the tree
+        })
+        .catch(error => {
+          console.error('Failed to move capability:', error);
+        });
+
+      // Return synchronously - the actual move will happen asynchronously
       return { moved: true };
     },
     collect: (monitor) => ({
@@ -195,21 +158,17 @@ export const DraggableCapability: React.FC<Props> = ({
     <div
       ref={ref}
       className={`
-        py-1.5 px-2 mb-1 rounded-lg border relative
-        ${isDragging ? 'opacity-50 scale-[1.02] shadow-lg' : 'opacity-100 scale-100'}
-        ${isLocked ? 'border-red-300 bg-red-50 cursor-not-allowed' : 'border-gray-200 bg-white cursor-grab active:cursor-grabbing hover:border-blue-300'}
-        transition-all duration-200 ease-in-out
+        py-1.5 px-2 mb-1 rounded-lg border relative capability-container capability-transition
+        ${isDragging ? 'opacity-50 dragging' : 'opacity-100'}
+        ${isLocked ? 'border-red-300 bg-red-50 cursor-not-allowed' : 'border-gray-200 bg-white cursor-grab hover:border-blue-300'}
         ${isLocked ? 'shake-animation' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id ? 'ring-2 ring-offset-1' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'sibling' ? 'ring-blue-300 before:absolute before:left-0 before:w-0.5 before:h-full before:bg-blue-300 before:-ml-1.5' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'child' ? 'ring-green-500 bg-green-50 scale-[1.02] shadow-lg' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' ? 'ring-purple-300' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' && currentDropTarget.position === index ? 'before:absolute before:left-0 before:w-full before:h-0.5 before:bg-purple-300 before:-mt-1' : ''}
-        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id && currentDropTarget.type === 'between' && currentDropTarget.position === index + 1 ? 'after:absolute after:left-0 after:bottom-0 after:w-full after:h-0.5 after:bg-purple-300 after:-mb-1' : ''}
+        ${isOver && canDrop && currentDropTarget?.capabilityId === capability.id ? 
+          `drop-target-${currentDropTarget.type} active` : ''}
       `}
       style={{
-        willChange: 'transform, opacity, border-color',
-        pointerEvents: isDragging ? 'none' : 'auto', // Disable pointer events while dragging
+        willChange: isDragging ? 'transform, opacity' : undefined,
+        transform: isDragging ? 'translate3d(0,0,0)' : undefined,
+        pointerEvents: isDragging ? 'none' : 'auto'
       }}
     >
       <div className="flex items-center group">
