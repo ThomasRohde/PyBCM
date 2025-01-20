@@ -19,23 +19,65 @@ from bcm.models import (
 from bcm.database import DatabaseOperations
 import uuid
 
+def get_all_ipv4_addresses():
+    """Get all available IPv4 addresses including VPN."""
+    ip_addresses = []
+    try:
+        # Get all network interfaces
+        interfaces = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)  # AF_INET for IPv4 only
+        for interface in interfaces:
+            ip = interface[4][0]
+            # Only include IPv4 addresses and exclude localhost
+            if ip and not ip.startswith('127.'):
+                ip_addresses.append(ip)
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(ip_addresses))
+    except Exception:
+        # Fallback to basic hostname resolution
+        try:
+            return [socket.gethostbyname(socket.gethostname())]
+        except Exception:
+            return ['127.0.0.1']  # Last resort fallback
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
-    # Startup: Display and copy network URL
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    port = 8080
+    # Get port from uvicorn command arguments
+    import sys
+    port = 8080  # Default port
     
-    # Create the full HTTP URL
-    url = f"http://{local_ip}:{port}"
+    # Check if running with uvicorn CLI
+    if 'uvicorn' in sys.argv[0]:
+        try:
+            # Find --port argument
+            port_index = sys.argv.index('--port') + 1
+            if port_index < len(sys.argv):
+                port = int(sys.argv[port_index])
+        except (ValueError, IndexError):
+            pass
     
-    print(f"\nLocal network URL: {url}")
-    print("Share this URL with other users on your local network to access the application")
+    # Get all available IPv4 addresses
+    ip_addresses = get_all_ipv4_addresses()
     
-    # Copy URL to clipboard
-    pyperclip.copy(url)
-    print("URL copied to clipboard!")
+    print("\nAvailable network URLs:")
+    urls = [f"http://{ip}:{port}" for ip in ip_addresses]
+    
+    for url in urls:
+        print(f"- {url}")
+    
+    print("\nShare any of these URLs with other users to access the application")
+    
+    # Find the best URL to copy to clipboard
+    # Prefer non-192.* addresses first
+    preferred_urls = [url for url in urls if not url.startswith('http://192.')]
+    fallback_urls = [url for url in urls if url.startswith('http://192.')]
+    
+    if preferred_urls:
+        pyperclip.copy(preferred_urls[0])
+        print("First non-192.* URL copied to clipboard!")
+    elif fallback_urls:
+        pyperclip.copy(fallback_urls[0])
+        print("Local network URL copied to clipboard (no VPN/external IPs found)")
     
     yield  # Server is running
     # Shutdown: Nothing to clean up
@@ -459,11 +501,25 @@ async def get_capabilities(
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
+
+    # Default port
+    port = 8080
+
+    # Check for port argument
+    if len(sys.argv) > 1:
+        try:
+            port = int(sys.argv[1])
+        except ValueError:
+            print(f"Invalid port number: {sys.argv[1]}")
+            sys.exit(1)
+
     try:
-        print("Starting server on port 8080")
-        uvicorn.run(app, host="0.0.0.0", port=8080)
+        # Store the port in app state for lifespan to access
+        app.state.port = port
+        print(f"Starting server on port {port}")
+        uvicorn.run(app, host="0.0.0.0", port=port)
     except OSError as e:
-        print("ERROR: Could not start server on port 8080 - port is already in use.")
+        print(f"ERROR: Could not start server on port {port} - port is already in use.")
         print("Please ensure no other instance of the server is running and try again.")
-        import sys
         sys.exit(1)
