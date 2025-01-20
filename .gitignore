@@ -45,4 +45,4 @@ Thumbs.db
 .aider*
 
 # bcm client
-bcm/static/client/*
+bcm/static/client/assets/
