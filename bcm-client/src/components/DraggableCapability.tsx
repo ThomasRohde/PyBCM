@@ -271,18 +271,28 @@ export const DraggableCapability: React.FC<Props> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
                 </svg>
               </div>
-              <h3 
-                className={`flex-1 font-medium text-gray-900 ml-2 ${isEffectivelyLocked ? 'cursor-not-allowed pointer-events-none' : ''}`}
-                title={!isDragging && capability.description ? capability.description : undefined}
-              >
-                {capability.name}
-              </h3>
+              <div className="flex-1 flex items-center">
+                <h3 
+                  className={`font-medium text-gray-900 ml-2 ${isEffectivelyLocked ? 'cursor-not-allowed pointer-events-none' : ''}`}
+                  title={!isDragging && capability.description ? capability.description : undefined}
+                >
+                  {capability.name}
+                </h3>
+                {directLockingUser && (
+                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    {directLockingUser.nickname}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                {(isLockedByMe || isEffectivelyLocked) && (
-                  <span className={`text-xs ${isEffectivelyLocked ? 'text-red-500' : 'text-blue-500'}`}>
-                    {isLockedByMe ? 'Locked by you' : 
-                     isLockedByOthers ? `Locked by ${directLockingUser?.nickname}` :
-                     `Parent locked by ${effectiveLockingUser?.nickname}`}
+                {isLockedByMe && (
+                  <span className="text-xs text-blue-500">
+                    Locked by you
+                  </span>
+                )}
+                {!directLockingUser && isEffectivelyLocked && (
+                  <span className="text-xs text-red-500">
+                    Parent locked by {effectiveLockingUser?.nickname}
                   </span>
                 )}
                 <button
