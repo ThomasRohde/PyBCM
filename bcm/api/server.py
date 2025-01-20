@@ -182,6 +182,9 @@ class PromptUpdate(BaseModel):
     capability_id: int
     prompt_type: str = Field(..., pattern="^(first-level|expansion)$")
 
+class ImportData(BaseModel):
+    data: List[dict]
+
 @api_app.post("/users", response_model=UserSession)
 async def create_user_session(user: User):
     """Create a new user session."""
@@ -264,6 +267,42 @@ async def create_capability(
         "description": result.description,
         "parent_id": result.parent_id
     }
+
+@api_app.post("/capabilities/import")
+async def import_capabilities(
+    import_data: ImportData,
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Import capabilities from JSON data."""
+    if session_id not in active_users:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    try:
+        await db_ops.import_capabilities(import_data.data)
+        # Notify all clients about model change
+        await manager.broadcast_model_change(
+            active_users[session_id]["nickname"],
+            "imported capabilities"
+        )
+        return {"message": "Capabilities imported successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_app.get("/capabilities/export")
+async def export_capabilities(
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Export capabilities to JSON."""
+    if session_id not in active_users:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    try:
+        data = await db_ops.export_capabilities()
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_app.get("/capabilities/{capability_id}", response_model=dict)
 async def get_capability(
