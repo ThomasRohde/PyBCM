@@ -43,3 +43,7 @@ db.json
 .DS_Store
 Thumbs.db
 .aider*
+
+# bcm client
+bcm/static/client/assets/
+bcm/api/client/

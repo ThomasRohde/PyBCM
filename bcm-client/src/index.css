@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optimize drag performance */
+.dragging {
+  cursor: grabbing !important;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  will-change: transform;
+  transform: translate3d(0,0,0);
+  transition: none !important;
+}
+
+/* Prevent layout shifts during drag */
+.capability-container {
+  contain: layout style paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth transitions for non-drag states */
+.capability-transition {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable pointer events on children while dragging */
+.dragging * {
+  pointer-events: none !important;
+}
+
+/* Shake animation for locked items */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.shake-animation {
+  animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Custom drag layer styles */
+.dragging-ghost {
+  @apply fixed pointer-events-none shadow-xl rounded-lg border-2 border-blue-400 bg-white opacity-90;
+  width: var(--width);
+  height: var(--height);
+  transform: translate(var(--x), var(--y)) rotate(2deg) scale(1.02);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Drop target indicator */
+.capability-container {
+  position: relative;
+  z-index: 1;
+}
+
+.drop-target-child::before {
+  content: '';
+  @apply absolute inset-0 bg-green-50 opacity-0 rounded-lg;
+  transition: opacity 0.15s ease-in-out;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.drop-target-child.active::before {
+  opacity: 1;
+}
+
+.drop-target-child.active {
+  @apply border-green-500 border-2;
+}
+
+/* Drag preview */
+.drag-preview {
+  @apply fixed pointer-events-none bg-white rounded-lg border-2 border-blue-400 shadow-xl opacity-90;
+  transform: rotate(2deg) scale(1.02);
+}
