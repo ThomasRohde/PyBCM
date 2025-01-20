@@ -13,9 +13,12 @@ from typing import Set
 from bcm.models import (
     CapabilityCreate,
     CapabilityUpdate,
+    LayoutModel,
     get_db,
     AsyncSessionLocal,
 )
+from bcm.layout_manager import process_layout
+from bcm.settings import Settings
 from bcm.database import DatabaseOperations
 import uuid
 
@@ -504,6 +507,41 @@ async def update_prompt(
     # In a real implementation, this would update the prompt in a database
     # For now, we'll just return success
     return {"message": f"{prompt_update.prompt_type} prompt updated successfully"}
+
+@api_app.get("/layout/{node_id}", response_model=LayoutModel)
+async def get_layout(
+    node_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get layouted model starting from the specified node ID."""
+    # Get hierarchical data starting from node
+    node_data = await db_ops.get_capability_with_children(node_id)
+    if not node_data:
+        raise HTTPException(status_code=404, detail="Node not found")
+    
+    # Convert to layout format
+    settings = Settings()
+    max_level = settings.get("max_level", 6)
+    
+    def convert_to_layout(node_data, level=0):
+        """Convert node and children to layout format."""
+        children = None
+        if node_data["children"] and level < max_level:
+            children = [
+                convert_to_layout(child, level + 1)
+                for child in node_data["children"]
+            ]
+        
+        return LayoutModel(
+            id=node_data["id"],
+            name=node_data["name"],
+            description=node_data.get("description", ""),
+            children=children,
+        )
+    
+    # Convert and process layout
+    layout_model = convert_to_layout(node_data)
+    return process_layout(layout_model, settings)
 
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
