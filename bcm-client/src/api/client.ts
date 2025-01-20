@@ -188,5 +188,17 @@ export const ApiClient = {
     
     const response = await api.get<Capability[]>(`/api/capabilities?${params.toString()}`);
     return response.data;
+  },
+
+  // Export/Import operations
+  exportCapabilities: async (sessionId: string): Promise<Capability[]> => {
+    const response = await api.get<Capability[]>(`/api/capabilities/export?session_id=${sessionId}`);
+    return response.data;
+  },
+
+  importCapabilities: async (data: Capability[], sessionId: string): Promise<void> => {
+    await api.post(`/api/capabilities/import?session_id=${sessionId}`, {
+      data: data
+    });
   }
 };

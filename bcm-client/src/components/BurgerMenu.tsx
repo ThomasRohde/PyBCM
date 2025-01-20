@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ApiClient } from '../api/client';
+import { useApp } from '../contexts/AppContext';
 
 export default function BurgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const { userSession } = useApp();
 
   return (
     <>
@@ -54,6 +57,65 @@ export default function BurgerMenu() {
               >
                 About
               </Link>
+            </li>
+            <li>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!userSession) return;
+                    const data = await ApiClient.exportCapabilities(userSession.session_id);
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'capabilities.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Export failed:', error);
+                    alert('Failed to export capabilities');
+                  }
+                  setIsOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+              >
+                Export Capabilities
+              </button>
+            </li>
+            <li>
+              <input
+                type="file"
+                id="import-input"
+                className="hidden"
+                accept=".json"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    try {
+                      const text = await file.text();
+                      const data = JSON.parse(text);
+                      if (!userSession) return;
+                      await ApiClient.importCapabilities(data, userSession.session_id);
+                      // Reset the input
+                      e.target.value = '';
+                    } catch (error) {
+                      console.error('Import failed:', error);
+                      alert('Failed to import capabilities');
+                    }
+                  }
+                  setIsOpen(false);
+                }}
+              />
+              <button
+                onClick={() => {
+                  document.getElementById('import-input')?.click();
+                }}
+                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+              >
+                Import Capabilities
+              </button>
             </li>
           </ul>
         </div>
