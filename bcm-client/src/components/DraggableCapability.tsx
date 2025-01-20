@@ -362,9 +362,12 @@ export const DraggableCapability: React.FC<Props> = ({
                     if (!userSession) return;
                     console.log('Paste button clicked');
                     try {
-                      // Unlock the capability before pasting
-                      if (isLockedByMe) {
-                        await ApiClient.unlockCapability(capability.id, userSession.nickname);
+                      // If not locked by me, try to lock it first
+                      if (!isLockedByMe && !isLockedByOthers) {
+                        await ApiClient.lockCapability(capability.id, userSession.nickname);
+                      } else if (isLockedByOthers) {
+                        toast.error('Cannot paste - capability is locked by another user');
+                        return;
                       }
                       const clipboardText = await navigator.clipboard.readText();
                       console.log('Clipboard content:', clipboardText);
@@ -413,7 +416,7 @@ export const DraggableCapability: React.FC<Props> = ({
                     }
                   }}
                   className="p-0.5 text-gray-400 hover:text-gray-600"
-                  disabled={Boolean(isLocked)}
+                  disabled={Boolean(isLockedByOthers)}
                   title="Paste JSON from clipboard"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
