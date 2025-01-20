@@ -254,9 +254,8 @@ export const DraggableCapability: React.FC<Props> = ({
             <div className="flex items-center group">
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0.5 text-gray-400 hover:text-gray-600"
+                className="p-0.5 text-gray-400 hover:text-gray-600 relative z-20 cursor-pointer"
                 style={{ visibility: capability.children?.length ? 'visible' : 'hidden' }}
-                disabled={isEffectivelyLocked}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
