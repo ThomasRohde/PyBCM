@@ -383,7 +383,7 @@ export const DraggableCapability: React.FC<Props> = ({
                           name: cap.name,
                           description: cap.description,
                           parent_id: parentId
-                        }, userSession?.nickname || '');
+                        }, userSession?.session_id || '');
                         if (cap.children?.length) {
                           await createCapabilityTree(cap.children, newCap.id);
                         }
