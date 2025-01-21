@@ -95,6 +95,20 @@ export const Visualize: React.FC = () => {
   }
   colorVars['--leaf-color'] = String(settings.color_leaf || '#ffffff');
 
+  // Utility function to determine if a color is light or dark
+  const getContrastColor = (hexColor: string): string => {
+    // Convert hex to RGB
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    
+    // Calculate relative luminance using sRGB
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Return black for light colors, white for dark colors
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+  };
+
   const getAllNodes = (node: LayoutModel): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     const addNode = (n: LayoutModel, level: number) => {
@@ -105,7 +119,8 @@ export const Visualize: React.FC = () => {
         return;
       }
 
-      const color = !n.children?.length ? 'var(--leaf-color)' : `var(--level-${Math.min(level, 6)}-color)`;
+      const bgColor = !n.children?.length ? String(settings.color_leaf) : String(settings[`color_${Math.min(level, 6)}` as keyof Settings]);
+      const textColor = getContrastColor(bgColor);
       const positionClass = n.children?.length ? 'has-children' : 'leaf-node';
       
       // Add children first
@@ -123,7 +138,8 @@ export const Visualize: React.FC = () => {
               top: `${n.y}px`,
               width: `${n.width}px`,
               height: `${n.height}px`,
-              backgroundColor: color,
+              backgroundColor: bgColor,
+              '--text-color': textColor,
               paddingTop: n.children?.length ? '0px' : `${settings.top_padding}px`
             } as React.CSSProperties}
             onMouseEnter={(e) => handleNodeMouseEnter(e, n.name, n.description || '')}
