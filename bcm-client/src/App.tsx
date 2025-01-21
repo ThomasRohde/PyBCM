@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import BurgerMenu from './components/BurgerMenu';
 import About from './components/About';
+import SettingsComponent from './components/Settings';
 
 const LoginScreen: React.FC = () => {
   const { login } = useApp();
@@ -99,6 +100,7 @@ const MainApp: React.FC = () => {
           <Routes>
             <Route path="/" element={<CapabilityTree />} />
             <Route path="/about" element={<About />} />
+            <Route path="/settings" element={<SettingsComponent />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

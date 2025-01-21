@@ -7,7 +7,8 @@ import type {
   CapabilityUpdate,
   CapabilityMove,
   PromptUpdate,
-  CapabilityContextResponse
+  CapabilityContextResponse,
+  Settings
 } from '../types/api';
 
 // In development, use the Vite dev server port
@@ -200,5 +201,16 @@ export const ApiClient = {
     await api.post(`/api/capabilities/import?session_id=${sessionId}`, {
       data: data
     });
+  },
+
+  // Settings operations
+  getSettings: async (): Promise<Settings> => {
+    const response = await api.get<Settings>('/api/settings');
+    return response.data;
+  },
+
+  updateSettings: async (settings: Settings): Promise<Settings> => {
+    const response = await api.put<Settings>('/api/settings', settings);
+    return response.data;
   }
 };
