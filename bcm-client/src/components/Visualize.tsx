@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import ReactDOM from 'react-dom/client';
 import { ApiClient } from '../api/client';
 import type { LayoutModel, Settings } from '../types/api';
 
@@ -34,7 +36,34 @@ export const Visualize: React.FC = () => {
       return;
     }
 
-    tooltipRef.current.textContent = `${name}: ${description}`;
+    // Clear previous content and add new markdown content
+    tooltipRef.current.innerHTML = '';
+    const titleElement = document.createElement('div');
+    titleElement.className = 'font-semibold mb-1';
+    titleElement.textContent = name;
+    tooltipRef.current.appendChild(titleElement);
+    
+    const descriptionContainer = document.createElement('div');
+    tooltipRef.current.appendChild(descriptionContainer);
+    
+    // Use ReactDOM to render the markdown component
+    const root = ReactDOM.createRoot(descriptionContainer);
+    root.render(
+      <ReactMarkdown 
+        className="markdown-content"
+        components={{
+          p: ({node, ...props}) => <p className="mb-2" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+          a: ({node, ...props}) => <a className="text-blue-300 hover:underline" {...props} />,
+          code: ({node, ...props}) => <code className="bg-black/30 px-1 rounded" {...props} />,
+        }}
+      >
+        {description}
+      </ReactMarkdown>
+    );
+    
     tooltipRef.current.style.display = 'block';
     tooltipRef.current.style.left = `${e.pageX + 10}px`;
     tooltipRef.current.style.top = `${e.pageY + 10}px`;
@@ -191,8 +220,12 @@ export const Visualize: React.FC = () => {
       </div>
       <div 
         ref={tooltipRef} 
-        className="fixed hidden bg-black/80 text-white p-2.5 rounded max-w-xs pointer-events-none" 
-        style={{ zIndex: 10000 }}
+        className="fixed hidden bg-black/80 text-white p-3 rounded-lg max-w-md pointer-events-none" 
+        style={{ 
+          zIndex: 10000,
+          maxHeight: '400px',
+          overflowY: 'auto'
+        }}
       />
     </div>
   );
