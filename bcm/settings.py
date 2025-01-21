@@ -23,10 +23,10 @@ DEFAULT_SETTINGS = {
     "font_size": 10,  # Default font size for main text content
     "model": "openai:gpt-4o",  # Default model
     # Context settings
-    "context-include-parents": True,  # Include parent nodes in context
-    "context-include-siblings": True,  # Include sibling nodes in context
-    "context-first-level": True,  # Include first level nodes in context
-    "context-tree": True,  # Include full tree structure in context
+    "context_include_parents": True,  # Include parent nodes in context
+    "context_include_siblings": True,  # Include sibling nodes in context
+    "context_first_level": True,  # Include first level nodes in context
+    "context_tree": True,  # Include full tree structure in context
     # Layout
     "layout_algorithm": "Simple - fast",  # Layout algorithm to use
     "root_font_size": 20,  # Default root font size for layout
@@ -203,10 +203,10 @@ class SettingsDialog(ttk.Toplevel):
         self.color_leaf_var.set(self.settings.get("color_leaf"))
 
         # Context settings
-        self.context_parents_var.set(self.settings.get("context-include-parents"))
-        self.context_siblings_var.set(self.settings.get("context-include-siblings"))
-        self.context_first_level_var.set(self.settings.get("context-first-level"))
-        self.context_tree_var.set(self.settings.get("context-tree"))
+        self.context_parents_var.set(self.settings.get("context_include_parents"))
+        self.context_siblings_var.set(self.settings.get("context_include_siblings"))
+        self.context_first_level_var.set(self.settings.get("context_first_level"))
+        self.context_tree_var.set(self.settings.get("context_tree"))
 
         self.position_center()
         self.deiconify()  # Show window after loading settings
@@ -755,10 +755,10 @@ class SettingsDialog(ttk.Toplevel):
         self.settings.set("model", self.model_var.get())
         
         # Context settings
-        self.settings.set("context-include-parents", bool(self.context_parents_var.get()))
-        self.settings.set("context-include-siblings", bool(self.context_siblings_var.get()))
-        self.settings.set("context-first-level", bool(self.context_first_level_var.get()))
-        self.settings.set("context-tree", bool(self.context_tree_var.get()))
+        self.settings.set("context_include_parents", bool(self.context_parents_var.get()))
+        self.settings.set("context_include_siblings", bool(self.context_siblings_var.get()))
+        self.settings.set("context_first_level", bool(self.context_first_level_var.get()))
+        self.settings.set("context_tree", bool(self.context_tree_var.get()))
 
         # Layout
         self.settings.set(

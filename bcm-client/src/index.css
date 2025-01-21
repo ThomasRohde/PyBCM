@@ -80,3 +80,74 @@
   @apply fixed pointer-events-none bg-white rounded-lg border-2 border-blue-400 shadow-xl opacity-90;
   transform: rotate(2deg) scale(1.02);
 }
+
+/* Visualization node styles */
+.node {
+  position: absolute;
+  border: 1px solid #333333;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  padding: var(--node-padding);
+  pointer-events: none;
+}
+
+.node .node-content {
+  pointer-events: auto;
+}
+
+.node:hover {
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.node-content {
+  text-align: center;
+  word-wrap: break-word;
+  position: absolute;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  width: calc(100% - 20px);
+  left: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+.leaf-node .node-content {
+  top: 50%;
+  transform: translate(-50%, -50%) !important;
+}
+
+.parent-label {
+  top: 0;
+  transform: translate(-50%, 20%) !important;
+  z-index: 3;
+}
+
+.has-children {
+  z-index: 1;
+}
+
+/* Level-based z-indexing */
+.level-0 { z-index: 1; }
+.level-1 { z-index: 2; }
+.level-2 { z-index: 3; }
+.level-3 { z-index: 4; }
+.level-4 { z-index: 5; }
+.level-5 { z-index: 6; }
+.level-6 { z-index: 7; }
+
+/* Ensure node content stays above the node background */
+.node-content {
+  z-index: 10;
+}
+
+/* Debug grid */
+.debug-grid {
+  background-image: 
+    linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}

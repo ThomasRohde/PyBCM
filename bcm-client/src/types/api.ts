@@ -45,3 +45,47 @@ export interface PromptUpdate {
 export interface CapabilityContextResponse {
   rendered_context: string;
 }
+
+export interface LayoutModel {
+  id: number;
+  name: string;
+  description?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  level: number;
+  children?: LayoutModel[];
+}
+
+export interface Settings {
+  theme: string;
+  max_ai_capabilities: number;
+  first_level_range: string;
+  first_level_template: string;
+  normal_template: string;
+  font_size: number;
+  model: string;
+  context_include_parents: boolean;
+  context_include_siblings: boolean;
+  context_first_level: boolean;
+  context_tree: boolean;
+  layout_algorithm: string;
+  root_font_size: number;
+  box_min_width: number;
+  box_min_height: number;
+  horizontal_gap: number;
+  vertical_gap: number;
+  padding: number;
+  top_padding: number;
+  target_aspect_ratio: number;
+  max_level: number;
+  color_0: string;
+  color_1: string;
+  color_2: string;
+  color_3: string;
+  color_4: string;
+  color_5: string;
+  color_6: string;
+  color_leaf: string;
+}
