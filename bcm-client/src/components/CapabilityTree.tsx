@@ -89,8 +89,14 @@ export const CapabilityTree: React.FC = () => {
   const { capabilities, createCapability, updateCapability, deleteCapability, userSession } = useApp();
   const [editingCapability, setEditingCapability] = useState<Capability | undefined>();
   const [showNewModal, setShowNewModal] = useState(false);
+  const [globalExpanded, setGlobalExpanded] = useState<boolean | undefined>(true);
 
   const handleEdit = (capability: Capability) => {
+    // Special case to reset global expanded state
+    if (capability.description === 'RESET_GLOBAL_EXPANDED') {
+      setGlobalExpanded(undefined);
+      return;
+    }
     setEditingCapability(capability);
   };
 
@@ -122,7 +128,29 @@ export const CapabilityTree: React.FC = () => {
     <DndProvider backend={HTML5Backend}>
       <div className="p-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Capabilities</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Capabilities</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setGlobalExpanded(true)}
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                title="Expand All"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setGlobalExpanded(false)}
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                title="Collapse All"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
           <button
             onClick={() => setShowNewModal(true)}
             className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
@@ -139,6 +167,7 @@ export const CapabilityTree: React.FC = () => {
               index={index}
               parentId={null}
               onEdit={handleEdit}
+              globalExpanded={globalExpanded}
               onDelete={async (cap) => {
                 if (window.confirm('Are you sure you want to delete this capability?')) {
                   await deleteCapability(cap.id);

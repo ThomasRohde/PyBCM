@@ -22,6 +22,7 @@ interface Props {
   parentId: number | null;
   onEdit: (capability: Capability) => void;
   onDelete?: (capability: Capability) => void;
+  globalExpanded?: boolean;
 }
 
 interface DropResult {
@@ -69,6 +70,8 @@ export const DraggableCapability: React.FC<Props> = ({
   index,
   parentId,
   onEdit,
+  onDelete,
+  globalExpanded,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -255,7 +258,13 @@ export const DraggableCapability: React.FC<Props> = ({
           >
             <div className="flex items-center group">
               <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                  setIsExpanded(!isExpanded);
+                  // Reset global expanded state when using local toggle
+                  if (globalExpanded !== undefined) {
+                    onEdit({ ...capability, description: 'RESET_GLOBAL_EXPANDED' });
+                  }
+                }}
                 className="p-0.5 text-gray-400 hover:text-gray-600 relative z-20 cursor-pointer"
                 style={{ visibility: capability.children?.length ? 'visible' : 'hidden' }}
               >
@@ -453,7 +462,7 @@ export const DraggableCapability: React.FC<Props> = ({
             </div>
           </div>
           {/* Children section */}
-          {capability.children && capability.children.length > 0 && isExpanded && (
+          {capability.children && capability.children.length > 0 && (globalExpanded === undefined ? isExpanded : globalExpanded) && (
             <div className="pl-4 mt-1 border-l border-gray-100">
               {capability.children.map((child, childIndex) => (
                 <DraggableCapability
@@ -462,6 +471,8 @@ export const DraggableCapability: React.FC<Props> = ({
                   index={childIndex}
                   parentId={capability.id}
                   onEdit={onEdit}
+                  onDelete={onDelete}
+                  globalExpanded={globalExpanded}
                 />
               ))}
             </div>
