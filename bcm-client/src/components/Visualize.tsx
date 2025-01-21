@@ -11,37 +11,32 @@ export const Visualize: React.FC = () => {
   const [model, setModel] = useState<LayoutModel | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Set up tooltip event listeners
-  useEffect(() => {
-    // Set up tooltip event listeners
-    const handleMouseMove = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('node')) {
-        const description = target.getAttribute('data-description');
-        const name = target.getAttribute('data-name');
-        if (description && tooltipRef.current) {
-          tooltipRef.current.textContent = `${name}: ${description}`;
-          tooltipRef.current.style.display = 'block';
-          tooltipRef.current.style.left = `${e.pageX + 10}px`;
-          tooltipRef.current.style.top = `${e.pageY + 10}px`;
-        }
-      }
-    };
+  // Handle mouse movement for tooltip positioning
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (tooltipRef.current) {
+      tooltipRef.current.style.left = `${e.pageX + 10}px`;
+      tooltipRef.current.style.top = `${e.pageY + 10}px`;
+    }
+  };
 
-    const handleMouseLeave = () => {
-      if (tooltipRef.current) {
-        tooltipRef.current.style.display = 'none';
-      }
-    };
+  // Handle mouse enter for showing tooltip
+  const handleNodeMouseEnter = (e: React.MouseEvent, name: string, description: string) => {
+    e.stopPropagation();
+    if (tooltipRef.current && description) {
+      tooltipRef.current.textContent = `${name}: ${description}`;
+      tooltipRef.current.style.display = 'block';
+      tooltipRef.current.style.left = `${e.pageX + 10}px`;
+      tooltipRef.current.style.top = `${e.pageY + 10}px`;
+    }
+  };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
+  // Handle mouse leave for hiding tooltip
+  const handleNodeMouseLeave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tooltipRef.current) {
+      tooltipRef.current.style.display = 'none';
+    }
+  };
 
   // Fetch data on mount
   useEffect(() => {
@@ -51,7 +46,12 @@ export const Visualize: React.FC = () => {
           ApiClient.getLayout(Number(id)),
           ApiClient.getSettings()
         ]);
-        console.log('Layout Data:', JSON.stringify(layoutData, null, 2));
+        // Validate layout data
+        if (!layoutData || typeof layoutData.width !== 'number' || typeof layoutData.height !== 'number') {
+          console.error('Invalid layout data received:', layoutData);
+          throw new Error('Invalid layout data structure');
+        }
+        
         setModel(layoutData);
         setSettings(settingsData);
       } catch (error) {
@@ -78,6 +78,13 @@ export const Visualize: React.FC = () => {
   const getAllNodes = (node: LayoutModel): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     const addNode = (n: LayoutModel, level: number) => {
+      // Validate node coordinates and dimensions
+      if (typeof n.x !== 'number' || typeof n.y !== 'number' || 
+          typeof n.width !== 'number' || typeof n.height !== 'number') {
+        console.error('Invalid node data:', n);
+        return;
+      }
+
       const color = !n.children?.length ? 'var(--leaf-color)' : `var(--level-${Math.min(level, 6)}-color)`;
       const positionClass = n.children?.length ? 'has-children' : 'leaf-node';
       
@@ -86,16 +93,33 @@ export const Visualize: React.FC = () => {
           key={n.id}
           className={`node level-${level} ${positionClass}`}
           style={{
+            position: 'absolute',
             left: `${n.x}px`,
             top: `${n.y}px`,
             width: `${n.width}px`,
             height: `${n.height}px`,
             backgroundColor: color,
+            zIndex: level,
+            border: '1px solid #ddd',
+            padding: `${settings.padding}px`
           }}
-          data-description={n.description || ''}
-          data-name={n.name}
+          onMouseEnter={(e) => handleNodeMouseEnter(e, n.name, n.description || '')}
+          onMouseLeave={(e) => handleNodeMouseLeave(e)}
+          onMouseMove={handleMouseMove}
         >
-          <div className="node-content">{n.name}</div>
+          <div 
+            className="node-content"
+            style={{
+              position: 'absolute',
+              top: n.children?.length ? settings.top_padding : '50%',
+              left: '50%',
+              transform: n.children?.length ? 'translate(-50%, 0)' : 'translate(-50%, -50%)',
+              width: 'calc(100% - 20px)',
+              textAlign: 'center'
+            }}
+          >
+            {n.name}
+          </div>
         </div>
       );
 
@@ -108,7 +132,7 @@ export const Visualize: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col" style={colorVars}>
-      <div className="bg-gray-100 p-4 flex items-center">
+      <div className="bg-gray-100 p-4 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
           className="flex items-center text-gray-600 hover:text-gray-900"
@@ -125,8 +149,10 @@ export const Visualize: React.FC = () => {
             id="model-container"
             className="relative mx-auto bg-gray-50 rounded-lg"
             style={{
-              width: Math.max(model.width + 120, window.innerWidth - 80),
-              height: Math.max(model.height + 120, window.innerHeight - 160),
+              width: Math.max(model.width + 200, window.innerWidth - 80),
+              height: Math.max(model.height + 200, window.innerHeight - 160),
+              minWidth: '800px',
+              minHeight: '600px',
               padding: '20px',
               boxShadow: '0 0 20px rgba(0,0,0,0.1)'
             }}
@@ -135,7 +161,11 @@ export const Visualize: React.FC = () => {
           </div>
         </div>
       </div>
-      <div ref={tooltipRef} className="fixed hidden bg-black/80 text-white p-2.5 rounded z-50 max-w-xs" />
+      <div 
+        ref={tooltipRef} 
+        className="fixed hidden bg-black/80 text-white p-2.5 rounded max-w-xs pointer-events-none" 
+        style={{ zIndex: 10000 }}
+      />
     </div>
   );
 };
