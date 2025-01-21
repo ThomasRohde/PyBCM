@@ -229,7 +229,7 @@ export const DraggableCapability: React.FC<Props> = ({
           </span>
         </div>
       )}
-      <div className="relative mb-1">
+      <div className={`relative ${index !== 0 ? 'mt-1' : ''}`}>
         {isEffectivelyLocked && (
           <div className="absolute inset-0 bg-transparent cursor-not-allowed z-10" style={{ pointerEvents: 'all' }} />
         )}
