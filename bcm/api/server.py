@@ -2,7 +2,8 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+import tempfile
 from contextlib import asynccontextmanager
 import os
 import socket
@@ -19,6 +20,14 @@ from bcm.models import (
     get_db,
     AsyncSessionLocal,
 )
+from bcm.archimate_export import export_to_archimate
+from bcm.pptx_export import export_to_pptx
+from bcm.svg_export import export_to_svg
+from bcm.markdown_export import export_to_markdown
+from bcm.word_export import export_to_word
+from bcm.html_export import export_to_html
+from bcm.mermaid_export import export_to_mermaid
+from bcm.plantuml_export import export_to_plantuml
 from bcm.layout_manager import process_layout
 from bcm.settings import Settings
 from bcm.database import DatabaseOperations
@@ -186,6 +195,9 @@ class PromptUpdate(BaseModel):
     prompt: str
     capability_id: int
     prompt_type: str = Field(..., pattern="^(first-level|expansion)$")
+
+class FormatRequest(BaseModel):
+    format: str = Field(..., pattern="^(archimate|powerpoint|svg|markdown|word|html|mermaid|plantuml)$")
 
 class ImportData(BaseModel):
     data: List[dict]
@@ -621,6 +633,94 @@ async def get_layout(
     max_level = settings.get("max_level", 6)
     layout_model = LayoutModel.convert_to_layout_format(node_data, max_level)
     return process_layout(layout_model, settings)
+
+@api_app.post("/format/{node_id}")
+async def format_node(
+    node_id: int,
+    format_request: FormatRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Format a node and its children in the specified format."""
+    # Get hierarchical data starting from node
+    node_data = await db_ops.get_capability_with_children(node_id)
+    if not node_data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    # Convert to layout format
+    settings = Settings()
+    max_level = settings.get("max_level", 6)
+    layout_model = LayoutModel.convert_to_layout_format(node_data, max_level)
+
+    # Format based on requested format
+    try:
+        if format_request.format == "powerpoint":
+            presentation = export_to_pptx(layout_model, settings)
+            with tempfile.NamedTemporaryFile(suffix='.pptx', delete=False) as tmp:
+                presentation.save(tmp.name)
+                with open(tmp.name, 'rb') as f:
+                    content = f.read()
+            return Response(
+                content=content,
+                media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.pptx"}
+            )
+        elif format_request.format == "word":
+            document = export_to_word(layout_model, settings)
+            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp:
+                document.save(tmp.name)
+                with open(tmp.name, 'rb') as f:
+                    content = f.read()
+            return Response(
+                content=content,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.docx"}
+            )
+        elif format_request.format == "archimate":
+            content = export_to_archimate(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="application/xml",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.xml"}
+            )
+        elif format_request.format == "svg":
+            content = export_to_svg(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="image/svg+xml",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.svg"}
+            )
+        elif format_request.format == "markdown":
+            content = export_to_markdown(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="text/markdown",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.md"}
+            )
+        elif format_request.format == "html":
+            content = export_to_html(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="text/html",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.html"}
+            )
+        elif format_request.format == "mermaid":
+            content = export_to_mermaid(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="text/html",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.html"}
+            )
+        elif format_request.format == "plantuml":
+            content = export_to_plantuml(layout_model, settings)
+            return Response(
+                content=content,
+                media_type="text/plain",
+                headers={"Content-Disposition": f"attachment; filename=capability_{node_id}.puml"}
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
