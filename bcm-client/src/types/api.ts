@@ -58,12 +58,17 @@ export interface LayoutModel {
   children?: LayoutModel[];
 }
 
+export interface TemplateSettings {
+  selected: string;
+  available: string[];
+}
+
 export interface Settings {
   theme: string;
   max_ai_capabilities: number;
   first_level_range: string;
-  first_level_template: string;
-  normal_template: string;
+  first_level_template: string | TemplateSettings;
+  normal_template: string | TemplateSettings;
   font_size: number;
   model: string;
   context_include_parents: boolean;
