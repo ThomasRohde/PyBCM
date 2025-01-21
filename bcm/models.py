@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 from pydantic import BaseModel, Field, RootModel
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, text, Index
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -167,13 +167,18 @@ class FirstLevelCapabilities(BaseModel):
     )
 
 
+class TemplateSettings(BaseModel):
+    """Pydantic model for template settings with available options."""
+    selected: str
+    available: List[str]
+
 class SettingsModel(BaseModel):
     """Pydantic model for application settings."""
     theme: str = Field(default="litera")
     max_ai_capabilities: int = Field(default=10)
     first_level_range: str = Field(default="5-10")
-    first_level_template: str = Field(default="first_level_prompt.j2")
-    normal_template: str = Field(default="expansion_prompt.j2")
+    first_level_template: Union[str, TemplateSettings] = Field(default="first_level_prompt.j2")
+    normal_template: Union[str, TemplateSettings] = Field(default="expansion_prompt.j2")
     font_size: int = Field(default=10)
     model: str = Field(default="openai:gpt-4")
     context_include_parents: bool = Field(default=True, alias="context_include_parents")

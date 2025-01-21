@@ -15,6 +15,7 @@ from bcm.models import (
     CapabilityUpdate,
     LayoutModel,
     SettingsModel,
+    TemplateSettings,
     get_db,
     AsyncSessionLocal,
 )
@@ -193,12 +194,27 @@ class ImportData(BaseModel):
 async def get_settings():
     """Get current application settings."""
     settings = Settings()
+    
+    # Get available templates from templates directory
+    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    available_templates = [f for f in os.listdir(templates_dir) if f.endswith('.j2')]
+    
+    # Create template settings objects
+    first_level_template = TemplateSettings(
+        selected=settings.get("first_level_template"),
+        available=available_templates
+    )
+    normal_template = TemplateSettings(
+        selected=settings.get("normal_template"),
+        available=available_templates
+    )
+    
     return SettingsModel(
         theme=settings.get("theme"),
         max_ai_capabilities=settings.get("max_ai_capabilities"),
         first_level_range=settings.get("first_level_range"),
-        first_level_template=settings.get("first_level_template"),
-        normal_template=settings.get("normal_template"),
+        first_level_template=first_level_template,
+        normal_template=normal_template,
         font_size=settings.get("font_size"),
         model=settings.get("model"),
         context_include_parents=settings.get("context_include_parents"),
@@ -234,8 +250,14 @@ async def update_settings(settings_update: SettingsModel):
     settings.set("theme", settings_update.theme)
     settings.set("max_ai_capabilities", settings_update.max_ai_capabilities)
     settings.set("first_level_range", settings_update.first_level_range)
-    settings.set("first_level_template", settings_update.first_level_template)
-    settings.set("normal_template", settings_update.normal_template)
+    settings.set("first_level_template", 
+                settings_update.first_level_template.selected 
+                if isinstance(settings_update.first_level_template, TemplateSettings) 
+                else settings_update.first_level_template)
+    settings.set("normal_template", 
+                settings_update.normal_template.selected 
+                if isinstance(settings_update.normal_template, TemplateSettings) 
+                else settings_update.normal_template)
     settings.set("font_size", settings_update.font_size)
     settings.set("model", settings_update.model)
     settings.set("context_include_parents", settings_update.context_include_parents)
