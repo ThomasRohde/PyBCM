@@ -321,18 +321,39 @@ async def remove_user_session(session_id: str):
     return {"message": "Session removed"}
 
 @api_app.post("/capabilities/lock/{capability_id}")
-async def lock_capability(capability_id: int, nickname: str):
+async def lock_capability(capability_id: int, nickname: str, db: AsyncSession = Depends(get_db)):
     """Lock a capability for editing."""
     # Find user by nickname
     user_session = next((session for session in active_users.values() if session["nickname"] == nickname), None)
     if not user_session:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if capability is already locked
+    # Get the capability to check its ancestors
+    capability = await db_ops.get_capability(capability_id, db)
+    if not capability:
+        raise HTTPException(status_code=404, detail="Capability not found")
+    
+    # Check if any ancestor capabilities are locked
+    current_parent_id = capability.parent_id
+    while current_parent_id is not None:
+        # Check if parent is locked by any user
+        for user in active_users.values():
+            if current_parent_id in user["locked_capabilities"]:
+                # Parent is locked, silently ignore the lock request
+                return {"message": "Capability is already locked by inheritance"}
+        
+        # Move up to next parent
+        parent = await db_ops.get_capability(current_parent_id, db)
+        if not parent:
+            break
+        current_parent_id = parent.parent_id
+    
+    # Check if capability itself is already locked
     for user in active_users.values():
         if capability_id in user["locked_capabilities"]:
             raise HTTPException(status_code=409, detail="Capability is already locked")
     
+    # No ancestor locks found, proceed with locking
     user_session["locked_capabilities"].append(capability_id)
     return {"message": "Capability locked"}
 
