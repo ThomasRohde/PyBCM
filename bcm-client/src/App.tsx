@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider } from './contexts/AppContext';
 import { useApp } from './contexts/AppContext';
+import { ApiClient } from './api/client';
 import { CapabilityTree } from './components/CapabilityTree';
 import { Visualize } from './components/Visualize';
 import { Toaster } from 'react-hot-toast';
@@ -101,8 +102,14 @@ const MainApp: React.FC = () => {
                         Logged in as: {userSession.nickname}
                       </div>
                       <button
+                        onClick={() => ApiClient.clearLocks(userSession.session_id)}
+                        className="px-3 py-2 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                      >
+                        Clear Locks
+                      </button>
+                      <button
                         onClick={logout}
-                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                        className="px-3 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600"
                       >
                         Logout
                       </button>
@@ -132,8 +139,14 @@ const MainApp: React.FC = () => {
                         Logged in as: {userSession.nickname}
                       </div>
                       <button
+                        onClick={() => ApiClient.clearLocks(userSession.session_id)}
+                        className="px-3 py-2 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                      >
+                        Clear Locks
+                      </button>
+                      <button
                         onClick={logout}
-                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                        className="px-3 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600"
                       >
                         Logout
                       </button>
@@ -163,8 +176,14 @@ const MainApp: React.FC = () => {
                         Logged in as: {userSession.nickname}
                       </div>
                       <button
+                        onClick={() => ApiClient.clearLocks(userSession.session_id)}
+                        className="px-3 py-2 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                      >
+                        Clear Locks
+                      </button>
+                      <button
                         onClick={logout}
-                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                        className="px-3 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600"
                       >
                         Logout
                       </button>

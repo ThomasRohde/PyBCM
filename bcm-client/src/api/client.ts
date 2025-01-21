@@ -225,5 +225,10 @@ export const ApiClient = {
   formatNode: async (nodeId: number, format: string): Promise<Blob> => {
     const response = await api.post(`/api/format/${nodeId}`, { format }, { responseType: 'blob' });
     return response.data;
+  },
+
+  // Clear all capability locks
+  clearLocks: async (sessionId: string): Promise<void> => {
+    await api.post(`/api/clearlocks?session_id=${sessionId}`);
   }
 };
