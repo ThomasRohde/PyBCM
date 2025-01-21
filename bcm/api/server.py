@@ -201,10 +201,10 @@ async def get_settings():
         normal_template=settings.get("normal_template"),
         font_size=settings.get("font_size"),
         model=settings.get("model"),
-        context_include_parents=settings.get("context-include-parents"),
-        context_include_siblings=settings.get("context-include-siblings"),
-        context_first_level=settings.get("context-first-level"),
-        context_tree=settings.get("context-tree"),
+        context_include_parents=settings.get("context_include_parents"),
+        context_include_siblings=settings.get("context_include_siblings"),
+        context_first_level=settings.get("context_first_level"),
+        context_tree=settings.get("context_tree"),
         layout_algorithm=settings.get("layout_algorithm"),
         root_font_size=settings.get("root_font_size"),
         box_min_width=settings.get("box_min_width"),
@@ -238,10 +238,10 @@ async def update_settings(settings_update: SettingsModel):
     settings.set("normal_template", settings_update.normal_template)
     settings.set("font_size", settings_update.font_size)
     settings.set("model", settings_update.model)
-    settings.set("context-include-parents", settings_update.context_include_parents)
-    settings.set("context-include-siblings", settings_update.context_include_siblings)
-    settings.set("context-first-level", settings_update.context_first_level)
-    settings.set("context-tree", settings_update.context_tree)
+    settings.set("context_include_parents", settings_update.context_include_parents)
+    settings.set("context_include_siblings", settings_update.context_include_siblings)
+    settings.set("context_first_level", settings_update.context_first_level)
+    settings.set("context_tree", settings_update.context_tree)
     settings.set("layout_algorithm", settings_update.layout_algorithm)
     settings.set("root_font_size", settings_update.root_font_size)
     settings.set("box_min_width", settings_update.box_min_width)

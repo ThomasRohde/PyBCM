@@ -97,7 +97,7 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 1: First-level capabilities
     context_parts.append("<first_level_capabilities>")
-    if settings.get("context-first-level", True):
+    if settings.get("context_first_level", True):
         first_level_caps = await db_ops.get_capabilities(parent_id=None)
         if first_level_caps:
             for cap in first_level_caps:
@@ -110,7 +110,7 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 2: Capability Tree
     context_parts.append("<capability_tree>")
-    if settings.get("context-tree", True):
+    if settings.get("context_tree", True):
         async def build_capability_tree(
             root_caps, current_cap_id: int, level: int = 0, prefix: str = ""
         ) -> List[str]:
@@ -143,7 +143,7 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 3: Parent Hierarchy
     context_parts.append("<parent_hierarchy>")
-    if settings.get("context-include-parents", True):
+    if settings.get("context_include_parents", True):
         async def add_parent_hierarchy(cap_id: int, level: int = 0) -> None:
             parent = await db_ops.get_capability(cap_id)
             if parent:
@@ -162,7 +162,7 @@ async def get_capability_context(db_ops, capability_id: int) -> str:
 
     # Section 4: Sibling Context
     context_parts.append("<sibling_context>")
-    if settings.get("context-include-siblings", True):
+    if settings.get("context_include_siblings", True):
         siblings = await db_ops.get_capabilities(capability.parent_id)
         if siblings:
             for sibling in siblings:
