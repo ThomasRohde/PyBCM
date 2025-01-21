@@ -46,12 +46,12 @@ export default function SettingsComponent() {
   const [saving, setSaving] = useState(false);
   const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    lookAndFeel: true,
-    aiGeneration: true,
-    templates: true,
-    context: true,
-    layout: true,
-    colors: true
+    lookAndFeel: false,
+    aiGeneration: false,
+    templates: false,
+    context: false,
+    layout: false,
+    colors: false
   });
 
   const toggleSection = (section: string) => {
