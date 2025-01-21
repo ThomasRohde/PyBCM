@@ -47,3 +47,4 @@ Thumbs.db
 # bcm client
 bcm/static/client/assets/
 bcm/api/client/
+bcm/static/client/index.html
