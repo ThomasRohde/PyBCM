@@ -519,28 +519,10 @@ async def get_layout(
     if not node_data:
         raise HTTPException(status_code=404, detail="Node not found")
     
-    # Convert to layout format
+    # Convert to layout format using shared method
     settings = Settings()
     max_level = settings.get("max_level", 6)
-    
-    def convert_to_layout(node_data, level=0):
-        """Convert node and children to layout format."""
-        children = None
-        if node_data["children"] and level < max_level:
-            children = [
-                convert_to_layout(child, level + 1)
-                for child in node_data["children"]
-            ]
-        
-        return LayoutModel(
-            id=node_data["id"],
-            name=node_data["name"],
-            description=node_data.get("description", ""),
-            children=children,
-        )
-    
-    # Convert and process layout
-    layout_model = convert_to_layout(node_data)
+    layout_model = LayoutModel.convert_to_layout_format(node_data, max_level)
     return process_layout(layout_model, settings)
 
 @api_app.get("/capabilities", response_model=List[dict])

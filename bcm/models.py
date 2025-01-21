@@ -110,6 +110,32 @@ class LayoutModel(BaseModel):
     class Config:
         from_attributes = True
 
+    @staticmethod
+    def convert_to_layout_format(node_data: dict, max_level: int, level: int = 0) -> "LayoutModel":
+        """Convert a node and its children to the layout format.
+        
+        Args:
+            node_data: The node data to convert
+            max_level: Maximum depth level to convert
+            level: Current level relative to start node (default: 0)
+            
+        Returns:
+            LayoutModel instance representing the node and its children
+        """
+        children = None
+        if node_data["children"] and level < max_level:
+            children = [
+                LayoutModel.convert_to_layout_format(child, max_level, level + 1)
+                for child in node_data["children"]
+            ]
+
+        return LayoutModel(
+            id=node_data["id"],
+            name=node_data["name"],
+            description=node_data.get("description", ""),
+            children=children,
+        )
+
 
 # Required for self-referential Pydantic models
 LayoutModel.model_rebuild()

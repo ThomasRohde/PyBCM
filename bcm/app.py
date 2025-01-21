@@ -98,21 +98,8 @@ class App:
             node_data: The node data to convert
             level: Current level relative to start node
         """
-        # Only create children if we haven't reached max_level
         max_level = self.settings.get("max_level", 6)
-        children = None
-        if node_data["children"] and level < max_level:
-            children = [
-                self._convert_to_layout_format(child, level + 1)
-                for child in node_data["children"]
-            ]
-
-        return LayoutModel(
-            id=node_data["id"],
-            name=node_data["name"],
-            description=node_data.get("description", ""),
-            children=children,
-        )
+        return LayoutModel.convert_to_layout_format(node_data, max_level, level)
 
     def _export_capability_model(
         self, export_type, export_func, file_extension, file_type_name, clipboard=False
