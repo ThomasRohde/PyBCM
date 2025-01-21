@@ -167,6 +167,39 @@ class FirstLevelCapabilities(BaseModel):
     )
 
 
+class SettingsModel(BaseModel):
+    """Pydantic model for application settings."""
+    theme: str = Field(default="litera")
+    max_ai_capabilities: int = Field(default=10)
+    first_level_range: str = Field(default="5-10")
+    first_level_template: str = Field(default="first_level_prompt.j2")
+    normal_template: str = Field(default="expansion_prompt.j2")
+    font_size: int = Field(default=10)
+    model: str = Field(default="openai:gpt-4")
+    context_include_parents: bool = Field(default=True, alias="context-include-parents")
+    context_include_siblings: bool = Field(default=True, alias="context-include-siblings")
+    context_first_level: bool = Field(default=True, alias="context-first-level")
+    context_tree: bool = Field(default=True, alias="context-tree")
+    layout_algorithm: str = Field(default="Simple - fast")
+    root_font_size: int = Field(default=20)
+    box_min_width: int = Field(default=120)
+    box_min_height: int = Field(default=80)
+    horizontal_gap: int = Field(default=20)
+    vertical_gap: int = Field(default=20)
+    padding: int = Field(default=30)
+    top_padding: int = Field(default=40)
+    target_aspect_ratio: float = Field(default=1.0)
+    max_level: int = Field(default=6)
+    color_0: str = Field(default="#5B8C85")
+    color_1: str = Field(default="#6B5B95")
+    color_2: str = Field(default="#806D5B")
+    color_3: str = Field(default="#5B7065")
+    color_4: str = Field(default="#8B635C")
+    color_5: str = Field(default="#707C8C")
+    color_6: str = Field(default="#7C6D78")
+    color_leaf: str = Field(default="#E0E0E0")
+
+
 # Database setup
 def get_db_path():
     """Get absolute path to database file."""
