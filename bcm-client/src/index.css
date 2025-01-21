@@ -80,3 +80,46 @@
   @apply fixed pointer-events-none bg-white rounded-lg border-2 border-blue-400 shadow-xl opacity-90;
   transform: rotate(2deg) scale(1.02);
 }
+
+/* Visualization node styles */
+.node {
+  position: absolute;
+  border: 1px solid #333333;
+  border-radius: 5px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.node:hover {
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  z-index: 1000; /* Ensure hovered node appears above others */
+}
+
+.node-content {
+  padding: 8px;
+  text-align: center;
+  word-wrap: break-word;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 16px); /* Account for padding */
+}
+
+.leaf-node .node-content {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.has-children .node-content {
+  top: 8px;
+  transform: translateX(-50%);
+}
+
+/* Level-based z-indexing */
+.level-0 { z-index: 1; }
+.level-1 { z-index: 2; }
+.level-2 { z-index: 3; }
+.level-3 { z-index: 4; }
+.level-4 { z-index: 5; }
+.level-5 { z-index: 6; }
+.level-6 { z-index: 7; }

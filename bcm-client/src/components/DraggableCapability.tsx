@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ApiClient } from '../api/client';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
@@ -70,6 +71,7 @@ export const DraggableCapability: React.FC<Props> = ({
   onEdit,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { 
     userSession, 
     moveCapability, 
@@ -421,6 +423,16 @@ export const DraggableCapability: React.FC<Props> = ({
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => navigate(`/visualize/${capability.id}`)}
+                  className="p-0.5 text-gray-400 hover:text-gray-600"
+                  title="View"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 </button>
                 <button

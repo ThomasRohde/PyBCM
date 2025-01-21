@@ -46,6 +46,18 @@ export interface CapabilityContextResponse {
   rendered_context: string;
 }
 
+export interface LayoutModel {
+  id: number;
+  name: string;
+  description?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  level: number;
+  children?: LayoutModel[];
+}
+
 export interface Settings {
   theme: string;
   max_ai_capabilities: number;

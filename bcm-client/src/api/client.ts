@@ -8,7 +8,8 @@ import type {
   CapabilityMove,
   PromptUpdate,
   CapabilityContextResponse,
-  Settings
+  Settings,
+  LayoutModel
 } from '../types/api';
 
 // In development, use the Vite dev server port
@@ -211,6 +212,12 @@ export const ApiClient = {
 
   updateSettings: async (settings: Settings): Promise<Settings> => {
     const response = await api.put<Settings>('/api/settings', settings);
+    return response.data;
+  },
+
+  // Layout operations
+  getLayout: async (nodeId: number): Promise<LayoutModel> => {
+    const response = await api.get<LayoutModel>(`/api/layout/${nodeId}`);
     return response.data;
   }
 };

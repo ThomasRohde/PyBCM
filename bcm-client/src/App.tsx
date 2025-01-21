@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider } from './contexts/AppContext';
 import { useApp } from './contexts/AppContext';
 import { CapabilityTree } from './components/CapabilityTree';
+import { Visualize } from './components/Visualize';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import BurgerMenu from './components/BurgerMenu';
@@ -70,41 +71,121 @@ const MainApp: React.FC = () => {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <BurgerMenu />
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Business Capability Modeler
-              </h1>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">
-                  Active users: {activeUsers.length}
+      <Routes>
+        <Route
+          path="/visualize/:id"
+          element={
+            userSession ? (
+              <Visualize />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <div className="min-h-screen bg-gray-50">
+              <BurgerMenu />
+              <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      Business Capability Modeler
+                    </h1>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-600">
+                        Active users: {activeUsers.length}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Logged in as: {userSession.nickname}
+                      </div>
+                      <button
+                        onClick={logout}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  Logged in as: {userSession.nickname}
-                </div>
-                <button
-                  onClick={logout}
-                  className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
-                >
-                  Logout
-                </button>
-              </div>
+              </header>
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <CapabilityTree />
+              </main>
             </div>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Routes>
-            <Route path="/" element={<CapabilityTree />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/settings" element={<SettingsComponent />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <div className="min-h-screen bg-gray-50">
+              <BurgerMenu />
+              <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      About
+                    </h1>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-600">
+                        Active users: {activeUsers.length}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Logged in as: {userSession.nickname}
+                      </div>
+                      <button
+                        onClick={logout}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <About />
+              </main>
+            </div>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <div className="min-h-screen bg-gray-50">
+              <BurgerMenu />
+              <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                      Settings
+                    </h1>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-600">
+                        Active users: {activeUsers.length}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Logged in as: {userSession.nickname}
+                      </div>
+                      <button
+                        onClick={logout}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <SettingsComponent />
+              </main>
+            </div>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 };
