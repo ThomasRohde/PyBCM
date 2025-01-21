@@ -60,7 +60,7 @@ def create_mermaid_node(node: LayoutModel, level: int = 0) -> str:
 def export_to_mermaid(model: LayoutModel, settings: Settings) -> str:
     """Export the capability model to Mermaid mindmap format."""
     # Process layout
-    processed_model = process_layout(model, settings)
+    processed_model = process_layout(model, settings) # TODO: Why do we process the layout here? It's not needed for Mermaid export.
     
     # Create the HTML content with Mermaid
     html_content = '''<!DOCTYPE html>

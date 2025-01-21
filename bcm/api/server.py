@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from typing import Dict, List, Optional
 from contextlib import asynccontextmanager
 import os
 import socket
@@ -15,10 +16,12 @@ from bcm.models import (
     CapabilityUpdate,
     LayoutModel,
     SettingsModel,
+    TemplateSettings,
     get_db,
     AsyncSessionLocal,
 )
 from bcm.layout_manager import process_layout
+from bcm.api.export_handler import format_capability
 from bcm.settings import Settings
 from bcm.database import DatabaseOperations
 import uuid
@@ -186,6 +189,9 @@ class PromptUpdate(BaseModel):
     capability_id: int
     prompt_type: str = Field(..., pattern="^(first-level|expansion)$")
 
+class FormatRequest(BaseModel):
+    format: str = Field(..., pattern="^(archimate|powerpoint|svg|markdown|word|html|mermaid|plantuml)$")
+
 class ImportData(BaseModel):
     data: List[dict]
 
@@ -193,12 +199,27 @@ class ImportData(BaseModel):
 async def get_settings():
     """Get current application settings."""
     settings = Settings()
+    
+    # Get available templates from templates directory
+    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    available_templates = [f for f in os.listdir(templates_dir) if f.endswith('.j2')]
+    
+    # Create template settings objects
+    first_level_template = TemplateSettings(
+        selected=settings.get("first_level_template"),
+        available=available_templates
+    )
+    normal_template = TemplateSettings(
+        selected=settings.get("normal_template"),
+        available=available_templates
+    )
+    
     return SettingsModel(
         theme=settings.get("theme"),
         max_ai_capabilities=settings.get("max_ai_capabilities"),
         first_level_range=settings.get("first_level_range"),
-        first_level_template=settings.get("first_level_template"),
-        normal_template=settings.get("normal_template"),
+        first_level_template=first_level_template,
+        normal_template=normal_template,
         font_size=settings.get("font_size"),
         model=settings.get("model"),
         context_include_parents=settings.get("context_include_parents"),
@@ -234,8 +255,14 @@ async def update_settings(settings_update: SettingsModel):
     settings.set("theme", settings_update.theme)
     settings.set("max_ai_capabilities", settings_update.max_ai_capabilities)
     settings.set("first_level_range", settings_update.first_level_range)
-    settings.set("first_level_template", settings_update.first_level_template)
-    settings.set("normal_template", settings_update.normal_template)
+    settings.set("first_level_template", 
+                settings_update.first_level_template.selected 
+                if isinstance(settings_update.first_level_template, TemplateSettings) 
+                else settings_update.first_level_template)
+    settings.set("normal_template", 
+                settings_update.normal_template.selected 
+                if isinstance(settings_update.normal_template, TemplateSettings) 
+                else settings_update.normal_template)
     settings.set("font_size", settings_update.font_size)
     settings.set("model", settings_update.model)
     settings.set("context_include_parents", settings_update.context_include_parents)
@@ -294,18 +321,39 @@ async def remove_user_session(session_id: str):
     return {"message": "Session removed"}
 
 @api_app.post("/capabilities/lock/{capability_id}")
-async def lock_capability(capability_id: int, nickname: str):
+async def lock_capability(capability_id: int, nickname: str, db: AsyncSession = Depends(get_db)):
     """Lock a capability for editing."""
     # Find user by nickname
     user_session = next((session for session in active_users.values() if session["nickname"] == nickname), None)
     if not user_session:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if capability is already locked
+    # Get the capability to check its ancestors
+    capability = await db_ops.get_capability(capability_id, db)
+    if not capability:
+        raise HTTPException(status_code=404, detail="Capability not found")
+    
+    # Check if any ancestor capabilities are locked
+    current_parent_id = capability.parent_id
+    while current_parent_id is not None:
+        # Check if parent is locked by any user
+        for user in active_users.values():
+            if current_parent_id in user["locked_capabilities"]:
+                # Parent is locked, silently ignore the lock request
+                return {"message": "Capability is already locked by inheritance"}
+        
+        # Move up to next parent
+        parent = await db_ops.get_capability(current_parent_id, db)
+        if not parent:
+            break
+        current_parent_id = parent.parent_id
+    
+    # Check if capability itself is already locked
     for user in active_users.values():
         if capability_id in user["locked_capabilities"]:
             raise HTTPException(status_code=409, detail="Capability is already locked")
     
+    # No ancestor locks found, proceed with locking
     user_session["locked_capabilities"].append(capability_id)
     return {"message": "Capability locked"}
 
@@ -599,6 +647,25 @@ async def get_layout(
     max_level = settings.get("max_level", 6)
     layout_model = LayoutModel.convert_to_layout_format(node_data, max_level)
     return process_layout(layout_model, settings)
+
+@api_app.post("/format/{node_id}")
+async def format_node(
+    node_id: int,
+    format_request: FormatRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Format a node and its children in the specified format."""
+    # Get hierarchical data starting from node
+    node_data = await db_ops.get_capability_with_children(node_id)
+    if not node_data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    # Convert to layout format
+    settings = Settings()
+    max_level = settings.get("max_level", 6)
+    layout_model = LayoutModel.convert_to_layout_format(node_data, max_level)
+
+    return format_capability(node_id, format_request.format, layout_model, settings)
 
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(

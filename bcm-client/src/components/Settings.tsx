@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Settings } from '../types/api';
+import { Settings, TemplateSettings } from '../types/api';
 import { ApiClient } from '../api/client';
-import { useNavigate } from 'react-router-dom';
+import BackButton from './BackButton';
 
 export default function SettingsComponent() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useState<Settings>({
     theme: 'litera',
     max_ai_capabilities: 10,
     first_level_range: '5-10',
-    first_level_template: 'first_level_prompt.j2',
-    normal_template: 'expansion_prompt.j2',
+    first_level_template: {
+      selected: 'first_level_prompt.j2',
+      available: ['first_level_prompt.j2', 'first_level_prompt_gpt.j2']
+    },
+    normal_template: {
+      selected: 'expansion_prompt.j2',
+      available: ['expansion_prompt.j2', 'expansion_prompt_gpt.j2']
+    },
     font_size: 10,
     model: 'openai:gpt-4',
     context_include_parents: true,
@@ -39,6 +44,21 @@ export default function SettingsComponent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    lookAndFeel: false,
+    aiGeneration: false,
+    templates: false,
+    context: false,
+    layout: false,
+    colors: false
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   useEffect(() => {
     loadSettings();
@@ -69,7 +89,7 @@ export default function SettingsComponent() {
     }
   };
 
-  const handleChange = (field: keyof Settings, value: string | number | boolean) => {
+  const handleChange = (field: keyof Settings, value: string | number | boolean | TemplateSettings) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
@@ -87,21 +107,27 @@ export default function SettingsComponent() {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 px-4 py-2 text-gray-600 hover:text-gray-900 flex items-center gap-2"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Back
-      </button>
+      <BackButton />
 
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Look & Feel Section */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Look & Feel</h2>
+          <button
+            onClick={() => toggleSection('lookAndFeel')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>Look & Feel</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.lookAndFeel ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.lookAndFeel && (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Theme</label>
@@ -125,11 +151,26 @@ export default function SettingsComponent() {
               />
             </div>
           </div>
+          )}
         </section>
 
         {/* AI Generation Section */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">AI Generation</h2>
+          <button
+            onClick={() => toggleSection('aiGeneration')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>AI Generation</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.aiGeneration ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.aiGeneration && (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Max AI Capabilities</label>
@@ -159,11 +200,90 @@ export default function SettingsComponent() {
               />
             </div>
           </div>
+          )}
+        </section>
+
+        {/* Templates Section */}
+        <section className="space-y-4">
+          <button
+            onClick={() => toggleSection('templates')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>Templates</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.templates ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.templates && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">First-Level Prompt Template</label>
+                <select
+                  value={typeof settings.first_level_template === 'string' 
+                    ? settings.first_level_template 
+                    : settings.first_level_template.selected}
+                  onChange={e => handleChange('first_level_template', {
+                    selected: e.target.value,
+                    available: typeof settings.first_level_template === 'string' 
+                      ? [e.target.value]
+                      : settings.first_level_template.available
+                  })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  {(typeof settings.first_level_template === 'string' 
+                    ? [settings.first_level_template]
+                    : settings.first_level_template.available).map(template => (
+                    <option key={template} value={template}>{template}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Expansion Prompt Template</label>
+                <select
+                  value={typeof settings.normal_template === 'string'
+                    ? settings.normal_template
+                    : settings.normal_template.selected}
+                  onChange={e => handleChange('normal_template', {
+                    selected: e.target.value,
+                    available: typeof settings.normal_template === 'string'
+                      ? [e.target.value]
+                      : settings.normal_template.available
+                  })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  {(typeof settings.normal_template === 'string'
+                    ? [settings.normal_template]
+                    : settings.normal_template.available).map(template => (
+                    <option key={template} value={template}>{template}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Context Settings Section */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Context Settings</h2>
+          <button
+            onClick={() => toggleSection('context')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>Context Settings</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.context ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.context && (
           <div className="space-y-2">
             <label className="flex items-center">
               <input
@@ -202,11 +322,26 @@ export default function SettingsComponent() {
               <span className="ml-2">Include full tree structure in context</span>
             </label>
           </div>
+          )}
         </section>
 
         {/* Layout Settings Section */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Layout Settings</h2>
+          <button
+            onClick={() => toggleSection('layout')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>Layout Settings</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.layout ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.layout && (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Layout Algorithm</label>
@@ -303,11 +438,26 @@ export default function SettingsComponent() {
               />
             </div>
           </div>
+          )}
         </section>
 
         {/* Color Settings Section */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Color Settings</h2>
+          <button
+            onClick={() => toggleSection('colors')}
+            className="w-full flex items-center justify-between text-xl font-semibold py-2 hover:bg-gray-50"
+          >
+            <h2>Color Settings</h2>
+            <svg
+              className={`w-6 h-6 transform transition-transform ${expandedSections.colors ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {expandedSections.colors && (
           <div className="grid grid-cols-2 gap-4">
             {[0, 1, 2, 3, 4, 5, 6].map(level => (
               <div key={level}>
@@ -330,6 +480,7 @@ export default function SettingsComponent() {
               />
             </div>
           </div>
+          )}
         </section>
 
         <div className="flex justify-end">

@@ -84,19 +84,14 @@
 /* Visualization node styles */
 .node {
   position: absolute;
-  border: 1px solid #333333;
-  border-radius: 5px;
   transition: all 0.3s ease;
   padding: var(--node-padding);
   pointer-events: none;
+  border-radius: 5px;
 }
 
 .node .node-content {
   pointer-events: auto;
-}
-
-.node:hover {
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }
 
 .node-content {
@@ -106,13 +101,12 @@
   font-size: 14px;
   line-height: 1.4;
   padding: 4px 8px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
+  font-weight: 500;
   white-space: pre-wrap;
   width: calc(100% - 20px);
   left: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   z-index: 2;
+  color: var(--text-color);
 }
 
 .leaf-node .node-content {
