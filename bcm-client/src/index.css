@@ -122,7 +122,7 @@
 
 .parent-label {
   top: 0;
-  transform: translate(-50%, -50%) !important;
+  transform: translate(-50%, 20%) !important;
   z-index: 3;
 }
 
