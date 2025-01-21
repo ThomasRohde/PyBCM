@@ -86,43 +86,67 @@
   position: absolute;
   border: 1px solid #333333;
   border-radius: 5px;
-  overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.3s ease;
+  padding: var(--node-padding);
+  isolation: isolate;
 }
 
 .node:hover {
   box-shadow: 0 0 10px rgba(0,0,0,0.3);
-  z-index: 1000; /* Ensure hovered node appears above others */
 }
 
 .node-content {
-  padding: 8px;
   text-align: center;
   word-wrap: break-word;
   position: absolute;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  width: calc(100% - 20px);
   left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 16px); /* Account for padding */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  z-index: 2;
 }
 
 .leaf-node .node-content {
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
 }
 
-.has-children .node-content {
-  top: 50%;
-  transform: translate(-50%, -50%);
+.parent-label {
+  top: 0;
+  transform: translate(-50%, -50%) !important;
+  z-index: 3;
+}
+
+.has-children {
+  z-index: 1;
 }
 
 /* Level-based z-indexing */
-.level-0 { z-index: 1; }
-.level-1 { z-index: 2; }
-.level-2 { z-index: 3; }
-.level-3 { z-index: 4; }
-.level-4 { z-index: 5; }
-.level-5 { z-index: 6; }
-.level-6 { z-index: 7; }
+.level-0 { z-index: 10; }
+.level-1 { z-index: 20; }
+.level-2 { z-index: 30; }
+.level-3 { z-index: 40; }
+.level-4 { z-index: 50; }
+.level-5 { z-index: 60; }
+.level-6 { z-index: 70; }
+
+/* Ensure children stay visible when parent is hovered */
+.node:hover {
+  z-index: 1000;
+}
+
+.node:hover .node-content {
+  z-index: 1001;
+}
+
+.node:hover > * {
+  z-index: 1002;
+}
 
 /* Debug grid */
 .debug-grid {

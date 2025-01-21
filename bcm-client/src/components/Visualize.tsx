@@ -21,21 +21,41 @@ export const Visualize: React.FC = () => {
 
   // Handle mouse enter for showing tooltip
   const handleNodeMouseEnter = (e: React.MouseEvent, name: string, description: string) => {
-    e.stopPropagation();
-    if (tooltipRef.current && description) {
-      tooltipRef.current.textContent = `${name}: ${description}`;
-      tooltipRef.current.style.display = 'block';
-      tooltipRef.current.style.left = `${e.pageX + 10}px`;
-      tooltipRef.current.style.top = `${e.pageY + 10}px`;
+    if (!tooltipRef.current || !description) return;
+    
+    const target = e.currentTarget as HTMLElement;
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    
+    // Don't trigger if moving between parent and its children
+    if (relatedTarget && (
+      target.contains(relatedTarget) || 
+      (relatedTarget.closest('.node') === target)
+    )) {
+      return;
     }
+
+    tooltipRef.current.textContent = `${name}: ${description}`;
+    tooltipRef.current.style.display = 'block';
+    tooltipRef.current.style.left = `${e.pageX + 10}px`;
+    tooltipRef.current.style.top = `${e.pageY + 10}px`;
   };
 
   // Handle mouse leave for hiding tooltip
   const handleNodeMouseLeave = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (tooltipRef.current) {
-      tooltipRef.current.style.display = 'none';
+    if (!tooltipRef.current) return;
+    
+    const target = e.currentTarget as HTMLElement;
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    
+    // Don't hide if moving between parent and its children
+    if (relatedTarget && (
+      target.contains(relatedTarget) || 
+      (relatedTarget.closest('.node') === target)
+    )) {
+      return;
     }
+
+    tooltipRef.current.style.display = 'none';
   };
 
   // Fetch data on mount
@@ -88,42 +108,34 @@ export const Visualize: React.FC = () => {
       const color = !n.children?.length ? 'var(--leaf-color)' : `var(--level-${Math.min(level, 6)}-color)`;
       const positionClass = n.children?.length ? 'has-children' : 'leaf-node';
       
-      nodes.push(
-        <div
-          key={n.id}
-          className={`node level-${level} ${positionClass}`}
-          style={{
-            position: 'absolute',
-            left: `${n.x}px`,
-            top: `${n.y}px`,
-            width: `${n.width}px`,
-            height: `${n.height}px`,
-            backgroundColor: color,
-            zIndex: level,
-            border: '1px solid #ddd',
-            padding: `${settings.padding}px`
-          }}
-          onMouseEnter={(e) => handleNodeMouseEnter(e, n.name, n.description || '')}
-          onMouseLeave={(e) => handleNodeMouseLeave(e)}
-          onMouseMove={handleMouseMove}
-        >
-          <div 
-            className="node-content"
-            style={{
-              position: 'absolute',
-              top: n.children?.length ? settings.top_padding : '50%',
-              left: '50%',
-              transform: n.children?.length ? 'translate(-50%, 0)' : 'translate(-50%, -50%)',
-              width: 'calc(100% - 20px)',
-              textAlign: 'center'
-            }}
-          >
-            {n.name}
-          </div>
-        </div>
-      );
-
+      // Add children first
       n.children?.forEach(child => addNode(child, level + 1));
+
+      // Then add parent node
+      nodes.push(
+        <React.Fragment key={n.id}>
+          <div
+            className={`node level-${level} ${positionClass}`}
+            style={{
+              '--node-padding': `${settings.padding}px`,
+              '--top-padding': `${settings.top_padding}px`,
+              left: `${n.x}px`,
+              top: `${n.y}px`,
+              width: `${n.width}px`,
+              height: `${n.height}px`,
+              backgroundColor: color,
+              paddingTop: n.children?.length ? '0px' : `${settings.top_padding}px`
+            } as React.CSSProperties}
+            onMouseEnter={(e) => handleNodeMouseEnter(e, n.name, n.description || '')}
+            onMouseLeave={handleNodeMouseLeave}
+            onMouseMove={handleMouseMove}
+          >
+            <div className={`node-content ${n.children?.length ? 'parent-label' : ''}`}>
+              {n.name}
+            </div>
+          </div>
+        </React.Fragment>
+      );
     };
 
     addNode(node, 0);
