@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Settings, TemplateSettings } from '../types/api';
 import { ApiClient } from '../api/client';
-import { useNavigate } from 'react-router-dom';
+import BackButton from './BackButton';
 
 export default function SettingsComponent() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useState<Settings>({
     theme: 'litera',
     max_ai_capabilities: 10,
@@ -108,15 +107,7 @@ export default function SettingsComponent() {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 px-4 py-2 text-gray-600 hover:text-gray-900 flex items-center gap-2"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Back
-      </button>
+      <BackButton />
 
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
