@@ -9,6 +9,19 @@ export const Visualize: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
+  // Add backspace key navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace') {
+        navigate('/');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
   const [settings, setSettings] = useState<Settings | null>(null);
   const [model, setModel] = useState<LayoutModel | null>(null);
   const [selectedFormat, setSelectedFormat] = useState('markdown');
