@@ -38,6 +38,7 @@ export default function SettingsComponent() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -47,6 +48,7 @@ export default function SettingsComponent() {
     try {
       const data = await ApiClient.getSettings();
       setSettings(data);
+      setOriginalSettings(data);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -59,6 +61,7 @@ export default function SettingsComponent() {
     setSaving(true);
     try {
       await ApiClient.updateSettings(settings);
+      setOriginalSettings(settings);
     } catch (error) {
       console.error('Failed to save settings:', error);
     } finally {
@@ -68,6 +71,14 @@ export default function SettingsComponent() {
 
   const handleChange = (field: keyof Settings, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const hasChanges = () => {
+    if (!originalSettings) return false;
+    return Object.keys(settings).some(key => {
+      const k = key as keyof Settings;
+      return settings[k] !== originalSettings[k];
+    });
   };
 
   if (loading) {
@@ -324,7 +335,7 @@ export default function SettingsComponent() {
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !hasChanges()}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Settings'}
