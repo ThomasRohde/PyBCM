@@ -219,5 +219,11 @@ export const ApiClient = {
   getLayout: async (nodeId: number): Promise<LayoutModel> => {
     const response = await api.get<LayoutModel>(`/api/layout/${nodeId}`);
     return response.data;
+  },
+
+  // Format operations
+  formatNode: async (nodeId: number, format: string): Promise<Blob> => {
+    const response = await api.post(`/api/format/${nodeId}`, { format }, { responseType: 'blob' });
+    return response.data;
   }
 };

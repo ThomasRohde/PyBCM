@@ -11,7 +11,54 @@ export const Visualize: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [model, setModel] = useState<LayoutModel | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState('markdown');
+  const [exporting, setExporting] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  const formats = [
+    { value: 'archimate', label: 'ArchiMate' },
+    { value: 'powerpoint', label: 'PowerPoint' },
+    { value: 'svg', label: 'SVG' },
+    { value: 'markdown', label: 'Markdown' },
+    { value: 'word', label: 'Word' },
+    { value: 'html', label: 'HTML' },
+    { value: 'mermaid', label: 'Mermaid' },
+    { value: 'plantuml', label: 'PlantUML' }
+  ];
+
+  const handleExport = async () => {
+    if (!id) return;
+    setExporting(true);
+    try {
+      const blob = await ApiClient.formatNode(Number(id), selectedFormat);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `capability_${id}.${getFileExtension(selectedFormat)}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const getFileExtension = (format: string): string => {
+    switch (format) {
+      case 'powerpoint': return 'pptx';
+      case 'word': return 'docx';
+      case 'archimate': return 'xml';
+      case 'svg': return 'svg';
+      case 'markdown': return 'md';
+      case 'html': return 'html';
+      case 'mermaid': return 'html';
+      case 'plantuml': return 'puml';
+      default: return format;
+    }
+  };
 
   // Handle mouse movement for tooltip positioning
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -199,6 +246,30 @@ export const Visualize: React.FC = () => {
           </svg>
           Back
         </button>
+        <div className="flex items-center gap-4">
+          <select
+            value={selectedFormat}
+            onChange={(e) => setSelectedFormat(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {formats.map(format => (
+              <option key={format.value} value={format.value}>
+                {format.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className={`px-4 py-2 rounded-md text-white ${
+              exporting 
+                ? 'bg-blue-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {exporting ? 'Exporting...' : 'Export'}
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto">
         <div className="min-h-full w-full p-10">
