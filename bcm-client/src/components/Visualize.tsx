@@ -52,12 +52,12 @@ export const Visualize: React.FC = () => {
       <ReactMarkdown 
         className="markdown-content"
         components={{
-          p: ({node, ...props}) => <p className="mb-2" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-          li: ({node, ...props}) => <li className="mb-1" {...props} />,
-          a: ({node, ...props}) => <a className="text-blue-300 hover:underline" {...props} />,
-          code: ({node, ...props}) => <code className="bg-black/30 px-1 rounded" {...props} />,
+          p: (props) => <p className="mb-2" {...props} />,
+          ul: (props) => <ul className="list-disc ml-4 mb-2" {...props} />,
+          ol: (props) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+          li: (props) => <li className="mb-1" {...props} />,
+          a: (props) => <a className="text-blue-300 hover:underline" {...props} />,
+          code: (props) => <code className="bg-black/30 px-1 rounded" {...props} />,
         }}
       >
         {description}
@@ -220,11 +220,9 @@ export const Visualize: React.FC = () => {
       </div>
       <div 
         ref={tooltipRef} 
-        className="fixed hidden bg-black/80 text-white p-3 rounded-lg max-w-md pointer-events-none" 
+        className="fixed hidden bg-white text-black p-3 rounded-lg max-w-6xl pointer-events-none shadow-lg" 
         style={{ 
-          zIndex: 10000,
-          maxHeight: '400px',
-          overflowY: 'auto'
+          zIndex: 10000
         }}
       />
     </div>
