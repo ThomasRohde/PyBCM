@@ -1,4 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ApiClient } from '../api/client';
@@ -84,8 +87,90 @@ export const DraggableCapability: React.FC<Props> = ({
     setCurrentDropTarget,
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const { capabilities } = useApp();
+
+  // Create tooltip container on mount
+  useEffect(() => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    setTooltipContainer(container);
+
+    return () => {
+      document.body.removeChild(container);
+    };
+  }, []);
+
+  // Handle mouse movement for tooltip positioning
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!tooltipRef.current) return;
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // Position tooltip to the right of the cursor
+    let left = rect.right + 10;
+    let top = rect.top;
+
+    // Check if tooltip would go off right edge of screen
+    if (left + tooltipRef.current.offsetWidth > window.innerWidth) {
+      // Position to the left of the cursor instead
+      left = rect.left - tooltipRef.current.offsetWidth - 10;
+    }
+
+    // Check if tooltip would go off bottom of viewport
+    if (top + tooltipRef.current.offsetHeight > viewportHeight) {
+      // Position above the cursor
+      top = viewportHeight - tooltipRef.current.offsetHeight - 10;
+    }
+
+    tooltipRef.current.style.left = `${left}px`;
+    tooltipRef.current.style.top = `${top}px`;
+  };
+
+  // Handle mouse enter for showing tooltip
+  const handleNodeMouseEnter = (e: React.MouseEvent, name: string, description: string) => {
+    if (!tooltipRef.current || !description) return;
+    
+    // Clear previous content and add new markdown content
+    tooltipRef.current.innerHTML = '';
+    const titleElement = document.createElement('div');
+    titleElement.className = 'font-semibold mb-1';
+    titleElement.textContent = name;
+    tooltipRef.current.appendChild(titleElement);
+    
+    const descriptionContainer = document.createElement('div');
+    tooltipRef.current.appendChild(descriptionContainer);
+    
+    // Use ReactDOM to render the markdown component
+    const root = createRoot(descriptionContainer);
+    root.render(
+      <ReactMarkdown 
+        className="markdown-content"
+        components={{
+          p: (props) => <p className="mb-2" {...props} />,
+          ul: (props) => <ul className="list-disc ml-4 mb-2" {...props} />,
+          ol: (props) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+          li: (props) => <li className="mb-1" {...props} />,
+          a: (props) => <a className="text-blue-300 hover:underline" {...props} />,
+          code: (props) => <code className="bg-black/30 px-1 rounded" {...props} />,
+        }}
+      >
+        {description}
+      </ReactMarkdown>
+    );
+    
+    tooltipRef.current.style.display = 'block';
+    handleMouseMove(e);
+  };
+
+  // Handle mouse leave for hiding tooltip
+  const handleNodeMouseLeave = () => {
+    if (tooltipRef.current) {
+      tooltipRef.current.style.display = 'none';
+    }
+  };
 
   const directLockingUser = activeUsers.find(u => 
     u.locked_capabilities.includes(capability.id)
@@ -222,7 +307,8 @@ export const DraggableCapability: React.FC<Props> = ({
   drag(drop(ref));
 
   return (
-    <div className="relative">
+    <>
+      <div className="relative">
       {isOver && currentDropTarget?.capabilityId === capability.id && (
         <div className="absolute top-0 left-0 w-full flex items-center justify-center pointer-events-none z-10">
           <span className={`text-sm font-bold px-2 py-1 rounded ${canDrop ? 
@@ -285,7 +371,9 @@ export const DraggableCapability: React.FC<Props> = ({
               <div className="flex-1 flex items-center">
                 <h3 
                   className={`font-medium text-gray-900 ml-2 ${isEffectivelyLocked ? 'cursor-not-allowed pointer-events-none' : ''}`}
-                  title={!isDragging && capability.description ? capability.description : undefined}
+                  onMouseEnter={(e) => handleNodeMouseEnter(e, capability.name, capability.description || '')}
+                  onMouseLeave={handleNodeMouseLeave}
+                  onMouseMove={handleMouseMove}
                 >
                   {capability.name}
                 </h3>
@@ -342,7 +430,7 @@ export const DraggableCapability: React.FC<Props> = ({
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
-                </button>
+                  </button>
                 <button
                   onClick={async () => {
                     if (!userSession) return;
@@ -479,6 +567,17 @@ export const DraggableCapability: React.FC<Props> = ({
           )}
         </div>
       </div>
-    </div>
+      </div>
+      {tooltipContainer && ReactDOM.createPortal(
+        <div 
+          ref={tooltipRef} 
+          className="fixed hidden bg-white text-black p-3 rounded-lg max-w-lg pointer-events-none shadow-lg" 
+          style={{ 
+            zIndex: 99999
+          }}
+        />,
+        tooltipContainer
+      )}
+    </>
   );
 };
