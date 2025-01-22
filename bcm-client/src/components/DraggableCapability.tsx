@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { jsonrepair } from 'jsonrepair';
 import ReactMarkdown from 'react-markdown';
 import ReactDOM from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -476,7 +477,9 @@ export const DraggableCapability: React.FC<Props> = ({
                         children?: RecursiveCapability[];
                       }>;
                       try {
-                        capabilities = JSON.parse(clipboardText);
+                        // First repair any malformed JSON
+                        const repairedJson = jsonrepair(clipboardText);
+                        capabilities = JSON.parse(repairedJson);
                       } catch {
                         toast.error('Invalid clipboard content - expected JSON capabilities list');
                         return;

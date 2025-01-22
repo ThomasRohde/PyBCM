@@ -106,7 +106,7 @@ export const CapabilityTree: React.FC = () => {
         await updateCapability(editingCapability.id, name, description);
         setEditingCapability(undefined);
       } else {
-        await createCapability(name);
+        await createCapability(name, description, null);
         setShowNewModal(false);
       }
     } catch (error) {
