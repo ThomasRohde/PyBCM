@@ -25,6 +25,7 @@ interface AppContextType {
   ) => Promise<void>;
   createCapability: (
     name: string,
+    description?: string | null,
     parentId?: number | null
   ) => Promise<void>;
   deleteCapability: (capabilityId: number) => Promise<void>;
@@ -201,12 +202,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const createCapability = async (name: string, parentId?: number | null) => {
+  const createCapability = async (name: string, description?: string | null, parentId?: number | null) => {
     if (!userSession) return;
 
     try {
       await ApiClient.createCapability(
-        { name, parent_id: parentId },
+        { name, description, parent_id: parentId },
         userSession.session_id
       );
       await refreshCapabilities();
