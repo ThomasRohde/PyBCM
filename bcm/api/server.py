@@ -667,6 +667,27 @@ async def format_node(
 
     return format_capability(node_id, format_request.format, layout_model, settings)
 
+@api_app.post("/clearlocks")
+async def clear_all_locks(session_id: str):
+    """Clear all capability locks and notify users."""
+    if session_id not in active_users:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get the user who initiated the clear
+    current_user = active_users[session_id]
+    
+    # Clear all locks from all users
+    for user in active_users.values():
+        user["locked_capabilities"] = []
+    
+    # Broadcast the clear locks action
+    await manager.broadcast_model_change(
+        current_user["nickname"],
+        "cleared all capability locks"
+    )
+    
+    return {"message": "All capability locks cleared"}
+
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
     parent_id: Optional[int] = None,

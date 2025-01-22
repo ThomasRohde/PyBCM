@@ -7,7 +7,14 @@ export default function BackButton() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Backspace' && location.pathname !== '/') {
+      // Don't trigger navigation if we're in an input field or select element
+      const target = e.target as HTMLElement;
+      const isEditingField = target.tagName === 'INPUT' || 
+                            target.tagName === 'SELECT' || 
+                            target.tagName === 'TEXTAREA' ||
+                            target.isContentEditable;
+      
+      if (e.key === 'Backspace' && location.pathname !== '/' && !isEditingField) {
         navigate(-1);
       }
     };
