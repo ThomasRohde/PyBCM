@@ -311,14 +311,27 @@ async def get_active_users():
 
 @api_app.delete("/users/{session_id}")
 async def remove_user_session(session_id: str):
-    """Remove a user session."""
+    """Remove a user session and clear any locks held by the user."""
     if session_id not in active_users:
         raise HTTPException(status_code=404, detail="Session not found")
-    nickname = active_users[session_id]["nickname"]
+    
+    # Get user info before removing
+    user = active_users[session_id]
+    nickname = user["nickname"]
+    
+    # Clear any locks held by the user
+    if user["locked_capabilities"]:
+        user["locked_capabilities"] = []
+        # Broadcast that locks were cleared
+        await manager.broadcast_model_change(nickname, "cleared their capability locks")
+    
+    # Remove the user session
     del active_users[session_id]
+    
     # Broadcast user left event
     await manager.broadcast_user_event(nickname, "left")
-    return {"message": "Session removed"}
+    
+    return {"message": "Session removed and locks cleared"}
 
 @api_app.post("/capabilities/lock/{capability_id}")
 async def lock_capability(capability_id: int, nickname: str, db: AsyncSession = Depends(get_db)):
