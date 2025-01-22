@@ -293,6 +293,10 @@ async def update_settings(settings_update: SettingsModel):
 @api_app.post("/users", response_model=UserSession)
 async def create_user_session(user: User):
     """Create a new user session."""
+    # Check if nickname is already in use
+    if any(session["nickname"] == user.nickname for session in active_users.values()):
+        raise HTTPException(status_code=409, detail="Nickname is already in use")
+    
     session_id = str(uuid.uuid4())
     session = {
         "session_id": session_id,

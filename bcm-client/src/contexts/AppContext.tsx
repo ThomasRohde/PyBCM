@@ -127,26 +127,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error: unknown) {
       console.error('Failed to create user session:', error);
       if (error && typeof error === 'object' && 'response' in error) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         const axiosError = error as { 
           response: { 
-            data: unknown; 
-            status: number; 
-            headers: unknown; 
+            data: { detail?: string }; 
+            status: number;
           } 
         };
-        console.error('Error response:', {
-          data: axiosError.response.data,
-          status: axiosError.response.status,
-          headers: axiosError.response.headers
-        });
-      } else if (error && typeof error === 'object' && 'request' in error) {
-        // The request was made but no response was received
-        console.error('No response received:', (error as { request: unknown }).request);
+        
+        if (axiosError.response.status === 409) {
+          // Show user-friendly error for nickname conflict
+          toast.error('This nickname is already in use. Please choose a different one.', {
+            duration: 4000,
+            position: 'bottom-right',
+            style: {
+              background: '#EF4444',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: '8px',
+            },
+          });
+        } else {
+          // Show generic error for other cases
+          toast.error('Failed to create user session. Please try again.', {
+            duration: 4000,
+            position: 'bottom-right',
+          });
+        }
       } else if (error instanceof Error) {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error setting up request:', error.message);
+        toast.error('Connection error. Please try again.', {
+          duration: 4000,
+          position: 'bottom-right',
+        });
       }
       throw error;
     }
