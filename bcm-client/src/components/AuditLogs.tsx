@@ -10,8 +10,6 @@ export default function AuditLogs() {
   const [error, setError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'operation' | 'capability_name'>('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [selectedOperations, setSelectedOperations] = useState<string[]>([]);
-
   const operationLabels: Record<string, string> = {
     'CREATE': 'Created',
     'ID_ASSIGN': 'ID Assignment',
@@ -20,6 +18,10 @@ export default function AuditLogs() {
     'MOVE': 'Moved',
     'IMPORT': 'Imported'
   };
+
+  const [selectedOperations, setSelectedOperations] = useState<string[]>(
+    Object.keys(operationLabels).filter(op => op !== 'ID_ASSIGN')
+  );
 
   useEffect(() => {
     const fetchLogs = async () => {

@@ -19,6 +19,7 @@ from bcm.models import (
     TemplateSettings,
     get_db,
     AsyncSessionLocal,
+    init_db,
 )
 from bcm.layout_manager import process_layout
 from bcm.api.export_handler import format_capability
@@ -49,6 +50,9 @@ def get_all_ipv4_addresses():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
+    # Initialize database
+    await init_db()
+    
     # Get port from uvicorn command arguments
     import sys
     port = 8080  # Default port
