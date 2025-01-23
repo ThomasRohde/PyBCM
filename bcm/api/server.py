@@ -22,6 +22,7 @@ from bcm.models import (
 )
 from bcm.layout_manager import process_layout
 from bcm.api.export_handler import format_capability
+from bcm.api.logs import get_logs
 from bcm.settings import Settings
 from bcm.database import DatabaseOperations
 import uuid
@@ -258,6 +259,15 @@ class FormatRequest(BaseModel):
 
 class ImportData(BaseModel):
     data: List[dict]
+
+class AuditLogEntry(BaseModel):
+    timestamp: str
+    operation: str
+    capability_name: str
+    capability_id: Optional[int] = None
+    old_values: Optional[dict] = None
+    new_values: Optional[dict] = None
+
 
 @api_app.get("/settings", response_model=SettingsModel)
 async def get_settings():
@@ -783,6 +793,15 @@ async def clear_all_locks(session_id: str):
     )
     
     return {"message": "All capability locks cleared"}
+
+@api_app.get("/logs", response_model=List[AuditLogEntry])
+async def get_audit_logs():
+    """Get all audit logs."""
+    try:
+        logs = await get_logs(db_ops)
+        return logs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
