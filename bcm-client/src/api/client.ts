@@ -238,5 +238,10 @@ export const ApiClient = {
   getLogs: async (): Promise<AuditLogEntry[]> => {
     const response = await api.get<AuditLogEntry[]>('/api/logs');
     return response.data;
+  },
+
+  // Reset database and clear locks
+  resetDatabase: async (sessionId: string): Promise<void> => {
+    await api.post(`/api/reset?session_id=${sessionId}`);
   }
 };
