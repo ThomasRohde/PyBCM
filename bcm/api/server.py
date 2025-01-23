@@ -808,6 +808,31 @@ async def get_audit_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_app.post("/reset")
+async def reset_database(session_id: str):
+    """Reset database and clear locks but preserve sessions and users."""
+    if session_id not in active_users:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    try:
+        # Clear all capabilities
+        await db_ops.clear_all_capabilities()
+        
+        # Clear all locks from users while preserving sessions
+        for user in active_users.values():
+            user["locked_capabilities"] = []
+            
+        # Broadcast the reset action
+        await manager.broadcast_model_change(
+            active_users[session_id]["nickname"],
+            "reset database and cleared all locks"
+        )
+        
+        return {"message": "Database reset and locks cleared successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_app.get("/capabilities", response_model=List[dict])
 async def get_capabilities(
     parent_id: Optional[int] = None,
