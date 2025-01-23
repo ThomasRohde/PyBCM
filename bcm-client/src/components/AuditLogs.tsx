@@ -10,6 +10,16 @@ export default function AuditLogs() {
   const [error, setError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'operation' | 'capability_name'>('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedOperations, setSelectedOperations] = useState<string[]>([]);
+
+  const operationLabels: Record<string, string> = {
+    'CREATE': 'Created',
+    'ID_ASSIGN': 'ID Assignment',
+    'UPDATE': 'Updated',
+    'DELETE': 'Deleted',
+    'MOVE': 'Moved',
+    'IMPORT': 'Imported'
+  };
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -93,11 +103,13 @@ export default function AuditLogs() {
 
   const sortedAndFilteredLogs = logs.filter(log => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       log.capability_name.toLowerCase().includes(searchLower) ||
       log.operation.toLowerCase().includes(searchLower) ||
       formatChanges(log).toLowerCase().includes(searchLower)
     );
+    const matchesOperation = selectedOperations.length === 0 || selectedOperations.includes(log.operation);
+    return matchesSearch && matchesOperation;
   }).sort((a, b) => {
     let comparison = 0;
     
@@ -135,7 +147,7 @@ export default function AuditLogs() {
   return (
     <div className="container mx-auto p-4">
       <BackButton />
-      <div className="mb-4">
+      <div className="space-y-4 mb-4">
         <input
           type="text"
           placeholder="Search logs..."
@@ -143,6 +155,26 @@ export default function AuditLogs() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        
+        <div className="flex flex-wrap gap-4">
+          {Object.entries(operationLabels).map(([operation, label]) => (
+            <label key={operation} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={selectedOperations.includes(operation)}
+                onChange={(e) => {
+                  setSelectedOperations(prev =>
+                    e.target.checked
+                      ? [...prev, operation]
+                      : prev.filter(op => op !== operation)
+                  );
+                }}
+                className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -186,7 +218,7 @@ export default function AuditLogs() {
                   {new Date(log.timestamp).toLocaleString()}
                 </td>
                 <td className="px-4 py-2 border-b whitespace-nowrap">
-                  {log.operation}
+                  {operationLabels[log.operation] || log.operation}
                 </td>
                 <td className="px-4 py-2 border-b">
                   {log.capability_name}
