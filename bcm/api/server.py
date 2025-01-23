@@ -22,7 +22,6 @@ from bcm.models import (
 )
 from bcm.layout_manager import process_layout
 from bcm.api.export_handler import format_capability
-from bcm.api.logs import get_logs
 from bcm.settings import Settings
 from bcm.database import DatabaseOperations
 import uuid
@@ -797,9 +796,11 @@ async def clear_all_locks(session_id: str):
 @api_app.get("/logs", response_model=List[AuditLogEntry])
 async def get_audit_logs():
     """Get all audit logs."""
+    
     try:
-        logs = await get_logs(db_ops)
+        logs = await db_ops.export_audit_logs()
         return logs
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
