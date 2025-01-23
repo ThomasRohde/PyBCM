@@ -68,6 +68,15 @@ export default function BurgerMenu() {
               </Link>
             </li>
             <li>
+              <Link 
+                to="/audit-logs" 
+                className="block px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                onClick={() => setIsOpen(false)}
+              >
+                Audit Logs
+              </Link>
+            </li>
+            <li>
               <button
                 onClick={async () => {
                   try {
