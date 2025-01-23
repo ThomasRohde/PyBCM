@@ -9,7 +9,8 @@ import type {
   PromptUpdate,
   CapabilityContextResponse,
   Settings,
-  LayoutModel
+  LayoutModel,
+  AuditLogEntry
 } from '../types/api';
 
 // In development, use the Vite dev server port
@@ -231,5 +232,11 @@ export const ApiClient = {
   // Clear all capability locks
   clearLocks: async (sessionId: string): Promise<void> => {
     await api.post(`/api/clearlocks?session_id=${sessionId}`);
+  },
+
+  // Get audit logs
+  getLogs: async (): Promise<AuditLogEntry[]> => {
+    const response = await api.get<AuditLogEntry[]>('/api/logs');
+    return response.data;
   }
 };

@@ -63,6 +63,25 @@ export interface TemplateSettings {
   available: string[];
 }
 
+export interface AuditLogEntry {
+  timestamp: string;
+  operation: string;
+  capability_name: string;
+  capability_id?: number;
+  old_values?: {
+    name?: string;
+    description?: string | null;
+    parent_id?: number | null;
+    parent_name?: string;
+  };
+  new_values?: {
+    name?: string;
+    description?: string | null;
+    parent_id?: number | null;
+    parent_name?: string;
+  };
+}
+
 export interface Settings {
   theme: string;
   max_ai_capabilities: number;
