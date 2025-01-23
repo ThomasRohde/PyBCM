@@ -1,28 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ApiClient } from '../api/client';
 import { useApp } from '../contexts/AppContext';
 
 export default function BurgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { userSession } = useApp();
+  const location = useLocation();
+  const isRootPath = location.pathname === '/';
 
   return (
     <>
-      <button
-        aria-label="Open main menu"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 p-2 text-gray-600 hover:text-gray-900 focus:outline-none z-50"
-      >
-        {/* Hamburger icon */}
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" 
-             viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" 
-                strokeWidth="2" 
-                d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      <div className="fixed top-4 left-4 flex items-center z-50">
+        <button
+          aria-label="Open main menu"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+        >
+          {/* Hamburger icon */}
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" 
+               viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h1 className={`text-2xl font-bold text-gray-900 ${isRootPath ? 'ml-2' : 'ml-20'}`}>
+          Business Capability Modeler
+        </h1>
+      </div>
 
       {/* Overlay */}
       <div 
