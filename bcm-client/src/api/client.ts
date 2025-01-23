@@ -31,10 +31,11 @@ class WebSocketManager {
   private onModelChangeCallbacks: Set<(user: string, action: string) => void> = new Set();
   private onUserEventCallbacks: Set<(user: string, event: string) => void> = new Set();
 
-  connect() {
+  connect(sessionId?: string) {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    this.ws = new WebSocket(WS_URL);
+    const wsUrl = sessionId ? `${WS_URL}/${sessionId}` : WS_URL;
+    this.ws = new WebSocket(wsUrl);
     
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
