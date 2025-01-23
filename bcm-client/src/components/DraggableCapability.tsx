@@ -89,7 +89,14 @@ export const DraggableCapability: React.FC<Props> = ({
   } = useApp();
   const [isExpanded, setIsExpanded] = useState(true);
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+
+  // Update local expanded state when global state changes
+  useEffect(() => {
+    if (globalExpanded !== undefined) {
+      setIsExpanded(globalExpanded);
+    }
+  }, [globalExpanded]);
 
   const { capabilities } = useApp();
 
