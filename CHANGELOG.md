@@ -3,23 +3,15 @@
 ## [Unreleased]
 
 ### Added
-- Added PlantUML mindmap export functionality
-  - New export option in File menu
-  - Exports capability model as PlantUML mindmap
-  - Smart word wrapping with MaximumWidth parameter
-  - Even distribution of concepts using +/- syntax
-  - Color-coded nodes based on hierarchy level
-  - Added Ctrl+D shortcut to copy PlantUML diagram to clipboard
-  - Proper indentation with repeated +/- markers
+- Automatic cleanup of user sessions and capability locks when browsers are closed unexpectedly
+- Session tracking in WebSocket connections for better connection management
+- Improved error handling for WebSocket disconnections
 
-- Added Mermaid mindmap export functionality
-  - New export option in File menu
-  - Exports capability model as an interactive Mermaid mindmap
-  - Generates HTML file with embedded Mermaid.js for visualization
-  - Added Ctrl+M shortcut to copy Mermaid diagram to clipboard
-  - Enhanced node visualization with depth-based shapes:
-    - Root nodes use cloud shape
-    - Level 1 nodes use hexagon shape
-    - Level 2 nodes use rounded square shape
-    - Level 3+ nodes use square shape
-  - Automatic line breaks for long node labels to improve readability
+### Changed
+- Modified WebSocket connection to include session ID for proper session management
+- Enhanced ConnectionManager to track session-websocket mappings
+- Updated client-side WebSocket connection logic to support session-based connections
+
+### Fixed
+- Issue with orphaned locks when users close their browsers without logging out
+- Improved session cleanup on unexpected disconnections

@@ -123,17 +123,38 @@ async def serve_spa_routes(full_path: str):
 # WebSocket connections manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Set[WebSocket] = set()
+        self.active_connections: Dict[str, WebSocket] = {}  # session_id -> websocket
+        self.session_to_user: Dict[str, str] = {}  # session_id -> nickname
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, session_id: str, nickname: str):
         await websocket.accept()
-        self.active_connections.add(websocket)
+        self.active_connections[session_id] = websocket
+        self.session_to_user[session_id] = nickname
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, session_id: str) -> Optional[str]:
+        """Disconnect a session and return the user's nickname if found"""
+        if session_id in self.active_connections:
+            del self.active_connections[session_id]
+        
+        nickname = None
+        if session_id in self.session_to_user:
+            nickname = self.session_to_user[session_id]
+            del self.session_to_user[session_id]
+            
+        # Clean up user session and locks
+        if session_id in active_users:
+            if not nickname:
+                nickname = active_users[session_id]["nickname"]
+            # Clear any locks held by the user
+            if active_users[session_id]["locked_capabilities"]:
+                active_users[session_id]["locked_capabilities"] = []
+            del active_users[session_id]
+            
+        return nickname
 
     async def broadcast_model_change(self, user_nickname: str, action: str):
-        for connection in self.active_connections:
+        disconnected_sessions = []
+        for session_id, connection in self.active_connections.items():
             try:
                 await connection.send_json({
                     "type": "model_changed",
@@ -141,10 +162,27 @@ class ConnectionManager:
                     "action": action
                 })
             except WebSocketDisconnect:
-                self.disconnect(connection)
+                disconnected_sessions.append(session_id)
+        
+        # Clean up any disconnected sessions
+        for session_id in disconnected_sessions:
+            nickname = self.disconnect(session_id)
+            if nickname:
+                # Recursively broadcast that user left, but skip disconnected sessions
+                active_connections = dict(self.active_connections)  # Make a copy
+                for conn in active_connections.values():
+                    try:
+                        await conn.send_json({
+                            "type": "user_event",
+                            "user": nickname,
+                            "event": "left"
+                        })
+                    except WebSocketDisconnect:
+                        pass
 
     async def broadcast_user_event(self, user_nickname: str, event_type: str):
-        for connection in self.active_connections:
+        disconnected_sessions = []
+        for session_id, connection in self.active_connections.items():
             try:
                 await connection.send_json({
                     "type": "user_event",
@@ -152,18 +190,44 @@ class ConnectionManager:
                     "event": event_type
                 })
             except WebSocketDisconnect:
-                self.disconnect(connection)
+                disconnected_sessions.append(session_id)
+        
+        # Clean up any disconnected sessions
+        for session_id in disconnected_sessions:
+            nickname = self.disconnect(session_id)
+            if nickname and nickname != user_nickname:  # Avoid recursive broadcast for same user
+                # Recursively broadcast that user left, but skip disconnected sessions
+                active_connections = dict(self.active_connections)  # Make a copy
+                for conn in active_connections.values():
+                    try:
+                        await conn.send_json({
+                            "type": "user_event",
+                            "user": nickname,
+                            "event": "left"
+                        })
+                    except WebSocketDisconnect:
+                        pass
 
 manager = ConnectionManager()
 
-@api_app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+@api_app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    # Verify session exists
+    if session_id not in active_users:
+        await websocket.close(code=4000)
+        return
+        
+    nickname = active_users[session_id]["nickname"]
+    await manager.connect(websocket, session_id, nickname)
+    
     try:
         while True:
             await websocket.receive_text()  # Keep connection alive
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        nickname = manager.disconnect(session_id)
+        if nickname:
+            # Broadcast user left event
+            await manager.broadcast_user_event(nickname, "left")
 
 
 # Initialize database operations

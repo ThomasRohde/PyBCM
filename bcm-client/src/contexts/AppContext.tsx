@@ -71,7 +71,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       useEffect(() => {
         if (userSession) {
           // Connect WebSocket
-          wsManager.connect();
+          wsManager.connect(userSession.session_id);
           
           // Set up model change handler
           const unsubscribeModel = wsManager.onModelChange((user, action) => {
