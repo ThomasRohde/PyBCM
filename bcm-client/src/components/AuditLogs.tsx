@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { AuditLogEntry } from '../types/api';
+import BackButton from './BackButton';
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -106,6 +107,7 @@ export default function AuditLogs() {
 
   return (
     <div className="container mx-auto p-4">
+      <BackButton />
       <div className="mb-4">
         <input
           type="text"
