@@ -8,6 +8,8 @@ export default function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<'timestamp' | 'operation' | 'capability_name'>('timestamp');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -80,13 +82,38 @@ export default function AuditLogs() {
     return changes.join(' | ');
   };
 
-  const filteredLogs = logs.filter(log => {
+  const handleSort = (column: 'timestamp' | 'operation' | 'capability_name') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedAndFilteredLogs = logs.filter(log => {
     const searchLower = searchTerm.toLowerCase();
     return (
       log.capability_name.toLowerCase().includes(searchLower) ||
       log.operation.toLowerCase().includes(searchLower) ||
       formatChanges(log).toLowerCase().includes(searchLower)
     );
+  }).sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortColumn) {
+      case 'timestamp':
+        comparison = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        break;
+      case 'operation':
+        comparison = a.operation.localeCompare(b.operation);
+        break;
+      case 'capability_name':
+        comparison = a.capability_name.localeCompare(b.capability_name);
+        break;
+    }
+
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   if (loading) {
@@ -122,14 +149,38 @@ export default function AuditLogs() {
         <table className="min-w-full bg-white border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              <th className="px-4 py-2 text-left border-b">Timestamp</th>
-              <th className="px-4 py-2 text-left border-b">Operation</th>
-              <th className="px-4 py-2 text-left border-b">Capability</th>
+              <th 
+                className="px-4 py-2 text-left border-b cursor-pointer hover:bg-gray-200 min-w-[140px]"
+                onClick={() => handleSort('timestamp')}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Timestamp</span>
+                  {sortColumn === 'timestamp' && <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-2 text-left border-b cursor-pointer hover:bg-gray-200 min-w-[120px]"
+                onClick={() => handleSort('operation')}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Operation</span>
+                  {sortColumn === 'operation' && <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-2 text-left border-b cursor-pointer hover:bg-gray-200 min-w-[140px]"
+                onClick={() => handleSort('capability_name')}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Capability</span>
+                  {sortColumn === 'capability_name' && <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                </div>
+              </th>
               <th className="px-4 py-2 text-left border-b">Changes</th>
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map((log, index) => (
+            {sortedAndFilteredLogs.map((log, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-4 py-2 border-b whitespace-nowrap">
                   {new Date(log.timestamp).toLocaleString()}
