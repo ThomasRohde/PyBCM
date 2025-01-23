@@ -245,6 +245,18 @@ async def init_db():
             await session.commit()
 
 
+async def reset_db():
+    """Reset the database by dropping and recreating all tables."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+        
+    # Re-enable foreign keys
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("PRAGMA foreign_keys = ON"))
+        await session.commit()
+
+
 async def get_db():
     """Get an async database session."""
     async with AsyncSessionLocal() as session:
