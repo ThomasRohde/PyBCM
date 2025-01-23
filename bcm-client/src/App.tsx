@@ -4,6 +4,7 @@ import { useApp } from './contexts/AppContext';
 import { ApiClient } from './api/client';
 import { CapabilityTree } from './components/CapabilityTree';
 import { Visualize } from './components/Visualize';
+import AuditLogs from './components/AuditLogs';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import BurgerMenu from './components/BurgerMenu';
@@ -193,6 +194,43 @@ const MainApp: React.FC = () => {
               </header>
               <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <SettingsComponent />
+              </main>
+            </div>
+          }
+        />
+        <Route
+          path="/audit-logs"
+          element={
+            <div className="min-h-screen bg-gray-50">
+              <BurgerMenu />
+              <header className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-4 ml-auto">
+                      <div className="text-sm text-gray-600">
+                        Active users: {activeUsers.length}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Logged in as: {userSession.nickname}
+                      </div>
+                      <button
+                        onClick={() => ApiClient.clearLocks(userSession.session_id)}
+                        className="px-3 py-2 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                      >
+                        Clear Locks
+                      </button>
+                      <button
+                        onClick={logout}
+                        className="px-3 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <AuditLogs />
               </main>
             </div>
           }
