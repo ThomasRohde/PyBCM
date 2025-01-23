@@ -436,10 +436,15 @@ async def lock_capability(capability_id: int, nickname: str, db: AsyncSession = 
     
     # No ancestor locks found, proceed with locking
     user_session["locked_capabilities"].append(capability_id)
+    # Broadcast lock change
+    await manager.broadcast_model_change(
+        user_session["nickname"],
+        f"locked capability '{capability.name}'"
+    )
     return {"message": "Capability locked"}
 
 @api_app.post("/capabilities/unlock/{capability_id}")
-async def unlock_capability(capability_id: int, nickname: str):
+async def unlock_capability(capability_id: int, nickname: str, db: AsyncSession = Depends(get_db)):
     """Unlock a capability."""
     # Find user by nickname
     user_session = next((session for session in active_users.values() if session["nickname"] == nickname), None)
@@ -447,7 +452,17 @@ async def unlock_capability(capability_id: int, nickname: str):
         raise HTTPException(status_code=404, detail="User not found")
     
     if capability_id in user_session["locked_capabilities"]:
+        # Get capability name before unlocking
+        capability = await db_ops.get_capability(capability_id, db)
+        if not capability:
+            raise HTTPException(status_code=404, detail="Capability not found")
+            
         user_session["locked_capabilities"].remove(capability_id)
+        # Broadcast unlock change
+        await manager.broadcast_model_change(
+            user_session["nickname"],
+            f"unlocked capability '{capability.name}'"
+        )
         return {"message": "Capability unlocked"}
     
     raise HTTPException(status_code=404, detail="Capability not locked by this user")
