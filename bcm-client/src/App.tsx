@@ -92,10 +92,7 @@ const MainApp: React.FC = () => {
               <BurgerMenu />
               <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-                  <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-gray-900 pl-8">
-                      Business Capability ModelerI
-                    </h1>
+                  <div className="flex justify-end items-center">
                     <div className="flex items-center space-x-4">
                       <div className="text-sm text-gray-600">
                         Active users: {activeUsers.length}
@@ -132,8 +129,8 @@ const MainApp: React.FC = () => {
               <BurgerMenu />
               <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4 ml-auto">
+                  <div className="flex justify-end items-center">
+                    <div className="flex items-center space-x-4">
                       <div className="text-sm text-gray-600">
                         Active users: {activeUsers.length}
                       </div>
@@ -169,8 +166,8 @@ const MainApp: React.FC = () => {
               <BurgerMenu />
               <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4 ml-auto">
+                  <div className="flex justify-end items-center">
+                    <div className="flex items-center space-x-4">
                       <div className="text-sm text-gray-600">
                         Active users: {activeUsers.length}
                       </div>
